@@ -80,7 +80,8 @@ class UserProfileHeader: UICollectionViewCell {
     }
     
     fileprivate func setupBottomToolBar() {
-        let stackView = UIStackView(arrangedSubviews: [gridButton, listButton])
+        //        let stackView = UIStackView(arrangedSubviews: [gridButton, listButton])
+        let stackView = UIStackView(arrangedSubviews: [gridButton])
         addSubview(stackView)
         stackView.axis = .horizontal
         stackView.distribution = .fillEqually

@@ -24,7 +24,6 @@ struct RedditClient {
     }
     
     typealias PostsHandler = ([Post], String?) -> Void
-    
     static func fetchPosts(url: String, after: String, completion: @escaping PostsHandler) {
         if let url = URL(string: url) {
             URLSession.shared.dataTask(with: url) { data, response, error in
@@ -65,5 +64,23 @@ struct RedditClient {
                 }
             }.resume()
         }
+    }
+    
+    typealias MeHandler = (RedditMeResponse) -> Void
+    static func fetchMe(accessToken: String, completion: @escaping MeHandler) {
+        var meRequest = URLRequest(url: URL(string: RedditClient.Const.meEndpoint)!)
+        meRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        meRequest.setValue(RedditClient.Const.userAgent, forHTTPHeaderField: "User-Agent")
+        URLSession.shared.dataTask(with: meRequest) { data, response, error in
+            if let data = data {
+                do {
+                    let meResponse = try JSONDecoder().decode(RedditMeResponse.self, from: data)
+                    completion(meResponse)
+                } catch {
+                    print(error)
+                }
+                
+            }
+        }.resume()
     }
 }

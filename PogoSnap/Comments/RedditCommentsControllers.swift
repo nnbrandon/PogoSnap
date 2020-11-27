@@ -23,7 +23,7 @@ class RedditCommentsController: CommentsController {
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(RedditCommentCell.self, forCellReuseIdentifier: commentCellId)
-        tableView.backgroundColor = .white
+        tableView.backgroundColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
         tableView.keyboardDismissMode = .interactive
         tableView.alwaysBounceVertical = true
         

@@ -34,7 +34,7 @@ class SignInController: OAuthViewController {
         signInButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         signInButton.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
         signInButton.addTarget(self, action: #selector(signIn), for: .touchDown)
-        signInButton.setTitle("Sign In", for: .normal)
+        signInButton.setTitle("Sign in with Reddit", for: .normal)
     }
     
     @objc fileprivate func signIn() {

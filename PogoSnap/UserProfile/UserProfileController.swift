@@ -10,7 +10,17 @@ import OAuthSwift
 import KeychainAccess
 
 class UserProfileController: UICollectionViewController {
+    
+    struct Const {
+        static let cellId = "cellId"
+        static let headerId = "headerId"
+        static let username = "username"
+        static let icon_img = "icon_img"
+        static let accessToken = "accessToken"
+        static let refreshToken = "refreshToken"
+    }
 
+    var usernameProp: String?
     var posts = [Post]() {
         didSet {
             DispatchQueue.main.async {
@@ -19,31 +29,38 @@ class UserProfileController: UICollectionViewController {
         }
     }
     var after = ""
-    
-    let cellId = "cellId"
+
     let keychain = Keychain(service: "com.PogoSnap")
+    let defaults = UserDefaults.standard
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         collectionView.backgroundColor = .white
-        collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "headerId")
-        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: cellId)
+        collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
+        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)
         
-        if keychain["accessToken"] == nil {
+        if keychain[Const.accessToken] == nil {
             showSignInVC()
         } else {
-            navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
+            if usernameProp == nil {
+                navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
+            }
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        if let username = keychain["username"] {
+        if let usernameProp = usernameProp {
+            if posts.isEmpty {
+                print("fetching user posts... from usernameProp")
+                fetchUserPosts(username: usernameProp)
+            }
+        } else if let username = defaults.string(forKey: Const.username) {
             if posts.isEmpty {
                 print("fetching user posts...")
                 fetchUserPosts(username: username)
             }
-        } else if let accessToken = keychain["accessToken"] {
+        } else if let accessToken = keychain[Const.accessToken], usernameProp == nil {
             if children.count > 0 {
                 let viewControllers:[UIViewController] = children
                 viewControllers.last?.willMove(toParent: nil)
@@ -52,34 +69,26 @@ class UserProfileController: UICollectionViewController {
                 collectionView.isHidden = false
                 navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
             }
+            
             print("going to fetch me info and accessToken = " + accessToken)
-            var meRequest = URLRequest(url: URL(string: RedditClient.Const.meEndpoint)!)
-            meRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            meRequest.setValue(RedditClient.Const.userAgent, forHTTPHeaderField: "User-Agent")
-            URLSession.shared.dataTask(with: meRequest) { data, response, error in
-                if let data = data {
-                    do {
-                        let decoded = try JSONDecoder().decode(RedditMeResponse.self, from: data)
-                        self.keychain["username"] = decoded.name
-                        self.keychain["icon_img"] = decoded.icon_img
-                        DispatchQueue.main.async {
-                            self.collectionView.reloadData()
-                        }
-                        self.fetchUserPosts(username: decoded.name)
-                    } catch {
-                        print(error)
-                    }
-                    
+            RedditClient.fetchMe(accessToken: accessToken) { response in
+                self.defaults.setValue(response.name, forKey: Const.username)
+                self.defaults.setValue(response.icon_img, forKey: Const.icon_img)
+                DispatchQueue.main.async {
+                    self.collectionView.reloadData()
                 }
-            }.resume()
+                self.fetchUserPosts(username: response.name)
+            }
         }
     }
     
     fileprivate func fetchUserPosts(username: String) {
-        //            let redditUrl = "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
+            //            let redditUrl = "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
         
-        // For testing purposes
-        let redditUrl = "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
+            // For testing purposes
+            //            let redditUrl = "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
+        
+        let redditUrl = usernameProp != nil ? "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)" : "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
 
         RedditClient.fetchPosts(url: redditUrl, after: after) { posts, nextAfter in
             var nextPosts = self.posts
@@ -102,10 +111,12 @@ class UserProfileController: UICollectionViewController {
     @objc func handleLogout() {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
-            self.keychain["accessToken"] = nil
-            self.keychain["refreshToken"] = nil
-            self.keychain["username"] = nil
-            self.keychain["icon_img"] = nil
+            self.keychain[Const.accessToken] = nil
+            self.keychain[Const.refreshToken] = nil
+            self.defaults.removeObject(forKey: Const.username)
+            self.defaults.removeObject(forKey: Const.username)
+            self.posts = [Post]()
+            self.after = ""
             self.showSignInVC()
         }))
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
@@ -142,7 +153,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as! UserProfileCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Const.cellId, for: indexPath) as! UserProfileCell
         
         cell.photoImageView.image = UIImage()
         let post = posts[indexPath.row]
@@ -152,9 +163,11 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "headerId", for: indexPath) as! UserProfileHeader
+        let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: Const.headerId, for: indexPath) as! UserProfileHeader
 
-        if let username = keychain["username"], let icon_img = keychain["icon_img"] {
+        if let usernameProp = usernameProp {
+            header.username = usernameProp
+        } else if let username = defaults.string(forKey: Const.username), let icon_img = defaults.string(forKey: Const.icon_img) {
             header.username = username
             header.icon_img = icon_img
         }
@@ -164,5 +177,15 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
         return CGSize(width: view.frame.width, height: 200)
+    }
+    
+    override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        if indexPath.row == posts.count - 5 {
+            if let usernameProp = usernameProp {
+                fetchUserPosts(username: usernameProp)
+            } else if let username = defaults.string(forKey: Const.username) {
+                fetchUserPosts(username: username)
+            }
+        }
     }
 }

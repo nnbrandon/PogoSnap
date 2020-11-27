@@ -9,6 +9,7 @@ import UIKit
 
 protocol HomePostCellDelegate {
     func didTapComment(post: Post)
+    func didTapUsername(username: String)
 }
 
 class HomePostCell: UICollectionViewCell {
@@ -44,9 +45,12 @@ class HomePostCell: UICollectionViewCell {
         return imageView
     }()
     
-    let usernameLabel: UILabel = {
+    lazy var usernameLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 14)
+        label.isUserInteractionEnabled = true
+        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
+        label.addGestureRecognizer(guestureRecognizer)
         return label
     }()
     
@@ -75,15 +79,23 @@ class HomePostCell: UICollectionViewCell {
         return button
     }()
     
-    let titleLabel: UILabel = {
+    lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.numberOfLines = 0
+        label.isUserInteractionEnabled = true
+        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
+        label.addGestureRecognizer(guestureRecognizer)
         return label
     }()
     
     @objc fileprivate func handleComment() {
         guard let post = post else {return}
         delegate?.didTapComment(post: post)
+    }
+    
+    @objc fileprivate func handleUsername() {
+        guard let post = post else {return}
+        delegate?.didTapUsername(username: post.author)
     }
     
     override init(frame: CGRect) {
