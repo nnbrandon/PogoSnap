@@ -9,9 +9,24 @@ import UIKit
 
 class UserProfileHeader: UICollectionViewCell {
     
-    let profileImageView: UIImageView = {
-       let imageView = UIImageView()
-        imageView.image = UIImage(named: "PikachuReddit")
+    var username: String? {
+        didSet {
+            if let username = username {
+                usernameLabel.text = username
+            }
+        }
+    }
+    var icon_img: String? {
+        didSet {
+            if let icon_img = icon_img {
+                profileImageView.loadImage(urlString: icon_img)
+            }
+        }
+    }
+    
+    let profileImageView: CustomImageView = {
+       let imageView = CustomImageView()
+        imageView.image = UIImage()
         return imageView
     }()
     
@@ -39,7 +54,6 @@ class UserProfileHeader: UICollectionViewCell {
     
     let usernameLabel: UILabel = {
         let label = UILabel()
-        label.text = "HeroSekai"
         label.font = UIFont.boldSystemFont(ofSize: 14)
         return label
     }()

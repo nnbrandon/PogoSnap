@@ -45,7 +45,7 @@ class HomeController: UICollectionViewController, UICollectionViewDelegateFlowLa
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as! HomePostCell
         cell.photoImageView.image = UIImage()
-        cell.post = posts[indexPath.item]
+        cell.post = posts[indexPath.row]
         cell.delegate = self
         
         return cell
@@ -67,41 +67,11 @@ class HomeController: UICollectionViewController, UICollectionViewDelegateFlowLa
     
     fileprivate func fetchPosts() {
         let redditUrl = "https://www.reddit.com/r/Pokemongosnap/new.json?sort=new&after=" + after
-        if let url = URL(string: redditUrl) {
-            URLSession.shared.dataTask(with: url) { data, response, error in
-                if let data = data {
-                    do {
-                        var posts = [Post]()
-
-                        let decoded = try JSONDecoder().decode(RedditPostResponse.self, from: data)
-                        if let after = decoded.data.after, self.after != after {
-                            self.after = after
-                        }
-                        for child in decoded.data.children {
-                            let redditPost = child.data
-                            var imageUrl = ""
-                            if let preview = redditPost.preview {
-                                if preview.images.count != 0 {
-                                    let sourceUrl = preview.images[0].source.url
-                                    imageUrl = sourceUrl.replacingOccurrences(of: "amp;", with: "")
-                                }
-                            } else if let mediaData = redditPost.media_metadata {
-                                if mediaData.mediaImages.count != 0 {
-                                    let sourceUrl = mediaData.mediaImages[0]
-                                    imageUrl = sourceUrl.replacingOccurrences(of: "amp;", with: "")
-                                }
-                            } else {
-                                // If it does not contain images at all, do not append
-                                continue
-                            }
-                            let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
-                            let post = Post(author: redditPost.author, title: redditPost.title, imageUrl: imageUrl, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink)
-                            posts.append(post)
-                        }
-                        self.posts.append(contentsOf: posts)
-                    } catch {print(error)}
-                }
-            }.resume()
+        RedditClient.fetchPosts(url: redditUrl, after: after) { posts, nextAfter in
+            self.posts.append(contentsOf: posts)
+            if let nextAfter = nextAfter {
+                self.after = nextAfter
+            }
         }
     }
 }
