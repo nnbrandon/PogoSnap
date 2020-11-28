@@ -14,6 +14,7 @@ class CustomImageView: UIImageView {
     var lastURLUsedToLoadImage: String?
     
     func loadImage(urlString: String) {
+        backgroundColor = .lightGray
         lastURLUsedToLoadImage = urlString
         
         if let cachedImage = cache.object(forKey: NSString(string: urlString)) {

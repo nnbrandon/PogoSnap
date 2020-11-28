@@ -12,8 +12,8 @@ class UserProfileCell: UICollectionViewCell {
     var post: Post? {
         didSet {
             if let post = post {
-                if !post.imageUrl.isEmpty {
-                    photoImageView.loadImage(urlString: post.imageUrl)
+                if !post.imageUrls.isEmpty {
+                    photoImageView.loadImage(urlString: post.imageUrls[0])
                 }
             }
         }

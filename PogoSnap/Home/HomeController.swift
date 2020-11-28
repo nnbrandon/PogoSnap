@@ -8,6 +8,10 @@
 import UIKit
 
 class HomeController: UICollectionViewController, HomePostCellDelegate {
+    func didTapImage() {
+        return
+    }
+    
 
     var posts = [Post]() {
         didSet {
@@ -61,13 +65,14 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
 extension HomeController: UICollectionViewDelegateFlowLayout {
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        var height: CGFloat = 16 // title label
-        height += view.frame.width
-        height += 50
-        height += 60
+        var height = 16 + 30 + view.frame.width + 40
+        let title = posts[indexPath.row].title
+        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width, font: UIFont.boldSystemFont(ofSize: 14))
+        print(titleEstimatedHeight)
+        height += titleEstimatedHeight
         return CGSize(width: view.frame.width, height: height)
     }
-    
+
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return posts.count
     }

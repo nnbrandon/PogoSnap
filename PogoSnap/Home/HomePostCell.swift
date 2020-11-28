@@ -10,17 +10,24 @@ import UIKit
 protocol HomePostCellDelegate {
     func didTapComment(post: Post)
     func didTapUsername(username: String)
+    func didTapImage()
 }
 
-class HomePostCell: UICollectionViewCell {
+class HomePostCell: UICollectionViewCell, UIScrollViewDelegate {
     
     var delegate: HomePostCellDelegate?
         
     var post: Post? {
         didSet {
             if let post = post {
-                if !post.imageUrl.isEmpty {
-                    photoImageView.loadImage(urlString: post.imageUrl)
+                if post.imageUrls.count > 1 {
+                    photoImageView.isHidden = true
+                    photoImageSlideshow.isHidden = false
+                    photoImageSlideshow.imageUrls = post.imageUrls
+                } else {
+                    photoImageView.isHidden = false
+                    photoImageSlideshow.isHidden = true
+                    photoImageView.loadImage(urlString: post.imageUrls[0])
                 }
                 
                 usernameLabel.text = "u/" + post.author
@@ -38,11 +45,16 @@ class HomePostCell: UICollectionViewCell {
     
     let photoImageView: CustomImageView = {
         let imageView = CustomImageView()
-//        imageView.contentMode = .scaleAspectFit
+        //        imageView.contentMode = .scaleAspectFit
         // make it so that when you click, you get full image
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         return imageView
+    }()
+    
+    let photoImageSlideshow: ImageSlideshow = {
+        let slideShow = ImageSlideshow(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 400))
+        return slideShow
     }()
     
     lazy var usernameLabel: UILabel = {
@@ -81,7 +93,11 @@ class HomePostCell: UICollectionViewCell {
     
     lazy var titleLabel: UILabel = {
         let label = UILabel()
+        label.backgroundColor = .gray
         label.numberOfLines = 0
+        label.lineBreakMode = .byWordWrapping
+        label.sizeToFit()
+        label.adjustsFontSizeToFitWidth = true
         label.isUserInteractionEnabled = true
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
         label.addGestureRecognizer(guestureRecognizer)
@@ -100,6 +116,7 @@ class HomePostCell: UICollectionViewCell {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
+        backgroundColor = .green
         
         addSubview(usernameLabel)
         usernameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -112,6 +129,13 @@ class HomePostCell: UICollectionViewCell {
         photoImageView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         photoImageView.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
+        
+        addSubview(photoImageSlideshow)
+        photoImageSlideshow.translatesAutoresizingMaskIntoConstraints = false
+        photoImageSlideshow.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor, constant: 8).isActive = true
+        photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+        photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+        photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
         
         setupButtons()
         
@@ -131,7 +155,7 @@ class HomePostCell: UICollectionViewCell {
         stackView.topAnchor.constraint(equalTo: photoImageView.bottomAnchor).isActive = true
         stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         stackView.widthAnchor.constraint(equalToConstant: 120).isActive = true
-        stackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        stackView.heightAnchor.constraint(equalToConstant: 30).isActive = true
     }
     
     required init?(coder: NSCoder) {

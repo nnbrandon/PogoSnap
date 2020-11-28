@@ -10,12 +10,12 @@ import Foundation
 struct Post: Equatable {
     let author: String
     let title: String
-    let imageUrl: String
+    let imageUrls: [String]
     let score: Int
     let numComments: Int
     let commentsLink: String
     
     static func ==(lhs: Post, rhs: Post) -> Bool {
-        return lhs.author == rhs.author && lhs.imageUrl == rhs.imageUrl && lhs.title == rhs.title
+        return lhs.author == rhs.author && lhs.imageUrls == rhs.imageUrls && lhs.title == rhs.title
     }
 }

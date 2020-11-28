@@ -38,23 +38,25 @@ struct RedditClient {
                         }
                         for child in decoded.data.children {
                             let redditPost = child.data
-                            var imageUrl = ""
+                            var imageUrls = [String]()
                             if let preview = redditPost.preview {
                                 if preview.images.count != 0 {
-                                    let sourceUrl = preview.images[0].source.url
-                                    imageUrl = sourceUrl.replacingOccurrences(of: "amp;", with: "")
+                                    imageUrls = preview.images.map { imageUrl in
+                                        imageUrl.source.url.replacingOccurrences(of: "amp;", with: "")
+                                    }
                                 }
                             } else if let mediaData = redditPost.media_metadata {
                                 if mediaData.mediaImages.count != 0 {
-                                    let sourceUrl = mediaData.mediaImages[0]
-                                    imageUrl = sourceUrl.replacingOccurrences(of: "amp;", with: "")
+                                    imageUrls = mediaData.mediaImages.map { imageUrl in
+                                        imageUrl.replacingOccurrences(of: "amp;", with: "")
+                                    }
                                 }
                             } else {
                                 // If it does not contain images at all, do not append
                                 continue
                             }
                             let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
-                            let post = Post(author: redditPost.author, title: redditPost.title, imageUrl: imageUrl, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink)
+                            let post = Post(author: redditPost.author, title: redditPost.title, imageUrls: imageUrls, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink)
                             posts.append(post)
                         }
                         completion(posts, nextAfter)

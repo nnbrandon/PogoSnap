@@ -53,17 +53,15 @@ struct MediaData: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let json = try container.decode(JSON.self)
-        
-        guard let (_, unknownJSON) = json.objectValue?.first,
-              let fileName = unknownJSON.dictionaryValue
-        else {
-            throw DecodingError.dataCorrupted(.init(codingPath: [],
-                                                    debugDescription: "Could not find dynamic key"))
-        }
-        if let p = fileName["p"] as? [Any] {
-            if let lastImage: [String: Any] = p.last as? [String : Any] {
-                if let u = lastImage["u"] as? String {
-                    mediaImages.append(u)
+
+        json.objectValue?.forEach{ object in
+            let (_, value) = object
+            let jsonDict = value.dictionaryValue
+            if let p = jsonDict?["p"] as? [Any] {
+                if let lastImage: [String: Any] = p.last as? [String : Any] {
+                    if let u = lastImage["u"] as? String {
+                        mediaImages.append(u)
+                    }
                 }
             }
         }

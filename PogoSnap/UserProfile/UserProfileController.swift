@@ -180,7 +180,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.row == posts.count - 5 {
+        if indexPath.row == posts.count - 3 {
             if let usernameProp = usernameProp {
                 fetchUserPosts(username: usernameProp)
             } else if let username = defaults.string(forKey: Const.username) {
