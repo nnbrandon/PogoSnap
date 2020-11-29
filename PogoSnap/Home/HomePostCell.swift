@@ -10,26 +10,18 @@ import UIKit
 protocol HomePostCellDelegate {
     func didTapComment(post: Post)
     func didTapUsername(username: String)
-    func didTapImage()
+    func didTapImage(imageUrls: [String], position: Int)
+    func didTapOptions(post: Post)
 }
 
-class HomePostCell: UICollectionViewCell, UIScrollViewDelegate {
+class HomePostCell: UICollectionViewCell {
     
     var delegate: HomePostCellDelegate?
-        
+
     var post: Post? {
         didSet {
             if let post = post {
-                if post.imageUrls.count > 1 {
-                    photoImageView.isHidden = true
-                    photoImageSlideshow.isHidden = false
-                    photoImageSlideshow.imageUrls = post.imageUrls
-                } else {
-                    photoImageView.isHidden = false
-                    photoImageSlideshow.isHidden = true
-                    photoImageView.loadImage(urlString: post.imageUrls[0])
-                }
-                
+                photoImageSlideshow.imageUrls = post.imageUrls
                 usernameLabel.text = "u/" + post.author
                 
                 let titleText = NSMutableAttributedString(string: post.author + " ", attributes: [NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 14)])
@@ -39,21 +31,47 @@ class HomePostCell: UICollectionViewCell, UIScrollViewDelegate {
                 likeLabel.text = String(post.score)
                 
                 commentLabel.text = String(post.numComments)
+                
+                if post.imageUrls.count > 1 {
+                    dots.isHidden = false
+                    dots.numberOfPages = post.imageUrls.count
+                } else {
+                    dots.isHidden = true
+                }
+                
+                subredditRules = defaults.stringArray(forKey: "PokemonGoSnapRules")
+                siteRules = defaults.stringArray(forKey: "SiteRules")
             }
         }
     }
     
-    let photoImageView: CustomImageView = {
-        let imageView = CustomImageView()
-        //        imageView.contentMode = .scaleAspectFit
-        // make it so that when you click, you get full image
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        return imageView
+    let defaults = UserDefaults.standard
+    var subredditRules: [String]? = [String]()
+    var siteRules: [String]? = [String]()
+    
+    let dots: UIPageControl = {
+        let pageControl = UIPageControl()
+        pageControl.currentPage = 0
+        pageControl.pageIndicatorTintColor = .lightGray
+        pageControl.currentPageIndicatorTintColor = .darkGray
+        pageControl.tintColor = .lightGray
+        return pageControl
     }()
     
-    let photoImageSlideshow: ImageSlideshow = {
-        let slideShow = ImageSlideshow(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 400))
+    lazy var optionsButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("●●●", for: .normal)
+        button.setTitleColor(.black, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 5)
+        button.addTarget(self, action: #selector(handleOptions), for: .touchUpInside)
+        return button
+    }()
+        
+    lazy var photoImageSlideshow: ImageSlideshow = {
+        let slideShow = ImageSlideshow(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width))
+        slideShow.isUserInteractionEnabled = true
+        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleImage))
+        slideShow.addGestureRecognizer(guestureRecognizer)
         return slideShow
     }()
     
@@ -93,11 +111,8 @@ class HomePostCell: UICollectionViewCell, UIScrollViewDelegate {
     
     lazy var titleLabel: UILabel = {
         let label = UILabel()
-        label.backgroundColor = .gray
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
-        label.sizeToFit()
-        label.adjustsFontSizeToFitWidth = true
         label.isUserInteractionEnabled = true
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
         label.addGestureRecognizer(guestureRecognizer)
@@ -114,22 +129,31 @@ class HomePostCell: UICollectionViewCell, UIScrollViewDelegate {
         delegate?.didTapUsername(username: post.author)
     }
     
+    @objc fileprivate func handleImage() {
+        guard let post = post else {return}
+        delegate?.didTapImage(imageUrls: post.imageUrls, position: dots.currentPage)
+    }
+    
+    @objc func handleOptions() {
+        guard let post = post else {return}
+        delegate?.didTapOptions(post: post)
+    }
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = .green
         
         addSubview(usernameLabel)
         usernameLabel.translatesAutoresizingMaskIntoConstraints = false
         usernameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8).isActive = true
         usernameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         
-        addSubview(photoImageView)
-        photoImageView.translatesAutoresizingMaskIntoConstraints = false
-        photoImageView.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor, constant: 8).isActive = true
-        photoImageView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
-        photoImageView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-        photoImageView.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
+        addSubview(optionsButton)
+        optionsButton.translatesAutoresizingMaskIntoConstraints = false
+        optionsButton.topAnchor.constraint(equalTo: topAnchor, constant: 20).isActive = true
+        optionsButton.leadingAnchor.constraint(equalTo: usernameLabel.trailingAnchor).isActive = true
+        optionsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
         
+        photoImageSlideshow.delegate = self
         addSubview(photoImageSlideshow)
         photoImageSlideshow.translatesAutoresizingMaskIntoConstraints = false
         photoImageSlideshow.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor, constant: 8).isActive = true
@@ -137,28 +161,36 @@ class HomePostCell: UICollectionViewCell, UIScrollViewDelegate {
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
         
-        setupButtons()
+        addSubview(dots)
+        dots.translatesAutoresizingMaskIntoConstraints = false
+        dots.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
+        dots.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
+                
+        let stackView = UIStackView(arrangedSubviews: [likeButton, likeLabel, commentButton, commentLabel])
+        stackView.distribution = .fillEqually
+        addSubview(stackView)
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
+        stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
+        stackView.widthAnchor.constraint(equalToConstant: 120).isActive = true
+        stackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
         addSubview(titleLabel)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.topAnchor.constraint(equalTo: likeButton.bottomAnchor).isActive = true
+        titleLabel.topAnchor.constraint(equalTo: stackView.bottomAnchor).isActive = true
         titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
         titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
     }
     
-    fileprivate func setupButtons() {
-        let stackView = UIStackView(arrangedSubviews: [likeButton, likeLabel, commentButton, commentLabel])
-        stackView.distribution = .fillEqually
-        addSubview(stackView)
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.topAnchor.constraint(equalTo: photoImageView.bottomAnchor).isActive = true
-        stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
-        stackView.widthAnchor.constraint(equalToConstant: 120).isActive = true
-        stackView.heightAnchor.constraint(equalToConstant: 30).isActive = true
-    }
-    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+}
+
+extension HomePostCell: UIScrollViewDelegate {
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let pageNumber = round(photoImageSlideshow.contentOffset.x / photoImageSlideshow.frame.size.width)
+        dots.currentPage = Int(pageNumber)
     }
 }

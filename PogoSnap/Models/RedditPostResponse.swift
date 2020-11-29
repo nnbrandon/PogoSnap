@@ -13,7 +13,6 @@ struct RedditPostResponse: Decodable {
 }
 
 struct ChildrenData: Decodable {
-    let modhash: String
     let dist: Int
     let children: [Children]
     let after: String?
@@ -27,10 +26,12 @@ struct RedditPost: Decodable {
     let author: String
     let title: String
     let preview: Preview?
+    let archived: Bool
     let media_metadata: MediaData?
     let score: Int
     let num_comments: Int
     let id: String
+    let likes: Bool?
 }
 
 struct Preview: Decodable {

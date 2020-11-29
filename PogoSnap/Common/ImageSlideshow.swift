@@ -15,8 +15,8 @@ class ImageSlideshow: UIScrollView {
                 for (index, imageUrl) in imageUrls.enumerated() {
                     let xPosition = UIScreen.main.bounds.width * CGFloat(index)
                     let imageView = CustomImageView(frame: CGRect(x: xPosition, y: 0, width: frame.width, height: frame.height))
-                    
-                    imageView.contentMode = .scaleAspectFill
+        
+                    imageView.contentMode = fitImage ? .scaleAspectFit : .scaleAspectFill
                     imageView.clipsToBounds = true
 
                     imageView.loadImage(urlString: imageUrl)
@@ -26,6 +26,7 @@ class ImageSlideshow: UIScrollView {
             }
         }
     }
+    var fitImage = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)

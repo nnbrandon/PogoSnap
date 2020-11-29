@@ -15,9 +15,6 @@ class UserProfileController: UICollectionViewController {
         static let cellId = "cellId"
         static let headerId = "headerId"
         static let username = "username"
-        static let icon_img = "icon_img"
-        static let accessToken = "accessToken"
-        static let refreshToken = "refreshToken"
     }
 
     var usernameProp: String?
@@ -28,10 +25,7 @@ class UserProfileController: UICollectionViewController {
             }
         }
     }
-    var after = ""
-
-    let keychain = Keychain(service: "com.PogoSnap")
-    let defaults = UserDefaults.standard
+    var after: String? = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,27 +34,24 @@ class UserProfileController: UICollectionViewController {
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)
         
-        if keychain[Const.accessToken] == nil {
-            showSignInVC()
-        } else {
-            if usernameProp == nil {
-                navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
-            }
-        }
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
+        print("viewDidLoad")
         if let usernameProp = usernameProp {
+            // Check if we are looking at someone else's profile
             if posts.isEmpty {
                 print("fetching user posts... from usernameProp")
                 fetchUserPosts(username: usernameProp)
             }
-        } else if let username = defaults.string(forKey: Const.username) {
-            if posts.isEmpty {
-                print("fetching user posts...")
-                fetchUserPosts(username: username)
-            }
-        } else if let accessToken = keychain[Const.accessToken], usernameProp == nil {
+        } else if RedditClient.sharedInstance.getUsername() == nil {
+            // user is not signed in
+            print(children.count)
+            showSignInVC()
+        }
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        print("viewDidAppear")
+        if RedditClient.sharedInstance.getUsername() == nil, RedditClient.sharedInstance.isUserAuthenticated() {
+            // Fetch username and me information
             if children.count > 0 {
                 let viewControllers:[UIViewController] = children
                 viewControllers.last?.willMove(toParent: nil)
@@ -69,15 +60,18 @@ class UserProfileController: UICollectionViewController {
                 collectionView.isHidden = false
                 navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
             }
-            
-            print("going to fetch me info and accessToken = " + accessToken)
-            RedditClient.fetchMe(accessToken: accessToken) { response in
-                self.defaults.setValue(response.name, forKey: Const.username)
-                self.defaults.setValue(response.icon_img, forKey: Const.icon_img)
+            RedditClient.sharedInstance.fetchMe { username in
                 DispatchQueue.main.async {
                     self.collectionView.reloadData()
                 }
-                self.fetchUserPosts(username: response.name)
+                print("fetching user posts after signing in...")
+                self.fetchUserPosts(username: username)
+            }
+        } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
+            navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
+            if posts.isEmpty {
+                print("fetching user posts...")
+                fetchUserPosts(username: username)
             }
         }
     }
@@ -87,22 +81,19 @@ class UserProfileController: UICollectionViewController {
         
             // For testing purposes
             //            let redditUrl = "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
-        
-        let redditUrl = usernameProp != nil ? "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)" : "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
-
-        RedditClient.fetchPosts(url: redditUrl, after: after) { posts, nextAfter in
-            var nextPosts = self.posts
-            for post in posts {
-                if !nextPosts.contains(post) {
-                    nextPosts.append(post)
-                }
-            }
-            if self.posts != nextPosts {
-                print("new posts")
-                self.posts = nextPosts
-            }
+        if let after = after {
+            let redditUrl = usernameProp != nil ? "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)" : "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             
-            if let nextAfter = nextAfter {
+            RedditClient.sharedInstance.fetchUserPosts(url: redditUrl, after: after) { posts, nextAfter in
+                var nextPosts = self.posts
+                for post in posts {
+                    if !nextPosts.contains(post) {
+                        nextPosts.append(post)
+                    }
+                }
+                if self.posts != nextPosts {
+                    self.posts = nextPosts
+                }
                 self.after = nextAfter
             }
         }
@@ -111,10 +102,7 @@ class UserProfileController: UICollectionViewController {
     @objc func handleLogout() {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
-            self.keychain[Const.accessToken] = nil
-            self.keychain[Const.refreshToken] = nil
-            self.defaults.removeObject(forKey: Const.username)
-            self.defaults.removeObject(forKey: Const.username)
+            RedditClient.sharedInstance.deleteCredentials()
             self.posts = [Post]()
             self.after = ""
             self.showSignInVC()
@@ -167,9 +155,8 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
 
         if let usernameProp = usernameProp {
             header.username = usernameProp
-        } else if let username = defaults.string(forKey: Const.username), let icon_img = defaults.string(forKey: Const.icon_img) {
+        } else if let username = RedditClient.sharedInstance.getUsername() {
             header.username = username
-            header.icon_img = icon_img
         }
         
         return header
@@ -183,7 +170,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
         if indexPath.row == posts.count - 3 {
             if let usernameProp = usernameProp {
                 fetchUserPosts(username: usernameProp)
-            } else if let username = defaults.string(forKey: Const.username) {
+            } else if let username = RedditClient.sharedInstance.getUsername() {
                 fetchUserPosts(username: username)
             }
         }

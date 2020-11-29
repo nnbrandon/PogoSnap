@@ -14,6 +14,9 @@ struct Post: Equatable {
     let score: Int
     let numComments: Int
     let commentsLink: String
+    let archived: Bool
+    let id: String
+    let liked: Bool?
     
     static func ==(lhs: Post, rhs: Post) -> Bool {
         return lhs.author == rhs.author && lhs.imageUrls == rhs.imageUrls && lhs.title == rhs.title

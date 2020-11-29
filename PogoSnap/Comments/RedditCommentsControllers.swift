@@ -8,7 +8,15 @@
 import UIKit
 
 class RedditCommentsController: CommentsController {
+
     var commentsLink: String?
+    var archived = false {
+        didSet {
+            if archived {
+                navigationItem.title = "Archived"
+            }
+        }
+    }
     
     private let commentCellId = "redditCommentCellId"
     var comments: [Comment] = [] {
@@ -88,7 +96,11 @@ class RedditCommentsController: CommentsController {
     
     override var inputAccessoryView: UIView? {
         get {
-            return textView
+            if archived {
+                return nil
+            } else {
+                return textView
+            }
         }
     }
 

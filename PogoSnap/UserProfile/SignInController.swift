@@ -11,9 +11,7 @@ import KeychainAccess
 
 class SignInController: OAuthViewController {
     
-    let keychain = Keychain(service: "com.PogoSnap")
     var oauthSwift: OAuthSwift?
-    var currentParameters = [String: String]()
     
     let signInButton = UIButton(type: .system)
 
@@ -62,8 +60,10 @@ class SignInController: OAuthViewController {
                 case .success(let (credential, _, _)):
                     print("accessToken = \(credential.oauthToken)")
                     print("refreshToken = \(credential.oauthRefreshToken)")
-                    self.keychain["accessToken"] = credential.oauthToken
-                    self.keychain["refreshToken"] = credential.oauthRefreshToken
+                    if let expireDate = credential.oauthTokenExpiresAt {
+                        RedditClient.sharedInstance.registerCredentials(accessToken: credential.oauthToken, refreshToken: credential.oauthRefreshToken, expireDate: expireDate)
+                        self.internalWebViewController.dismissWebViewController()
+                    }
                 case .failure(let error):
                     print(error.description)
                 }
@@ -96,6 +96,7 @@ extension SignInController: OAuthWebViewControllerDelegate {
     
     func oauthWebViewControllerDidDisappear() {
         oauthSwift?.cancel()
+        print("webview disappeared")
     }
     
 }

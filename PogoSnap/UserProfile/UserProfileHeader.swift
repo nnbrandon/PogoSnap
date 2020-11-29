@@ -16,17 +16,10 @@ class UserProfileHeader: UICollectionViewCell {
             }
         }
     }
-    var icon_img: String? {
-        didSet {
-            if let icon_img = icon_img {
-                profileImageView.loadImage(urlString: icon_img)
-            }
-        }
-    }
     
     let profileImageView: CustomImageView = {
        let imageView = CustomImageView()
-        imageView.image = UIImage()
+        imageView.image = UIImage(named: "PikachuReddit")
         return imageView
     }()
     

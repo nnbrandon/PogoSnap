@@ -10,6 +10,7 @@ target 'PogoSnap' do
   pod 'YPImagePicker'
   pod 'OAuthSwift', '~> 2.0.0'
   pod 'KeychainAccess'
+  pod 'Kingfisher', '~> 5.0'
 
   target 'PogoSnapTests' do
     inherit! :search_paths

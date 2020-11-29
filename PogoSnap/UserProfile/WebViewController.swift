@@ -45,8 +45,6 @@ extension WebViewController: WKNavigationDelegate {
         if let url = navigationAction.request.url, url.scheme == "pogosnap" {
             AppDelegate.sharedInstance.applicationHandle(url: url)
             decisionHandler(.cancel)
-            
-            dismissWebViewController()
             return
         }
         decisionHandler(.allow)
