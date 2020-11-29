@@ -41,16 +41,15 @@ class HomePostCell: UICollectionViewCell {
                     dots.isHidden = true
                 }
                 
-                subredditRules = defaults.stringArray(forKey: "PokemonGoSnapRules")
-                siteRules = defaults.stringArray(forKey: "SiteRules")
+                if let liked = post.liked, liked {
+                    likeButton.setImage(UIImage(named: "like_selected")?.withRenderingMode(.alwaysOriginal), for: .normal)
+                } else {
+                    likeButton.setImage(UIImage(named: "like_unselected")?.withRenderingMode(.alwaysOriginal), for: .normal)
+                }
             }
         }
     }
-    
-    let defaults = UserDefaults.standard
-    var subredditRules: [String]? = [String]()
-    var siteRules: [String]? = [String]()
-    
+        
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
         pageControl.currentPage = 0

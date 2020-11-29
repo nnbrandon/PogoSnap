@@ -167,6 +167,7 @@ struct RedditClient {
         if let _ = defaults.string(forKey: "username") {
             print("fetching posts with acesstoken")
             let url = "\(Const.oauthEndpoint)/r/Pokemongosnap/new.json?sort=new&after=" + after
+//            let url = "\(Const.oauthEndpoint)/r/Pogosnap/new.json?sort=new&after=" + after
             getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -179,6 +180,7 @@ struct RedditClient {
         } else {
             print("fetching posts without acesstoken")
             let url = "https://www.reddit.com/r/Pokemongosnap/new.json?sort=new&after=" + after
+//            let url = "https://www.reddit.com/r/Pogosnap/new.json?sort=new&after=" + after
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
                 let (posts, nextAfter) = extractPosts(after: after, data: data)
                 completion(posts, nextAfter)

@@ -140,8 +140,6 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
     fileprivate func fetchPosts() {
         print("fetching posts...")
         if let after = after {
-//            let redditUrl = "https://www.reddit.com/r/Pokemongosnap/new.json?sort=new&after=" + after
-//            let redditUrl = "https://www.reddit.com/r/PogoSnap/new.json?sort=new&after=" + after
             RedditClient.sharedInstance.fetchPosts(after: after) { posts, nextAfter in
                 self.posts.append(contentsOf: posts)
                 self.after = nextAfter
@@ -183,6 +181,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
             let imageView = cell.photoImageSlideshow.subviews[index] as! CustomImageView
             imageView.image = UIImage()
         }
+
         cell.post = posts[indexPath.row]
         cell.delegate = self
         
