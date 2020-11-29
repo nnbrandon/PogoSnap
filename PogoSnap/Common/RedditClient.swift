@@ -172,136 +172,65 @@ struct RedditClient {
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
                 postsRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
                 URLSession.shared.dataTask(with: postsRequest) { data, response, error in
-//                    extractPosts(after: after, data: data) { posts, nextAfter in
-//                        completion(posts, nextAfter)
-//                    }
-                    guard let data = data else {return}
-                    var nextAfter: String?
-                    do {
-                        var posts = [Post]()
-                        let decoded = try JSONDecoder().decode(RedditPostResponse.self, from: data)
-                        if let responseAfter = decoded.data.after, responseAfter != after {
-                            nextAfter = responseAfter
-                        }
-                        for child in decoded.data.children {
-                            let redditPost = child.data
-                            var imageUrls = [String]()
-                            if let preview = redditPost.preview {
-                                if preview.images.count != 0 {
-                                    imageUrls = preview.images.map { imageUrl in
-                                        imageUrl.source.url.replacingOccurrences(of: "amp;", with: "")
-                                    }
-                                }
-                            } else if let mediaData = redditPost.media_metadata {
-                                if mediaData.mediaImages.count != 0 {
-                                    imageUrls = mediaData.mediaImages.map { imageUrl in
-                                        imageUrl.replacingOccurrences(of: "amp;", with: "")
-                                    }
-                                }
-                            } else {
-                                // If it does not contain images at all, do not append
-                                continue
-                            }
-                            let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
-                            let post = Post(author: redditPost.author, title: redditPost.title, imageUrls: imageUrls, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
-                            posts.append(post)
-                        }
-                        completion(posts, nextAfter)
-                    } catch {
-                        print(error)
-                    }
+                    let (posts, nextAfter) = extractPosts(after: after, data: data)
+                    completion(posts, nextAfter)
                 }.resume()
             }
         } else {
             print("fetching posts without acesstoken")
             let url = "https://www.reddit.com/r/Pokemongosnap/new.json?sort=new&after=" + after
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-//                extractPosts(after: after, data: data) { posts, nextAfter in
-//                    completion(posts, nextAfter)
-//                }
-                guard let data = data else {return}
-                var nextAfter: String?
-                do {
-                    var posts = [Post]()
-                    let decoded = try JSONDecoder().decode(RedditPostResponse.self, from: data)
-                    if let responseAfter = decoded.data.after, responseAfter != after {
-                        nextAfter = responseAfter
-                    }
-                    for child in decoded.data.children {
-                        let redditPost = child.data
-                        var imageUrls = [String]()
-                        if let preview = redditPost.preview {
-                            if preview.images.count != 0 {
-                                imageUrls = preview.images.map { imageUrl in
-                                    imageUrl.source.url.replacingOccurrences(of: "amp;", with: "")
-                                }
-                            }
-                        } else if let mediaData = redditPost.media_metadata {
-                            if mediaData.mediaImages.count != 0 {
-                                imageUrls = mediaData.mediaImages.map { imageUrl in
-                                    imageUrl.replacingOccurrences(of: "amp;", with: "")
-                                }
-                            }
-                        } else {
-                            // If it does not contain images at all, do not append
-                            continue
-                        }
-                        let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
-                        let post = Post(author: redditPost.author, title: redditPost.title, imageUrls: imageUrls, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
-                        posts.append(post)
-                    }
-                    completion(posts, nextAfter)
-                } catch {
-                    print(error)
-                }
+                let (posts, nextAfter) = extractPosts(after: after, data: data)
+                completion(posts, nextAfter)
             }.resume()
         }
     }
     
     public func fetchUserPosts(url: String, after: String, completion: @escaping PostsHandler) {
         URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-            extractPosts(after: after, data: data) { posts, nextAfter in
-                completion(posts, nextAfter)
-            }
+            let (posts, nextAfter) = extractPosts(after: after, data: data)
+            completion(posts, nextAfter)
         }.resume()
     }
     
-    private func extractPosts(after: String, data: Data?, completion: @escaping PostsHandler) {
-        guard let data = data else {return}
-        var nextAfter: String?
-        do {
-            var posts = [Post]()
-            let decoded = try JSONDecoder().decode(RedditPostResponse.self, from: data)
-            if let responseAfter = decoded.data.after, responseAfter != after {
-                nextAfter = responseAfter
-            }
-            for child in decoded.data.children {
-                let redditPost = child.data
-                var imageUrls = [String]()
-                if let preview = redditPost.preview {
-                    if preview.images.count != 0 {
-                        imageUrls = preview.images.map { imageUrl in
-                            imageUrl.source.url.replacingOccurrences(of: "amp;", with: "")
-                        }
-                    }
-                } else if let mediaData = redditPost.media_metadata {
-                    if mediaData.mediaImages.count != 0 {
-                        imageUrls = mediaData.mediaImages.map { imageUrl in
-                            imageUrl.replacingOccurrences(of: "amp;", with: "")
-                        }
-                    }
-                } else {
-                    // If it does not contain images at all, do not append
-                    continue
+    private func extractPosts(after: String, data: Data?) -> ([Post], String?) {
+        if let data = data {
+            var nextAfter: String?
+            do {
+                var posts = [Post]()
+                let decoded = try JSONDecoder().decode(RedditPostResponse.self, from: data)
+                if let responseAfter = decoded.data.after, responseAfter != after {
+                    nextAfter = responseAfter
                 }
-                let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
-                let post = Post(author: redditPost.author, title: redditPost.title, imageUrls: imageUrls, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
-                posts.append(post)
+                for child in decoded.data.children {
+                    let redditPost = child.data
+                    var imageUrls = [String]()
+                    if let preview = redditPost.preview {
+                        if preview.images.count != 0 {
+                            imageUrls = preview.images.map { imageUrl in
+                                imageUrl.source.url.replacingOccurrences(of: "amp;", with: "")
+                            }
+                        }
+                    } else if let mediaData = redditPost.media_metadata {
+                        if mediaData.mediaImages.count != 0 {
+                            imageUrls = mediaData.mediaImages.map { imageUrl in
+                                imageUrl.replacingOccurrences(of: "amp;", with: "")
+                            }
+                        }
+                    } else {
+                        // If it does not contain images at all, do not append
+                        continue
+                    }
+                    let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
+                    let post = Post(author: redditPost.author, title: redditPost.title, imageUrls: imageUrls, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
+                    posts.append(post)
+                }
+                return (posts, nextAfter)
+            } catch {
+                print(error)
             }
-            completion(posts, nextAfter)
-        } catch {
-            print(error)
         }
+        return ([Post](), nil)
     }
     
     public func isUserAuthenticated() -> Bool {

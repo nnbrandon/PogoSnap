@@ -16,6 +16,8 @@ protocol HomePostCellDelegate {
 
 class HomePostCell: UICollectionViewCell {
     
+    // If user's image width is bigger than the height, do scaleAspectFit, otherwise scaleAspectFill
+    
     var delegate: HomePostCellDelegate?
 
     var post: Post? {
