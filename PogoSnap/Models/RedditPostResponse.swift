@@ -49,7 +49,7 @@ struct ImageSource: Decodable {
 }
 
 struct MediaData: Decodable {
-    var mediaImages = [String]()
+    var mediaImages = [ImageSource]()
     
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -60,8 +60,9 @@ struct MediaData: Decodable {
             let jsonDict = value.dictionaryValue
             if let p = jsonDict?["p"] as? [Any] {
                 if let lastImage: [String: Any] = p.last as? [String : Any] {
-                    if let u = lastImage["u"] as? String {
-                        mediaImages.append(u)
+                    if let url = lastImage["u"] as? String, let width = lastImage["x"] as? Int, let height = lastImage["y"] as? Int {
+                        let imageSource = ImageSource(url: url, width: width, height: height)
+                        mediaImages.append(imageSource)
                     }
                 }
             }

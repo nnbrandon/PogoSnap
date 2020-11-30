@@ -10,7 +10,7 @@ import UIKit
 protocol HomePostCellDelegate {
     func didTapComment(post: Post)
     func didTapUsername(username: String)
-    func didTapImage(imageUrls: [String], position: Int)
+    func didTapImage(imageSources: [ImageSource], position: Int)
     func didTapOptions(post: Post)
 }
 
@@ -23,7 +23,7 @@ class HomePostCell: UICollectionViewCell {
     var post: Post? {
         didSet {
             if let post = post {
-                photoImageSlideshow.imageUrls = post.imageUrls
+                photoImageSlideshow.imageSources = post.imageSources
                 usernameLabel.text = "u/" + post.author
                 
                 let titleText = NSMutableAttributedString(string: post.author + " ", attributes: [NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 14)])
@@ -34,9 +34,9 @@ class HomePostCell: UICollectionViewCell {
                 
                 commentLabel.text = String(post.numComments)
                 
-                if post.imageUrls.count > 1 {
+                if post.imageSources.count > 1 {
                     dots.isHidden = false
-                    dots.numberOfPages = post.imageUrls.count
+                    dots.numberOfPages = post.imageSources.count
                 } else {
                     dots.isHidden = true
                 }
@@ -132,7 +132,7 @@ class HomePostCell: UICollectionViewCell {
     
     @objc fileprivate func handleImage() {
         guard let post = post else {return}
-        delegate?.didTapImage(imageUrls: post.imageUrls, position: dots.currentPage)
+        delegate?.didTapImage(imageSources: post.imageSources, position: dots.currentPage)
     }
     
     @objc func handleOptions() {

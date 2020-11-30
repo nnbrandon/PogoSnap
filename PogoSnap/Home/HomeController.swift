@@ -66,9 +66,9 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
         print(username)
     }
     
-    func didTapImage(imageUrls: [String], position: Int) {
+    func didTapImage(imageSources: [ImageSource], position: Int) {
         let fullScreen = FullScreenImageController()
-        fullScreen.imageUrls = imageUrls
+        fullScreen.imageSources = imageSources
         fullScreen.position = position
         present(fullScreen, animated: true, completion: nil)
     }

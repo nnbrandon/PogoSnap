@@ -17,12 +17,12 @@ class FullScreenImageController: UIViewController {
         }
     }
 
-    var imageUrls: [String]? {
+    var imageSources: [ImageSource]? {
         didSet {
-            if let imageUrls = imageUrls {
-                photoImageSlideshow.imageUrls = imageUrls
-                if imageUrls.count > 1 {
-                    dots.numberOfPages = imageUrls.count
+            if let imageSources = imageSources {
+                photoImageSlideshow.imageSources = imageSources
+                if imageSources.count > 1 {
+                    dots.numberOfPages = imageSources.count
                 } else {
                     dots.isHidden = true
                 }

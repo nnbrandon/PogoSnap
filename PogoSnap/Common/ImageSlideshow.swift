@@ -9,17 +9,23 @@ import UIKit
 
 class ImageSlideshow: UIScrollView {
     
-    var imageUrls: [String]? {
+    var imageSources: [ImageSource]? {
         didSet {
-            if let imageUrls = imageUrls {
-                for (index, imageUrl) in imageUrls.enumerated() {
+            if let imageSources = imageSources {
+                for (index, imageSource) in imageSources.enumerated() {
                     let xPosition = UIScreen.main.bounds.width * CGFloat(index)
                     let imageView = CustomImageView(frame: CGRect(x: xPosition, y: 0, width: frame.width, height: frame.height))
-        
-                    imageView.contentMode = fitImage ? .scaleAspectFit : .scaleAspectFill
+                    if fitImage {
+                        imageView.contentMode = .scaleAspectFit
+                    } else {
+                        if imageSource.width > imageSource.height {
+                            imageView.contentMode = .scaleAspectFit
+                        } else {
+                            imageView.contentMode = .scaleAspectFill
+                        }
+                    }
                     imageView.clipsToBounds = true
-
-                    imageView.loadImage(urlString: imageUrl)
+                    imageView.loadImage(urlString: imageSource.url)
                     contentSize.width = frame.width * CGFloat(index + 1)
                     addSubview(imageView)
                 }

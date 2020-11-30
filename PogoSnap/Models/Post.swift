@@ -10,7 +10,7 @@ import Foundation
 struct Post: Equatable {
     let author: String
     let title: String
-    let imageUrls: [String]
+    let imageSources: [ImageSource]
     let score: Int
     let numComments: Int
     let commentsLink: String
@@ -19,6 +19,7 @@ struct Post: Equatable {
     let liked: Bool?
     
     static func ==(lhs: Post, rhs: Post) -> Bool {
-        return lhs.author == rhs.author && lhs.imageUrls == rhs.imageUrls && lhs.title == rhs.title
+        return lhs.author == rhs.author && lhs.title == rhs.title
     }
 }
+

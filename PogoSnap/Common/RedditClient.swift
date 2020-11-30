@@ -31,7 +31,7 @@ struct RedditClient {
         static let refreshToken = "refreshToken"
         static let expireDate = "expireDate"
 
-        static let clientId = "jR0pBnlr2bENWA"
+        static let clientId = "f5M2aPLjT8rUgg"
         static let clientSecret = ""
         static let authorizeUrl = "https://www.reddit.com/api/v1/authorize.compact"
         static let accessTokenUrl = "https://www.reddit.com/api/v1/access_token"
@@ -46,7 +46,7 @@ struct RedditClient {
         static let oauthEndpoint = "https://oauth.reddit.com"
         static let meEndpoint = oauthEndpoint + "/api/v1/me"
         static let reportEndpoint = oauthEndpoint + "/api/report"
-        static let userAgent = "ios:PogoSnap:1.0.0 (by /u/HeroSekai)"
+        static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
     }
     
     private func dateToString(date: Date) -> String {
@@ -88,7 +88,6 @@ struct RedditClient {
                     switch result {
                     case .success(let (credential, _, _)):
                         self.keychain[Const.accessToken] = credential.oauthToken
-                        self.keychain[Const.refreshToken] = credential.oauthRefreshToken
                         if let expireDate = credential.oauthTokenExpiresAt {
                             let expireDateString = dateToString(date: expireDate)
                             self.keychain[Const.expireDate] = expireDateString
@@ -167,7 +166,7 @@ struct RedditClient {
         if let _ = defaults.string(forKey: "username") {
             print("fetching posts with acesstoken")
             let url = "\(Const.oauthEndpoint)/r/Pokemongosnap/new.json?sort=new&after=" + after
-//            let url = "\(Const.oauthEndpoint)/r/Pogosnap/new.json?sort=new&after=" + after
+            //            let url = "\(Const.oauthEndpoint)/r/Pogosnap/new.json?sort=new&after=" + after
             getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -180,7 +179,7 @@ struct RedditClient {
         } else {
             print("fetching posts without acesstoken")
             let url = "https://www.reddit.com/r/Pokemongosnap/new.json?sort=new&after=" + after
-//            let url = "https://www.reddit.com/r/Pogosnap/new.json?sort=new&after=" + after
+            //            let url = "https://www.reddit.com/r/Pogosnap/new.json?sort=new&after=" + after
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
                 let (posts, nextAfter) = extractPosts(after: after, data: data)
                 completion(posts, nextAfter)
@@ -206,17 +205,19 @@ struct RedditClient {
                 }
                 for child in decoded.data.children {
                     let redditPost = child.data
-                    var imageUrls = [String]()
+                    var imageSources = [ImageSource]()
                     if let preview = redditPost.preview {
                         if preview.images.count != 0 {
-                            imageUrls = preview.images.map { imageUrl in
-                                imageUrl.source.url.replacingOccurrences(of: "amp;", with: "")
+                            imageSources = preview.images.map { image in
+                                let url = image.source.url.replacingOccurrences(of: "amp;", with: "")
+                                return ImageSource(url: url, width: image.source.width, height: image.source.height)
                             }
                         }
                     } else if let mediaData = redditPost.media_metadata {
                         if mediaData.mediaImages.count != 0 {
-                            imageUrls = mediaData.mediaImages.map { imageUrl in
-                                imageUrl.replacingOccurrences(of: "amp;", with: "")
+                            imageSources = mediaData.mediaImages.map { image in
+                                let url = image.url.replacingOccurrences(of: "amp;", with: "")
+                                return ImageSource(url: url, width: image.width, height: image.height)
                             }
                         }
                     } else {
@@ -224,7 +225,7 @@ struct RedditClient {
                         continue
                     }
                     let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
-                    let post = Post(author: redditPost.author, title: redditPost.title, imageUrls: imageUrls, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
+                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
                     posts.append(post)
                 }
                 return (posts, nextAfter)
@@ -259,7 +260,6 @@ struct RedditClient {
         keychain[Const.refreshToken] = refreshToken
         keychain[Const.expireDate] = dateToString(date: expireDate)
     }
-
     
     typealias RulesHandler = (RedditRulesResponse) -> Void
     static func fetchRules(completion: @escaping RulesHandler) {
