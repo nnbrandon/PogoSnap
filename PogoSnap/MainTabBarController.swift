@@ -14,7 +14,16 @@ class MainTabBarController: UITabBarController, UITabBarControllerDelegate {
     
     func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
         let index = viewControllers?.firstIndex(of: viewController)
-        if index == 1 {
+        if index == 0 {
+            if let nav = viewController as? UINavigationController, let homeController = nav.viewControllers[0] as? HomeController {
+                if homeController.isViewLoaded && (homeController.view.window != nil) && homeController.children.isEmpty {
+                    let visibleIndexes = homeController.collectionView.indexPathsForVisibleItems
+                    if !visibleIndexes.isEmpty {
+                        homeController.collectionView.scrollToItem(at: IndexPath (item: 0, section: 0), at: .bottom, animated: true)
+                    }
+                }
+            }
+        } else if index == 1 {
             var config = YPImagePickerConfiguration()
             config.screens = [.library]
             config.shouldSaveNewPicturesToAlbum = false

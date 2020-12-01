@@ -159,7 +159,7 @@ class HomePostCell: UICollectionViewCell {
         photoImageSlideshow.delegate = self
         addSubview(photoImageSlideshow)
         photoImageSlideshow.translatesAutoresizingMaskIntoConstraints = false
-        photoImageSlideshow.topAnchor.constraint(equalTo: usernameStackView.bottomAnchor, constant: 8).isActive = true
+        photoImageSlideshow.topAnchor.constraint(equalTo: usernameStackView.bottomAnchor).isActive = true
         photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true

@@ -22,14 +22,28 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
 
     
     let cellId = "cellId"
-    
     let defaults = UserDefaults.standard
+    let refreshControl: UIRefreshControl = {
+        let control = UIRefreshControl()
+        control.addTarget(self, action: #selector(refreshPosts), for: .valueChanged)
+        return control
+    }()
+    let activityIndicatorView: UIActivityIndicatorView = {
+        let activityView = UIActivityIndicatorView()
+        return activityView
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = "PogoSnap"
         collectionView.backgroundColor = .white
         collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cellId)
+        collectionView.refreshControl = refreshControl
+        
+        view.addSubview(activityIndicatorView)
+        activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
+        activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
 
         userSignFlag = RedditClient.sharedInstance.getUsername()
     }
@@ -126,7 +140,7 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
         present(alertController, animated: true, completion: nil)
     }
     
-    fileprivate func reportPost(postId: String, reason: String) {
+    private func reportPost(postId: String, reason: String) {
         RedditClient.sharedInstance.reportPost(postId: postId, reason: reason) { errors in
             if errors.isEmpty {
                 print("reported!")
@@ -137,17 +151,23 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
         }
     }
     
-    fileprivate func fetchPosts() {
+    private func fetchPosts() {
         print("fetching posts...")
+        activityIndicatorView.startAnimating()
         if let after = after {
             RedditClient.sharedInstance.fetchPosts(after: after) { posts, nextAfter in
+                DispatchQueue.main.async {
+                    self.activityIndicatorView.stopAnimating()
+                }
                 self.posts.append(contentsOf: posts)
                 self.after = nextAfter
             }
+        } else {
+            activityIndicatorView.stopAnimating()
         }
     }
     
-    fileprivate func fetchRules() {
+    private func fetchRules() {
         print("fetching rules...")
         RedditClient.fetchRules { rules in
             let subredditRules = rules.rules.map { subRedditRule in
@@ -159,10 +179,26 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
             self.defaults.setValue(siteRules, forKey: "SiteRules")
         }
     }
+    
+    @objc private func refreshPosts() {
+        print("refreshing posts")
+        activityIndicatorView.startAnimating()
+        RedditClient.sharedInstance.fetchPosts(after: "") { posts, nextAfter in
+            DispatchQueue.main.async {
+                self.refreshControl.endRefreshing()
+                self.activityIndicatorView.stopAnimating()
+            }
+            if self.posts != posts {
+                print("settings posts after refresh")
+                self.posts = posts
+                self.after = nextAfter
+            }
+        }
+    }
 }
 
 extension HomeController: UICollectionViewDelegateFlowLayout {
-    
+        
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         var height = 8 + 8 + 50 + 40 + view.frame.width
         let title = posts[indexPath.row].title

@@ -26,6 +26,16 @@ class UserProfileController: UICollectionViewController {
         }
     }
     var after: String? = ""
+    
+    let refreshControl: UIRefreshControl = {
+        let control = UIRefreshControl()
+        control.addTarget(self, action: #selector(refreshPosts), for: .valueChanged)
+        return control
+    }()
+    let activityIndicatorView: UIActivityIndicatorView = {
+        let activityView = UIActivityIndicatorView()
+        return activityView
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,23 +43,27 @@ class UserProfileController: UICollectionViewController {
         collectionView.backgroundColor = .white
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)
+        collectionView.refreshControl = refreshControl
         
-        print("viewDidLoad")
+        view.addSubview(activityIndicatorView)
+        activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
+        activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        
         if let usernameProp = usernameProp {
             // Check if we are looking at someone else's profile
             if posts.isEmpty {
                 print("fetching user posts... from usernameProp")
+                activityIndicatorView.startAnimating()
                 fetchUserPosts(username: usernameProp)
             }
         } else if RedditClient.sharedInstance.getUsername() == nil {
             // user is not signed in
-            print(children.count)
             showSignInVC()
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        print("viewDidAppear")
         if RedditClient.sharedInstance.getUsername() == nil, RedditClient.sharedInstance.isUserAuthenticated() {
             // Fetch username and me information
             if children.count > 0 {
@@ -65,26 +79,27 @@ class UserProfileController: UICollectionViewController {
                     self.collectionView.reloadData()
                 }
                 print("fetching user posts after signing in...")
+                self.activityIndicatorView.startAnimating()
                 self.fetchUserPosts(username: username)
             }
         } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
             navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
             if posts.isEmpty {
                 print("fetching user posts...")
+                activityIndicatorView.startAnimating()
                 fetchUserPosts(username: username)
             }
         }
     }
     
     fileprivate func fetchUserPosts(username: String) {
-            //            let redditUrl = "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
-        
-            // For testing purposes
-            //            let redditUrl = "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
         if let after = after {
             let redditUrl = usernameProp != nil ? "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)" : "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             
             RedditClient.sharedInstance.fetchUserPosts(url: redditUrl, after: after) { posts, nextAfter in
+                DispatchQueue.main.async {
+                    self.activityIndicatorView.stopAnimating()
+                }
                 var nextPosts = self.posts
                 for post in posts {
                     if !nextPosts.contains(post) {
@@ -96,10 +111,12 @@ class UserProfileController: UICollectionViewController {
                 }
                 self.after = nextAfter
             }
+        } else {
+            activityIndicatorView.stopAnimating()
         }
     }
     
-    @objc func handleLogout() {
+    @objc private func handleLogout() {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
             RedditClient.sharedInstance.deleteCredentials()
@@ -109,6 +126,25 @@ class UserProfileController: UICollectionViewController {
         }))
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         present(alertController, animated: true, completion: nil)
+    }
+    
+    @objc private func refreshPosts() {
+        activityIndicatorView.startAnimating()
+        var url = ""
+        if let username = RedditClient.sharedInstance.getUsername() {
+            url = "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new"
+        } else if let usernameProp = usernameProp {
+            url = "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(usernameProp)&restrict_sr=t&sort=new&after="
+        }
+        
+        RedditClient.sharedInstance.fetchUserPosts(url: url, after: "") { posts, nextAfter in
+            DispatchQueue.main.async {
+                self.activityIndicatorView.stopAnimating()
+                self.refreshControl.endRefreshing()
+            }
+            self.posts = posts
+            self.after = nextAfter
+        }
     }
     
     fileprivate func showSignInVC() {
