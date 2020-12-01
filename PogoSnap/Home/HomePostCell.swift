@@ -143,42 +143,47 @@ class HomePostCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         
-        addSubview(usernameLabel)
-        usernameLabel.translatesAutoresizingMaskIntoConstraints = false
-        usernameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8).isActive = true
-        usernameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
+        let usernameStackView = UIStackView(arrangedSubviews: [usernameLabel])
+        addSubview(usernameStackView)
+        usernameStackView.translatesAutoresizingMaskIntoConstraints = false
+        usernameStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
+        usernameStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
-        addSubview(optionsButton)
-        optionsButton.translatesAutoresizingMaskIntoConstraints = false
-        optionsButton.topAnchor.constraint(equalTo: topAnchor, constant: 20).isActive = true
-        optionsButton.leadingAnchor.constraint(equalTo: usernameLabel.trailingAnchor).isActive = true
-        optionsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+        let optionsStackView = UIStackView(arrangedSubviews: [optionsButton])
+        addSubview(optionsStackView)
+        optionsStackView.translatesAutoresizingMaskIntoConstraints = false
+        optionsStackView.leadingAnchor.constraint(equalTo: usernameStackView.trailingAnchor).isActive = true
+        optionsStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+        optionsStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
         photoImageSlideshow.delegate = self
         addSubview(photoImageSlideshow)
         photoImageSlideshow.translatesAutoresizingMaskIntoConstraints = false
-        photoImageSlideshow.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor, constant: 8).isActive = true
+        photoImageSlideshow.topAnchor.constraint(equalTo: usernameStackView.bottomAnchor, constant: 8).isActive = true
         photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
-        
-        addSubview(dots)
-        dots.translatesAutoresizingMaskIntoConstraints = false
-        dots.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
-        dots.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
                 
-        let stackView = UIStackView(arrangedSubviews: [likeButton, likeLabel, commentButton, commentLabel])
-        stackView.distribution = .fillEqually
-        addSubview(stackView)
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
-        stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
-        stackView.widthAnchor.constraint(equalToConstant: 120).isActive = true
-        stackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        let likeCommentStackView = UIStackView(arrangedSubviews: [likeButton, likeLabel, commentButton, commentLabel])
+        likeCommentStackView.distribution = .fillEqually
+        addSubview(likeCommentStackView)
+        likeCommentStackView.translatesAutoresizingMaskIntoConstraints = false
+        likeCommentStackView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
+        likeCommentStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
+        likeCommentStackView.widthAnchor.constraint(equalToConstant: 120).isActive = true
+        likeCommentStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        
+        let dotsStackView = UIStackView(arrangedSubviews: [dots])
+        addSubview(dotsStackView)
+        dotsStackView.translatesAutoresizingMaskIntoConstraints = false
+        dotsStackView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
+        dotsStackView.leadingAnchor.constraint(equalTo: likeCommentStackView.trailingAnchor).isActive = true
+        dotsStackView.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
+        dotsStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
         addSubview(titleLabel)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.topAnchor.constraint(equalTo: stackView.bottomAnchor).isActive = true
+        titleLabel.topAnchor.constraint(equalTo: likeCommentStackView.bottomAnchor).isActive = true
         titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
         titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
