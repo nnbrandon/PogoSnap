@@ -49,48 +49,21 @@ struct RedditClient {
         static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
     }
     
-    private func dateToString(date: Date) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = Const.dateFormat
-        dateFormatter.locale = Locale(identifier: Const.locale)
-        let expireDateString = dateFormatter.string(from: date)
-        return expireDateString
-    }
-    
-    private func stringToDate(string: String) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = Const.dateFormat
-        dateFormatter.locale = Locale(identifier: Const.locale)
-        let expireDate = dateFormatter.date(from: string)
-        return expireDate
-    }
-    
-    private func isTokenExpired(expireDateString: String) -> Bool {
-        let expireDate = stringToDate(string: expireDateString)
-        
-        if let expireDate = expireDate {
-            let currentDate = Date()
-            let currentDateString = dateToString(date: currentDate)
-            guard let formattedCurrentDate = stringToDate(string: currentDateString) else {return false}
-
-            return expireDate <= formattedCurrentDate
-        }
-
-        return false
+    private func isTokenExpired(expireDate: Date) -> Bool {
+        return expireDate <= Date()
     }
     
     typealias TokenHandler = (String) -> Void
     private func getAccessToken(completion: @escaping TokenHandler) {
-        if let accessToken = keychain[Const.accessToken], let refreshToken = keychain[Const.refreshToken], let expireDate = keychain[Const.expireDate] {
-            if isTokenExpired(expireDateString: expireDate) {
+        if let accessToken = keychain[Const.accessToken], let refreshToken = keychain[Const.refreshToken], let expireDate = defaults.object(forKey: Const.expireDate) as? Date {
+            if isTokenExpired(expireDate: expireDate) {
                 oauthSwift.accessTokenBasicAuthentification = true
                 oauthSwift.renewAccessToken(withRefreshToken: refreshToken) { result in
                     switch result {
                     case .success(let (credential, _, _)):
-                        self.keychain[Const.accessToken] = credential.oauthToken
+                        keychain[Const.accessToken] = credential.oauthToken
                         if let expireDate = credential.oauthTokenExpiresAt {
-                            let expireDateString = dateToString(date: expireDate)
-                            self.keychain[Const.expireDate] = expireDateString
+                            defaults.set(expireDate, forKey: Const.expireDate)
                         }
                         print("fetched new access token on refresh, accessToken = \(accessToken)")
                         completion(credential.oauthToken)
@@ -248,8 +221,8 @@ struct RedditClient {
         do {
             try keychain.remove(Const.accessToken)
             try keychain.remove(Const.refreshToken)
-            try keychain.remove(Const.expireDate)
             defaults.removeObject(forKey: Const.username)
+            defaults.removeObject(forKey: Const.expireDate)
         } catch _ {
             print("unable to delete credentials")
         }
@@ -258,7 +231,7 @@ struct RedditClient {
     public func registerCredentials(accessToken: String, refreshToken: String, expireDate: Date) {
         keychain[Const.accessToken] = accessToken
         keychain[Const.refreshToken] = refreshToken
-        keychain[Const.expireDate] = dateToString(date: expireDate)
+        defaults.set(expireDate, forKey: Const.expireDate)
     }
     
     typealias RulesHandler = (RedditRulesResponse) -> Void
