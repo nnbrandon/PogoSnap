@@ -27,6 +27,9 @@ struct RedditComment: Decodable {
     let body: String?
     let depth: Int?
     let replies: Reply?
+    
+    let preview: Preview?
+    let media_metadata: MediaData?
 }
 
 enum Reply: Decodable {

@@ -7,11 +7,17 @@
 
 import Foundation
 
-struct Comment {
+struct Comment: Equatable {
     let author: String
     let body: String
     let depth: Int
     let replies: [Comment]
     let isAuthorPost: Bool
     var isFolded: Bool = false
+    var imageSources: [ImageSource]?
+    
+    static func == (lhs: Comment, rhs: Comment) -> Bool {
+        return lhs.author == rhs.author && lhs.body == rhs.body
+    }
+    
 }

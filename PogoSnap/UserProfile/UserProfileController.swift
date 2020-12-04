@@ -74,12 +74,12 @@ class UserProfileController: UICollectionViewController {
                 collectionView.isHidden = false
                 navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
             }
-            RedditClient.sharedInstance.fetchMe { username in
+            RedditClient.sharedInstance.fetchMe { (username, icon_img) in
                 DispatchQueue.main.async {
                     self.collectionView.reloadData()
+                    self.activityIndicatorView.startAnimating()
                 }
                 print("fetching user posts after signing in...")
-                self.activityIndicatorView.startAnimating()
                 self.fetchUserPosts(username: username)
             }
         } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
@@ -94,7 +94,7 @@ class UserProfileController: UICollectionViewController {
     
     fileprivate func fetchUserPosts(username: String) {
         if let after = after {
-            let redditUrl = usernameProp != nil ? "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)" : "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
+            let redditUrl = usernameProp != nil ? "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)" : "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             
             RedditClient.sharedInstance.fetchUserPosts(url: redditUrl, after: after) { posts, nextAfter in
                 DispatchQueue.main.async {
@@ -131,10 +131,11 @@ class UserProfileController: UICollectionViewController {
     @objc private func refreshPosts() {
         activityIndicatorView.startAnimating()
         var url = ""
-        if let username = RedditClient.sharedInstance.getUsername() {
-            url = "https://www.reddit.com/r/Pokemongosnap/search.json?q=author:\(username)&restrict_sr=t&sort=new"
-        } else if let usernameProp = usernameProp {
-            url = "https://www.reddit.com/r/Pogosnap/search.json?q=author:\(usernameProp)&restrict_sr=t&sort=new&after="
+
+        if let usernameProp = usernameProp {
+            url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(usernameProp)&restrict_sr=t&sort=new&after="
+        } else if let username = RedditClient.sharedInstance.getUsername() {
+            url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new"
         }
         
         RedditClient.sharedInstance.fetchUserPosts(url: url, after: "") { posts, nextAfter in

@@ -26,6 +26,9 @@ struct RedditClient {
     private init() {}
 
     struct Const {
+//        static let subredditName = "PokemonGoSnap"
+        static let subredditName = "PogoSnap"
+
         static let username = "username"
         static let accessToken = "accessToken"
         static let refreshToken = "refreshToken"
@@ -37,16 +40,18 @@ struct RedditClient {
         static let accessTokenUrl = "https://www.reddit.com/api/v1/access_token"
         static let responseType = "code"
         static let duration = "permanent"
-        static let scope = "read submit identity report save history"
+        static let scope = "read submit identity report save history vote"
         static let callbackURL = "PogoSnap://response"
         
         static let dateFormat = "yyyy-MM-dd hh:mm:ssZ"
         static let locale = "en_US_POSIX"
         
+        static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
         static let oauthEndpoint = "https://oauth.reddit.com"
         static let meEndpoint = oauthEndpoint + "/api/v1/me"
         static let reportEndpoint = oauthEndpoint + "/api/report"
-        static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
+        static let voteEndpoint = oauthEndpoint + "/api/vote"
+        static let commentEndpoint = oauthEndpoint + "/api/comment"
     }
     
     private func isTokenExpired(expireDate: Date) -> Bool {
@@ -82,7 +87,7 @@ struct RedditClient {
         return defaults.string(forKey: Const.username)
     }
     
-    typealias MeHandler = (String) -> Void
+    typealias MeHandler = (String, String) -> Void
     public func fetchMe(completion: @escaping MeHandler) {
         getAccessToken { accessToken in
             var meRequest = URLRequest(url: URL(string: Const.meEndpoint)!)
@@ -93,7 +98,7 @@ struct RedditClient {
                     do {
                         let meResponse = try JSONDecoder().decode(RedditMeResponse.self, from: data)
                         defaults.setValue(meResponse.name, forKey: Const.username)
-                        completion(meResponse.name)
+                        completion(meResponse.name, meResponse.icon_img)
                     } catch {
                         print(error)
                     }
@@ -103,13 +108,12 @@ struct RedditClient {
         }
     }
     
-    typealias ReportHandler = ([String]) -> Void
-    public func reportPost(postId: String, reason: String, completion: @escaping ReportHandler) {
+    typealias JsonHandler = ([String]) -> Void
+    public func reportPost(postId: String, reason: String, completion: @escaping JsonHandler) {
         let postId = "t3_" + postId
         let reason = reason.replacingOccurrences(of: " ", with: "%20").replacingOccurrences(of: ",", with: "%2C")
-        let subredditName = "pogosnap"
         let apiType = "json"
-        let url = "\(Const.reportEndpoint)?api_type=\(apiType)&reason=\(reason)&thing_id=\(postId)&sr_name=\(subredditName)"
+        let url = "\(Const.reportEndpoint)?api_type=\(apiType)&reason=\(reason)&thing_id=\(postId)&sr_name=\(Const.subredditName)"
         
         getAccessToken { accessToken in
             var meRequest = URLRequest(url: URL(string: url)!)
@@ -133,13 +137,48 @@ struct RedditClient {
             }.resume()
         }
     }
+    
+    public func postComment(postId: String, text: String, completion: @escaping JsonHandler) {
+        let postId = "t3_" + postId
+        let apiType = "json"
+        let textEncoded = text.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+        let url = "\(Const.commentEndpoint)?api_type=\(apiType)&thing_id=\(postId)&text=\(textEncoded!)&sr_name=\(Const.subredditName)"
+
+        getAccessToken { accessToken in
+            var commentRequest = URLRequest(url: URL(string: url)!)
+            commentRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            commentRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
+            commentRequest.httpMethod = "POST"
+            URLSession.shared.dataTask(with: commentRequest) { data, response, error in
+                if error != nil {
+                    completion(["failed"])
+                }
+                
+                if let httpResponse = response as? HTTPURLResponse, let data = data {
+                    if httpResponse.statusCode == 200 {
+                        do {
+                            let commentResponse = try JSONDecoder().decode(RedditAPIPostResponse.self, from: data)
+                            if let errors = commentResponse.json.errors {
+                                completion(errors)
+                            } else {
+                                completion([String]())
+                            }
+                        } catch {
+                            print(error)
+                        }
+                    } else {
+                        completion(["failed"])
+                    }
+                }
+            }.resume()
+        }
+    }
         
     typealias PostsHandler = ([Post], String?) -> Void
-    public func fetchPosts(after: String, completion: @escaping PostsHandler) {
+    public func fetchPosts(after: String, sort: String, completion: @escaping PostsHandler) {
         if let _ = defaults.string(forKey: "username") {
             print("fetching posts with acesstoken")
-            let url = "\(Const.oauthEndpoint)/r/Pokemongosnap/new.json?sort=new&after=" + after
-            //            let url = "\(Const.oauthEndpoint)/r/Pogosnap/new.json?sort=new&after=" + after
+            let url = "\(Const.oauthEndpoint)/r/\(Const.subredditName)/\(sort).json?after=" + after
             getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -151,8 +190,7 @@ struct RedditClient {
             }
         } else {
             print("fetching posts without acesstoken")
-            let url = "https://www.reddit.com/r/Pokemongosnap/new.json?sort=new&after=" + after
-            //            let url = "https://www.reddit.com/r/Pogosnap/new.json?sort=new&after=" + after
+            let url = "https://www.reddit.com/r/\(Const.subredditName)/\(sort).json?after=" + after
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
                 let (posts, nextAfter) = extractPosts(after: after, data: data)
                 completion(posts, nextAfter)
@@ -197,7 +235,7 @@ struct RedditClient {
                         // If it does not contain images at all, do not append
                         continue
                     }
-                    let commentsLink = "https://www.reddit.com/r/PokemonGoSnap/comments/" + redditPost.id + ".json"
+                    let commentsLink = "https://www.reddit.com/r/\(Const.subredditName)/comments/" + redditPost.id + ".json"
                     let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
                     posts.append(post)
                 }
@@ -208,6 +246,33 @@ struct RedditClient {
         }
         return ([Post](), nil)
     }
+    
+    typealias BoolHandler = (Bool) -> Void
+    public func votePost(postId: String, direction: Int, completion: @escaping BoolHandler) {
+        let postId = "t3_" + postId
+        let url = "\(Const.voteEndpoint)?id=\(postId)&dir=\(direction)&sr_name=\(Const.subredditName)"
+        
+        getAccessToken { accessToken in
+            var meRequest = URLRequest(url: URL(string: url)!)
+            meRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            meRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
+            meRequest.httpMethod = "POST"
+            URLSession.shared.dataTask(with: meRequest) { data, response, error in
+                if error != nil {
+                    completion(false)
+                }
+                
+                if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 200 {
+                        completion(true)
+                    } else {
+                        completion(false)
+                    }
+                }
+            }.resume()
+        }
+    }
+    
     
     public func isUserAuthenticated() -> Bool {
         if let _ = keychain[Const.accessToken] {
@@ -236,7 +301,7 @@ struct RedditClient {
     
     typealias RulesHandler = (RedditRulesResponse) -> Void
     static func fetchRules(completion: @escaping RulesHandler) {
-        if let url = URL(string: "https://www.reddit.com/r/PokemonGoSnap/about/rules.json") {
+        if let url = URL(string: "https://www.reddit.com/r/\(Const.subredditName)/about/rules.json") {
             URLSession.shared.dataTask(with: url) { data, response, error in
                 if let data = data {
                     do {

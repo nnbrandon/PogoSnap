@@ -11,15 +11,15 @@ struct Post: Equatable {
     let author: String
     let title: String
     let imageSources: [ImageSource]
-    let score: Int
+    var score: Int
     let numComments: Int
     let commentsLink: String
     let archived: Bool
     let id: String
-    let liked: Bool?
+    var liked: Bool?
     
     static func ==(lhs: Post, rhs: Post) -> Bool {
-        return lhs.author == rhs.author && lhs.title == rhs.title
+        return lhs.author == rhs.author && lhs.title == rhs.title && lhs.score != rhs.score && lhs.numComments != rhs.numComments
     }
 }
 

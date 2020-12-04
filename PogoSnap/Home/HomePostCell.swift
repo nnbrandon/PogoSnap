@@ -12,13 +12,13 @@ protocol HomePostCellDelegate {
     func didTapUsername(username: String)
     func didTapImage(imageSources: [ImageSource], position: Int)
     func didTapOptions(post: Post)
+    func didTapLike(post: Post, index: Int)
 }
 
 class HomePostCell: UICollectionViewCell {
-    
-    // If user's image width is bigger than the height, do scaleAspectFit, otherwise scaleAspectFill
-    
+        
     var delegate: HomePostCellDelegate?
+    var index: Int?
 
     var post: Post? {
         didSet {
@@ -26,8 +26,7 @@ class HomePostCell: UICollectionViewCell {
                 photoImageSlideshow.imageSources = post.imageSources
                 usernameLabel.text = "u/" + post.author
                 
-                let titleText = NSMutableAttributedString(string: post.author + " ", attributes: [NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 14)])
-                titleText.append(NSAttributedString(string: post.title, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 14)]))
+                let titleText = NSAttributedString(string: post.title, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16)])
                 titleLabel.attributedText = titleText
                 
                 likeLabel.text = String(post.score)
@@ -85,9 +84,10 @@ class HomePostCell: UICollectionViewCell {
         return label
     }()
     
-    let likeButton: UIButton = {
+    lazy var likeButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(named: "like_unselected")?.withRenderingMode(.alwaysOriginal), for: .normal)
+        button.addTarget(self, action: #selector(handleLike), for: .touchUpInside)
         return button
     }()
     
@@ -114,9 +114,6 @@ class HomePostCell: UICollectionViewCell {
         let label = UILabel()
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
-        label.isUserInteractionEnabled = true
-        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
-        label.addGestureRecognizer(guestureRecognizer)
         return label
     }()
     
@@ -140,6 +137,11 @@ class HomePostCell: UICollectionViewCell {
         delegate?.didTapOptions(post: post)
     }
     
+    @objc func handleLike() {
+        guard let post = post, let index = index else {return}
+        delegate?.didTapLike(post: post, index: index)
+    }
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         
@@ -156,10 +158,16 @@ class HomePostCell: UICollectionViewCell {
         optionsStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
         optionsStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
+        addSubview(titleLabel)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.topAnchor.constraint(equalTo: usernameStackView.bottomAnchor).isActive = true
+        titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
+        titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+        
         photoImageSlideshow.delegate = self
         addSubview(photoImageSlideshow)
         photoImageSlideshow.translatesAutoresizingMaskIntoConstraints = false
-        photoImageSlideshow.topAnchor.constraint(equalTo: usernameStackView.bottomAnchor).isActive = true
+        photoImageSlideshow.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8).isActive = true
         photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
@@ -172,6 +180,7 @@ class HomePostCell: UICollectionViewCell {
         likeCommentStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         likeCommentStackView.widthAnchor.constraint(equalToConstant: 120).isActive = true
         likeCommentStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        likeCommentStackView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
         
         let dotsStackView = UIStackView(arrangedSubviews: [dots])
         addSubview(dotsStackView)
@@ -180,13 +189,7 @@ class HomePostCell: UICollectionViewCell {
         dotsStackView.leadingAnchor.constraint(equalTo: likeCommentStackView.trailingAnchor).isActive = true
         dotsStackView.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
         dotsStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        
-        addSubview(titleLabel)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.topAnchor.constraint(equalTo: likeCommentStackView.bottomAnchor).isActive = true
-        titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
-        titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
-        titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
+        dotsStackView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
     }
     
     required init?(coder: NSCoder) {

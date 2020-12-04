@@ -18,6 +18,7 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
         }
     }
     var after: String? = ""
+    var sort = "best"
     var userSignFlag: String?
 
     
@@ -39,6 +40,9 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
         collectionView.backgroundColor = .white
         collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cellId)
         collectionView.refreshControl = refreshControl
+        let sortButton = UIBarButtonItem(title: "●●●", style: .plain, target: self, action: #selector(changeSort))
+        sortButton.setTitleTextAttributes([NSAttributedString.Key.font: UIFont.systemFont(ofSize: 8), NSAttributedString.Key.foregroundColor: UIColor.black], for: .normal)
+        navigationItem.rightBarButtonItem = sortButton
         
         view.addSubview(activityIndicatorView)
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
@@ -59,8 +63,28 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
             after = ""
         }
         if posts.isEmpty {
+            activityIndicatorView.startAnimating()
             fetchRules()
             fetchPosts()
+        }
+    }
+    
+    func didTapLike(post: Post, index: Int) {
+        if post.liked == nil {
+            let direction = 1
+            posts[index].liked = true
+            posts[index].score += 1
+            votePost(postId: post.id, direction: direction, index: index)
+        } else if let liked = post.liked {
+            let direction = liked ? 0 : 1
+            if direction == 1 {
+                posts[index].liked = true
+                posts[index].score += 1
+            } else {
+                posts[index].liked = nil
+                posts[index].score -= 1
+            }
+            votePost(postId: post.id, direction: direction, index: index)
         }
     }
     
@@ -69,6 +93,7 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
         redditCommentsController.hidesBottomBarWhenPushed = true
         redditCommentsController.commentsLink = post.commentsLink
         redditCommentsController.archived = post.archived
+        redditCommentsController.postId = post.id
         navigationController?.pushViewController(redditCommentsController, animated: true)
         print(post)
     }
@@ -151,11 +176,18 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
         }
     }
     
+    private func votePost(postId: String, direction: Int, index: Int) {
+        RedditClient.sharedInstance.votePost(postId: postId, direction: direction) { success in
+            if !success {
+                self.posts[index].liked = direction == 1 ? nil : true
+            }
+        }
+    }
+    
     private func fetchPosts() {
         print("fetching posts...")
-        activityIndicatorView.startAnimating()
         if let after = after {
-            RedditClient.sharedInstance.fetchPosts(after: after) { posts, nextAfter in
+            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort) { posts, nextAfter in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
                 }
@@ -182,8 +214,10 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
     
     @objc private func refreshPosts() {
         print("refreshing posts")
-        activityIndicatorView.startAnimating()
-        RedditClient.sharedInstance.fetchPosts(after: "") { posts, nextAfter in
+        if posts.isEmpty {
+            activityIndicatorView.startAnimating()
+        }
+        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort) { posts, nextAfter in
             DispatchQueue.main.async {
                 self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
@@ -195,6 +229,40 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
             }
         }
     }
+    
+    @objc private func changeSort() {
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        alertController.addAction(UIAlertAction(title: "Best", style: .default, handler: { _ in
+            self.sort = "best"
+            self.posts = []
+            self.after = ""
+            DispatchQueue.main.async {
+                self.activityIndicatorView.startAnimating()
+            }
+            self.fetchPosts()
+        }))
+        alertController.addAction(UIAlertAction(title: "Hot", style: .default, handler: { _ in
+            self.sort = "hot"
+            self.posts = []
+            self.after = ""
+            DispatchQueue.main.async {
+                self.activityIndicatorView.startAnimating()
+            }
+            self.fetchPosts()
+        }))
+        alertController.addAction(UIAlertAction(title: "New", style: .default, handler: { _ in
+            self.sort = "new"
+            self.posts = []
+            self.after = ""
+            DispatchQueue.main.async {
+                self.activityIndicatorView.startAnimating()
+            }
+            self.fetchPosts()
+        }))
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        
+        present(alertController, animated: true, completion: nil)
+    }
 }
 
 extension HomeController: UICollectionViewDelegateFlowLayout {
@@ -202,7 +270,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         var height = 8 + 8 + 50 + 40 + view.frame.width
         let title = posts[indexPath.row].title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 14))
+        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
         height += titleEstimatedHeight
         return CGSize(width: view.frame.width, height: height)
     }
@@ -219,13 +287,14 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
         }
 
         cell.post = posts[indexPath.row]
+        cell.index = indexPath.row
         cell.delegate = self
         
         return cell
     }
     
     override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.row == posts.count - 5, after != nil {
+        if indexPath.row == posts.count - 8, after != nil {
             fetchPosts()
         }
     }

@@ -69,8 +69,19 @@ open class CommentsController: UITableViewController {
             sort!(&coms)
         }
         for c in coms {
-            linearizedComments.append(c)
-            linearizeComments(comments: c.replies, linearizedComments: &linearizedComments, sort: sort)
+            let containsComment = linearizedComments.contains { (comment) -> Bool in
+                if comment == c {
+                    return true
+                } else {
+                    return false
+                }
+            }
+            if !containsComment {
+                linearizedComments.append(c)
+                linearizeComments(comments: c.replies, linearizedComments: &linearizedComments, sort: sort)
+            }
+            //            linearizedComments.append(c)
+            //            linearizeComments(comments: c.replies, linearizedComments: &linearizedComments, sort: sort)
         }
     }
     /// Linearize the comments in _currentlyDisplayed.
