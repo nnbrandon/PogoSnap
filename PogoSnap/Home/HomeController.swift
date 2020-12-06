@@ -8,7 +8,7 @@
 import UIKit
 import KeychainAccess
 
-class HomeController: UICollectionViewController, HomePostCellDelegate {
+class HomeController: UICollectionViewController, PostViewDelegate {
 
     var posts = [Post]() {
         didSet {
@@ -62,38 +62,48 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
             posts = [Post]()
             after = ""
         }
-        if posts.isEmpty {
+        if posts.isEmpty || posts.count == 1 {
             activityIndicatorView.startAnimating()
             fetchRules()
             fetchPosts()
         }
     }
     
-    func didTapLike(post: Post, index: Int) {
-        if post.liked == nil {
-            let direction = 1
-            posts[index].liked = true
-            posts[index].score += 1
-            votePost(postId: post.id, direction: direction, index: index)
-        } else if let liked = post.liked {
-            let direction = liked ? 0 : 1
-            if direction == 1 {
-                posts[index].liked = true
-                posts[index].score += 1
-            } else {
+    func didTapLike(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
+        if !authenticated {
+            DispatchQueue.main.async {
+                showToast(controller: self, message: "You need to be signed in to like", seconds: 1.0, dismissAfter: false)
+            }
+        } else if archived {
+            DispatchQueue.main.async {
+                showToast(controller: self, message: "This post has been archived", seconds: 1.0, dismissAfter: false)
+            }
+        } else {
+            if direction == 0 {
                 posts[index].liked = nil
                 posts[index].score -= 1
+            } else {
+                posts[index].liked = true
+                posts[index].score += 1
             }
             votePost(postId: post.id, direction: direction, index: index)
         }
     }
     
-    func didTapComment(post: Post) {
+    func didTapComment(post: Post, index: Int) {
+        var height = 8 + 8 + 50 + 40 + view.frame.width
+        let title = posts[index].title
+        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+        height += titleEstimatedHeight
+        
         let redditCommentsController = RedditCommentsController()
         redditCommentsController.hidesBottomBarWhenPushed = true
         redditCommentsController.commentsLink = post.commentsLink
         redditCommentsController.archived = post.archived
-        redditCommentsController.postId = post.id
+        redditCommentsController.post = post
+        redditCommentsController.index = index
+        redditCommentsController.postView.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: height)
+        redditCommentsController.delegate = self
         navigationController?.pushViewController(redditCommentsController, animated: true)
         print(post)
     }
@@ -118,7 +128,7 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
                 DispatchQueue.main.async {
-                    showToast(controller: self, message: "You need to be signed in to report", seconds: 1.5)
+                    showToast(controller: self, message: "You need to be signed in to report", seconds: 1.0, dismissAfter: false)
                 }
                 return
             }
@@ -166,11 +176,11 @@ class HomeController: UICollectionViewController, HomePostCellDelegate {
     }
     
     private func reportPost(postId: String, reason: String) {
-        RedditClient.sharedInstance.reportPost(postId: postId, reason: reason) { errors in
+        RedditClient.sharedInstance.reportPost(postId: postId, reason: reason) { (errors, _) in
             if errors.isEmpty {
                 print("reported!")
                 DispatchQueue.main.async {
-                    showToast(controller: self, message: "Reported ✓", seconds: 0.5)
+                    showToast(controller: self, message: "Reported ✓", seconds: 0.5, dismissAfter: false)
                 }
             }
         }
@@ -281,8 +291,8 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as! HomePostCell
-        for index in 0..<cell.photoImageSlideshow.subviews.count {
-            let imageView = cell.photoImageSlideshow.subviews[index] as! CustomImageView
+        for index in 0..<cell.postView.photoImageSlideshow.subviews.count {
+            let imageView = cell.postView.photoImageSlideshow.subviews[index] as! CustomImageView
             imageView.image = UIImage()
         }
 

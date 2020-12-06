@@ -13,4 +13,10 @@ struct RedditAPIPostResponse: Decodable {
 
 struct JsonResponse: Decodable {
     let errors: [String]?
+    let data: PostData?
+}
+
+struct PostData: Decodable {
+    let url: String? // Comment url
+    let id: String?  // Post ID
 }

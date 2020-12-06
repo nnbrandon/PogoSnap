@@ -14,10 +14,10 @@ struct RedditClient {
     
     static var sharedInstance = RedditClient()
     let oauthSwift = OAuth2Swift(
-        consumerKey:    Const.clientId,
-        consumerSecret: Const.clientSecret,
-        authorizeUrl:   Const.authorizeUrl,
-        accessTokenUrl: Const.accessTokenUrl,
+        consumerKey:    Const.redditClientId,
+        consumerSecret: Const.redditClientSecret,
+        authorizeUrl:   Const.redditAuthorizeUrl,
+        accessTokenUrl: Const.redditAccessTokenUrl,
         responseType:   Const.responseType
     )
     let keychain = Keychain(service: "com.PogoSnap")
@@ -30,21 +30,19 @@ struct RedditClient {
         static let subredditName = "PogoSnap"
 
         static let username = "username"
-        static let accessToken = "accessToken"
-        static let refreshToken = "refreshToken"
-        static let expireDate = "expireDate"
+        static let redditAccessToken = "redditAccessToken"
+        static let redditRefreshToken = "redditRefreshToken"
+        static let redditExpireDate = "redditExpireDate"
 
-        static let clientId = "f5M2aPLjT8rUgg"
-        static let clientSecret = ""
-        static let authorizeUrl = "https://www.reddit.com/api/v1/authorize.compact"
-        static let accessTokenUrl = "https://www.reddit.com/api/v1/access_token"
+        static let redditClientId = "f5M2aPLjT8rUgg"
+        static let redditClientSecret = ""
+        static let redditAuthorizeUrl = "https://www.reddit.com/api/v1/authorize.compact"
+        static let redditAccessTokenUrl = "https://www.reddit.com/api/v1/access_token"
+        static let redditCallbackURL = "PogoSnap://response"
+
         static let responseType = "code"
         static let duration = "permanent"
         static let scope = "read submit identity report save history vote"
-        static let callbackURL = "PogoSnap://response"
-        
-        static let dateFormat = "yyyy-MM-dd hh:mm:ssZ"
-        static let locale = "en_US_POSIX"
         
         static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
         static let oauthEndpoint = "https://oauth.reddit.com"
@@ -52,6 +50,7 @@ struct RedditClient {
         static let reportEndpoint = oauthEndpoint + "/api/report"
         static let voteEndpoint = oauthEndpoint + "/api/vote"
         static let commentEndpoint = oauthEndpoint + "/api/comment"
+        static let submitEndpoint = oauthEndpoint + "/api/submit"
     }
     
     private func isTokenExpired(expireDate: Date) -> Bool {
@@ -60,15 +59,15 @@ struct RedditClient {
     
     typealias TokenHandler = (String) -> Void
     private func getAccessToken(completion: @escaping TokenHandler) {
-        if let accessToken = keychain[Const.accessToken], let refreshToken = keychain[Const.refreshToken], let expireDate = defaults.object(forKey: Const.expireDate) as? Date {
+        if let accessToken = keychain[Const.redditAccessToken], let refreshToken = keychain[Const.redditRefreshToken], let expireDate = defaults.object(forKey: Const.redditExpireDate) as? Date {
             if isTokenExpired(expireDate: expireDate) {
                 oauthSwift.accessTokenBasicAuthentification = true
                 oauthSwift.renewAccessToken(withRefreshToken: refreshToken) { result in
                     switch result {
                     case .success(let (credential, _, _)):
-                        keychain[Const.accessToken] = credential.oauthToken
+                        keychain[Const.redditAccessToken] = credential.oauthToken
                         if let expireDate = credential.oauthTokenExpiresAt {
-                            defaults.set(expireDate, forKey: Const.expireDate)
+                            defaults.set(expireDate, forKey: Const.redditExpireDate)
                         }
                         print("fetched new access token on refresh, accessToken = \(accessToken)")
                         completion(credential.oauthToken)
@@ -108,7 +107,8 @@ struct RedditClient {
         }
     }
     
-    typealias JsonHandler = ([String]) -> Void
+    // errors, PostData
+    typealias JsonHandler = ([String], PostData?) -> Void
     public func reportPost(postId: String, reason: String, completion: @escaping JsonHandler) {
         let postId = "t3_" + postId
         let reason = reason.replacingOccurrences(of: " ", with: "%20").replacingOccurrences(of: ",", with: "%2C")
@@ -125,9 +125,9 @@ struct RedditClient {
                     do {
                         let reportResponse = try JSONDecoder().decode(RedditAPIPostResponse.self, from: data)
                         if let errors = reportResponse.json.errors {
-                            completion(errors)
+                            completion(errors, nil)
                         } else {
-                            completion([String]())
+                            completion([String](), nil)
                         }
                     } catch {
                         print(error)
@@ -151,7 +151,7 @@ struct RedditClient {
             commentRequest.httpMethod = "POST"
             URLSession.shared.dataTask(with: commentRequest) { data, response, error in
                 if error != nil {
-                    completion(["failed"])
+                    completion(["failed"], nil)
                 }
                 
                 if let httpResponse = response as? HTTPURLResponse, let data = data {
@@ -159,15 +159,15 @@ struct RedditClient {
                         do {
                             let commentResponse = try JSONDecoder().decode(RedditAPIPostResponse.self, from: data)
                             if let errors = commentResponse.json.errors {
-                                completion(errors)
+                                completion(errors, nil)
                             } else {
-                                completion([String]())
+                                completion([String](), nil)
                             }
                         } catch {
                             print(error)
                         }
                     } else {
-                        completion(["failed"])
+                        completion(["failed"], nil)
                     }
                 }
             }.resume()
@@ -198,11 +198,26 @@ struct RedditClient {
         }
     }
     
-    public func fetchUserPosts(url: String, after: String, completion: @escaping PostsHandler) {
-        URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-            let (posts, nextAfter) = extractPosts(after: after, data: data)
-            completion(posts, nextAfter)
-        }.resume()
+    public func fetchUserPosts(username: String, after: String, completion: @escaping PostsHandler) {
+        var url = ""
+        if getUsername() != nil {
+            url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new"
+            getAccessToken { accessToken in
+                var postsRequest = URLRequest(url: URL(string: url)!)
+                postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+                postsRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
+                URLSession.shared.dataTask(with: postsRequest) { data, response, error in
+                    let (posts, nextAfter) = extractPosts(after: after, data: data)
+                    completion(posts, nextAfter)
+                }.resume()
+            }
+        } else {
+            url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new"
+            URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
+                let (posts, nextAfter) = extractPosts(after: after, data: data)
+                completion(posts, nextAfter)
+            }.resume()
+        }
     }
     
     private func extractPosts(after: String, data: Data?) -> ([Post], String?) {
@@ -273,9 +288,46 @@ struct RedditClient {
         }
     }
     
+    public func submitImageLink(link: String, text: String, completion: @escaping JsonHandler) {
+        print(link)
+        let apiType = "json"
+        let kind = "link"
+        let textEncoded = text.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+        let url = "\(Const.submitEndpoint)?api_type=\(apiType)&sr=\(Const.subredditName)&title=\(textEncoded!)&kind=\(kind)&url=\(link)"
+        
+        getAccessToken { accessToken in
+            var submitRequest = URLRequest(url: URL(string: url)!)
+            submitRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            submitRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
+            submitRequest.httpMethod = "POST"
+            URLSession.shared.dataTask(with: submitRequest) { data, response, error in
+                if error != nil {
+                    completion(["failed"], nil)
+                }
+                
+                if let httpResponse = response as? HTTPURLResponse, let data = data {
+                    if httpResponse.statusCode == 200 {
+                        do {
+                            let submitResponse = try JSONDecoder().decode(RedditAPIPostResponse.self, from: data)
+                            if let postData = submitResponse.json.data {
+                                completion([String](), postData)
+                            } else {
+                                completion(["failed"], nil)
+                            }
+                        } catch {
+                            print(error)
+                        }
+                    } else {
+                        completion(["failed"], nil)
+                    }
+                }
+            }.resume()
+        }
+    }
+    
     
     public func isUserAuthenticated() -> Bool {
-        if let _ = keychain[Const.accessToken] {
+        if let _ = keychain[Const.redditAccessToken] {
             return true
         } else {
             return false
@@ -284,19 +336,19 @@ struct RedditClient {
     
     public func deleteCredentials() {
         do {
-            try keychain.remove(Const.accessToken)
-            try keychain.remove(Const.refreshToken)
+            try keychain.remove(Const.redditAccessToken)
+            try keychain.remove(Const.redditRefreshToken)
             defaults.removeObject(forKey: Const.username)
-            defaults.removeObject(forKey: Const.expireDate)
+            defaults.removeObject(forKey: Const.redditExpireDate)
         } catch _ {
             print("unable to delete credentials")
         }
     }
     
     public func registerCredentials(accessToken: String, refreshToken: String, expireDate: Date) {
-        keychain[Const.accessToken] = accessToken
-        keychain[Const.refreshToken] = refreshToken
-        defaults.set(expireDate, forKey: Const.expireDate)
+        keychain[Const.redditAccessToken] = accessToken
+        keychain[Const.redditRefreshToken] = refreshToken
+        defaults.set(expireDate, forKey: Const.redditExpireDate)
     }
     
     typealias RulesHandler = (RedditRulesResponse) -> Void

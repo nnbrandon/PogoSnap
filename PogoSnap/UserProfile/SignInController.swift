@@ -41,10 +41,10 @@ class SignInController: OAuthViewController {
     
     func doAuthService() {
         let oauthSwift = OAuth2Swift(
-            consumerKey:    RedditClient.Const.clientId,
-            consumerSecret: RedditClient.Const.clientSecret,
-            authorizeUrl:   RedditClient.Const.authorizeUrl,
-            accessTokenUrl: RedditClient.Const.accessTokenUrl,
+            consumerKey:    RedditClient.Const.redditClientId,
+            consumerSecret: RedditClient.Const.redditClientSecret,
+            authorizeUrl:   RedditClient.Const.redditAuthorizeUrl,
+            accessTokenUrl: RedditClient.Const.redditAccessTokenUrl,
             responseType:   RedditClient.Const.responseType
         )
         
@@ -52,7 +52,7 @@ class SignInController: OAuthViewController {
         self.oauthSwift = oauthSwift
         oauthSwift.authorizeURLHandler = getURLHandler()
         let _ = oauthSwift.authorize(
-            withCallbackURL: URL(string: RedditClient.Const.callbackURL)!,
+            withCallbackURL: URL(string: RedditClient.Const.redditCallbackURL)!,
             scope: RedditClient.Const.scope,
             state: generateState(withLength: 20),
             parameters: ["duration": RedditClient.Const.duration]) { result in

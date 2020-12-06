@@ -130,10 +130,10 @@ open class CommentCell: UITableViewCell {
     
     
     /// This is the key element of the class. It's the actual view of a comment.
-    open var commentViewContent: UIView? {
+    var commentViewContent: RedditCommentView? {
         get {
             if commentView.subviews.count > 0 {
-                return commentView.subviews[0]
+                return commentView.subviews[0] as? RedditCommentView
             }
             return nil
         } set(v) {

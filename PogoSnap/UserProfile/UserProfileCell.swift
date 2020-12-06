@@ -7,6 +7,10 @@
 
 import UIKit
 
+protocol ProfileImageDelegate {
+    func didTapImageGallery(post: Post, index: Int)
+}
+
 class UserProfileCell: UICollectionViewCell {
     
     var post: Post? {
@@ -18,13 +22,25 @@ class UserProfileCell: UICollectionViewCell {
             }
         }
     }
+    var delegate: ProfileImageDelegate?
+    var index: Int?
     
-    let photoImageView: CustomImageView = {
+    lazy var photoImageView: CustomImageView = {
         let imageView = CustomImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
+        
+        imageView.isUserInteractionEnabled = true
+        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleImage))
+        imageView.addGestureRecognizer(guestureRecognizer)
+        
         return imageView
     }()
+    
+    @objc private func handleImage() {
+        guard let post = post, let index = index else {return}
+        delegate?.didTapImageGallery(post: post, index: index)
+    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)

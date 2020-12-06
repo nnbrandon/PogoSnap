@@ -7,6 +7,10 @@
 
 import UIKit
 
+protocol CommentDelegate {
+    func didTapUsername(username: String)
+}
+
 struct RedditConstants {
     static let sepColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
     static let backgroundColor = #colorLiteral(red: 0.9961144328, green: 1, blue: 0.9999337792, alpha: 1)
@@ -21,9 +25,17 @@ struct RedditConstants {
 
 class RedditCommentCell: CommentCell {
     
-    private var content:RedditCommentView {
+    private var content: RedditCommentView {
         get {
-            return commentViewContent as! RedditCommentView
+            return commentViewContent!
+        }
+    }
+    
+    var delegate: CommentDelegate? {
+        didSet {
+            if let delegate = delegate {
+                content.delegate = delegate
+            }
         }
     }
     
@@ -43,27 +55,11 @@ class RedditCommentCell: CommentCell {
         }
     }
     
-    open var imageSources: [ImageSource]? {
-        get {
-            return content.imageSources
-        } set(value) {
-            content.imageSources = value
-        }
-    }
-    
     open var isFolded: Bool {
         get {
             return content.isFolded
         } set(value) {
             content.isFolded = value
-        }
-    }
-    
-    open var isAuthorPost: Bool {
-        get {
-            return content.isAuthorPost
-        } set(value) {
-            content.isAuthorPost = value
         }
     }
     
@@ -85,12 +81,8 @@ class RedditCommentCell: CommentCell {
 
 }
 
-protocol RedditCommentViewDelegate {
-    func didTapUsername(username: String)
-}
-
 class RedditCommentView: UIView, UIScrollViewDelegate {
-    
+
     var commentContent: String = "" {
         didSet {
             contentLabel.text = commentContent
@@ -99,7 +91,7 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     
     var author: String = "" {
         didSet {
-            usernameLabel.text = "\(author)"
+            usernameLabel.text = "u/\(author)"
         }
     }
 
@@ -113,28 +105,7 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         }
     }
     
-    var isAuthorPost: Bool = false {
-        didSet {
-            if !isAuthorPost {
-                photoImageSlideshow.removeFromSuperview()
-                dots.removeFromSuperview()
-            } else {
-                controlView.removeFromSuperview()
-                contentLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-            }
-        }
-    }
-    
-    var imageSources: [ImageSource]? {
-        didSet {
-            if let imageSources = imageSources {
-                if imageSources.count == 1 {
-                    dots.isHidden = true
-                }
-                photoImageSlideshow.imageSources = imageSources
-            }
-        }
-    }
+    var delegate: CommentDelegate?
 
     let controlView = UIView()
     
@@ -148,33 +119,22 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         return lbl
     }()
     
-    let usernameLabel: UILabel = {
+    lazy var usernameLabel: UILabel = {
         let lbl = UILabel()
         lbl.textColor = RedditConstants.metadataColor
         lbl.font = RedditConstants.metadataFont
         lbl.textAlignment = .left
-//        lbl.isUserInteractionEnabled = true
-//        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
-//        lbl.addGestureRecognizer(guestureRecognizer)
+        
+        lbl.isUserInteractionEnabled = true
+        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
+        lbl.addGestureRecognizer(guestureRecognizer)
+        
         return lbl
     }()
     
-    lazy var photoImageSlideshow: ImageSlideshow = {
-        let slideShow = ImageSlideshow(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width))
-        slideShow.isUserInteractionEnabled = true
-        //        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleImage))
-        //        slideShow.addGestureRecognizer(guestureRecognizer)
-        return slideShow
-    }()
-    
-    let dots: UIPageControl = {
-        let pageControl = UIPageControl()
-        pageControl.currentPage = 0
-        pageControl.pageIndicatorTintColor = .lightGray
-        pageControl.currentPageIndicatorTintColor = .darkGray
-        pageControl.tintColor = .lightGray
-        return pageControl
-    }()
+    @objc func handleUsername() {
+        delegate?.didTapUsername(username: author)
+    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -196,44 +156,29 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     }
     private var contentHeightConstraint: NSLayoutConstraint?
     private var controlBarHeightConstraint: NSLayoutConstraint?
-    
+
     
     private func setLayout() {
         
         addSubview(usernameLabel)
         usernameLabel.translatesAutoresizingMaskIntoConstraints = false
         usernameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 10).isActive = true
-        usernameLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 10).isActive = true
+        usernameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10).isActive = true
         
         addSubview(contentLabel)
         contentLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 10).isActive = true
-        contentLabel.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -10).isActive = true
-        contentLabel.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor, constant: 3).isActive = true
+        contentLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10).isActive = true
+        contentLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10).isActive = true
+        contentLabel.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor, constant: 8).isActive = true
         contentHeightConstraint = contentLabel.heightAnchor.constraint(equalToConstant: 0)
-        
-        addSubview(photoImageSlideshow)
-        photoImageSlideshow.translatesAutoresizingMaskIntoConstraints = false
-        photoImageSlideshow.topAnchor.constraint(equalTo: contentLabel.bottomAnchor, constant: 3).isActive = true
-        photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
-        photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-        photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
-        photoImageSlideshow.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -5).isActive = true
-        
-//        addSubview(dots)
-//        dots.translatesAutoresizingMaskIntoConstraints = false
-//        dots.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
-//        dots.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
-//        dots.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -5).isActive = true
-//        dots.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
         setupControlView()
         
         addSubview(controlView)
         controlView.translatesAutoresizingMaskIntoConstraints = false
-        controlView.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -10).isActive = true
+        controlView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10).isActive = true
         controlView.topAnchor.constraint(equalTo: contentLabel.bottomAnchor, constant: 5).isActive = true
-        controlView.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -10).isActive = true
+        controlView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10).isActive = true
         controlBarHeightConstraint = controlView.heightAnchor.constraint(equalToConstant: 0)
     }
     
@@ -259,10 +204,5 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         bottomSeparatorView.topAnchor.constraint(equalTo: controlView.topAnchor).isActive = true
         bottomSeparatorView.widthAnchor.constraint(equalToConstant: 2/UIScreen.main.scale).isActive = true
         bottomSeparatorView.trailingAnchor.constraint(equalTo: controlView.leadingAnchor, constant: -10).isActive = true
-    }
-    
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let pageNumber = round(photoImageSlideshow.contentOffset.x / photoImageSlideshow.frame.size.width)
-        dots.currentPage = Int(pageNumber)
     }
 }
