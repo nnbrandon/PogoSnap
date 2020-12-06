@@ -13,7 +13,9 @@ target 'PogoSnap' do
   pod 'Kingfisher', '~> 5.0'
   
   target 'PogoSnapShareExtension' do
-    inherit! :search_paths
+#    inherit! :search_paths
+    pod 'OAuthSwift', '~> 2.0.0'
+    pod 'KeychainAccess'
   end
 
   target 'PogoSnapTests' do

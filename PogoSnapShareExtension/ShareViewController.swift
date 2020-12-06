@@ -19,16 +19,16 @@ class ShareViewController: UIViewController {
                         itemProvider.loadItem(forTypeIdentifier: kUTTypeJPEG as String) { [unowned self] (imageData, error) in
                             if let url = imageData as? URL, let item = try? Data(contentsOf: url) {
                                 let image = UIImage(data: item)
-                                let sharePhotoController = UploadImageViewController()
-                                sharePhotoController.selectedImage = image
                                 DispatchQueue.main.async {
+                                    let sharePhotoController = UploadImageViewController()
+                                    sharePhotoController.selectedImage = image
                                     self.present(sharePhotoController, animated: true, completion: nil)
                                 }
                             } else if let item = imageData as? Data {
                                 let image = UIImage(data: item)
-                                let sharePhotoController = UploadImageViewController()
-                                sharePhotoController.selectedImage = image
                                 DispatchQueue.main.async {
+                                    let sharePhotoController = UploadImageViewController()
+                                    sharePhotoController.selectedImage = image
                                     self.present(sharePhotoController, animated: true, completion: nil)
                                 }
                             }
@@ -39,9 +39,9 @@ class ShareViewController: UIViewController {
                         itemProvider.loadItem(forTypeIdentifier: "public.image", options: nil, completionHandler: { (data, error) -> Void in
                             if data is UIImage {
                                 let image = data as? UIImage
-                                let sharePhotoController = UploadImageViewController()
-                                sharePhotoController.selectedImage = image
                                 DispatchQueue.main.async {
+                                    let sharePhotoController = UploadImageViewController()
+                                    sharePhotoController.selectedImage = image
                                     self.present(sharePhotoController, animated: true, completion: nil)
                                 }
                             }

@@ -8,6 +8,27 @@
 import UIKit
 import OAuthSwift
 
+//class Application {
+//    static var shared: UIApplication {
+//        let sharedSelector = NSSelectorFromString("sharedApplication")
+//        guard UIApplication.responds(to: sharedSelector) else {
+//            fatalError("[Extensions cannot access Application]")
+//        }
+//
+//        let shared = UIApplication.perform(sharedSelector)
+//        return shared?.takeUnretainedValue() as! UIApplication
+//    }
+//
+//    func applicationHandle(url: URL) {
+//        if (url.host == "response") {
+//            OAuthSwift.handle(url: url)
+//        } else {
+//            // Google provider is the only one with your.bundle.id url schema.
+//            OAuthSwift.handle(url: url)
+//        }
+//    }
+//}
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
