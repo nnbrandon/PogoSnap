@@ -8,6 +8,7 @@
 import UIKit
 
 class HomePostCell: UICollectionViewCell {
+    
     let postView = PostView()
     var post: Post? {
         didSet {

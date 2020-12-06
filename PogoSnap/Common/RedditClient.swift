@@ -20,8 +20,8 @@ struct RedditClient {
         accessTokenUrl: Const.redditAccessTokenUrl,
         responseType:   Const.responseType
     )
-    let keychain = Keychain(service: "com.PogoSnap")
-    let defaults = UserDefaults.standard
+    let keychain = Keychain(service: "com.PogoSnap", accessGroup: "group.com.PogoSnap")
+    let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
     
     private init() {}
 
@@ -59,7 +59,7 @@ struct RedditClient {
     
     typealias TokenHandler = (String) -> Void
     private func getAccessToken(completion: @escaping TokenHandler) {
-        if let accessToken = keychain[Const.redditAccessToken], let refreshToken = keychain[Const.redditRefreshToken], let expireDate = defaults.object(forKey: Const.redditExpireDate) as? Date {
+        if let accessToken = keychain[Const.redditAccessToken], let refreshToken = keychain[Const.redditRefreshToken], let expireDate = defaults?.object(forKey: Const.redditExpireDate) as? Date {
             if isTokenExpired(expireDate: expireDate) {
                 oauthSwift.accessTokenBasicAuthentification = true
                 oauthSwift.renewAccessToken(withRefreshToken: refreshToken) { result in
@@ -67,7 +67,7 @@ struct RedditClient {
                     case .success(let (credential, _, _)):
                         keychain[Const.redditAccessToken] = credential.oauthToken
                         if let expireDate = credential.oauthTokenExpiresAt {
-                            defaults.set(expireDate, forKey: Const.redditExpireDate)
+                            defaults?.set(expireDate, forKey: Const.redditExpireDate)
                         }
                         print("fetched new access token on refresh, accessToken = \(accessToken)")
                         completion(credential.oauthToken)
@@ -83,7 +83,7 @@ struct RedditClient {
     }
     
     public func getUsername() -> String? {
-        return defaults.string(forKey: Const.username)
+        return defaults?.string(forKey: Const.username)
     }
     
     typealias MeHandler = (String, String) -> Void
@@ -96,7 +96,7 @@ struct RedditClient {
                 if let data = data {
                     do {
                         let meResponse = try JSONDecoder().decode(RedditMeResponse.self, from: data)
-                        defaults.setValue(meResponse.name, forKey: Const.username)
+                        defaults?.setValue(meResponse.name, forKey: Const.username)
                         completion(meResponse.name, meResponse.icon_img)
                     } catch {
                         print(error)
@@ -176,7 +176,7 @@ struct RedditClient {
         
     typealias PostsHandler = ([Post], String?) -> Void
     public func fetchPosts(after: String, sort: String, completion: @escaping PostsHandler) {
-        if let _ = defaults.string(forKey: "username") {
+        if let _ = defaults?.string(forKey: "username") {
             print("fetching posts with acesstoken")
             let url = "\(Const.oauthEndpoint)/r/\(Const.subredditName)/\(sort).json?after=" + after
             getAccessToken { accessToken in
@@ -338,8 +338,8 @@ struct RedditClient {
         do {
             try keychain.remove(Const.redditAccessToken)
             try keychain.remove(Const.redditRefreshToken)
-            defaults.removeObject(forKey: Const.username)
-            defaults.removeObject(forKey: Const.redditExpireDate)
+            defaults?.removeObject(forKey: Const.username)
+            defaults?.removeObject(forKey: Const.redditExpireDate)
         } catch _ {
             print("unable to delete credentials")
         }
@@ -348,7 +348,7 @@ struct RedditClient {
     public func registerCredentials(accessToken: String, refreshToken: String, expireDate: Date) {
         keychain[Const.redditAccessToken] = accessToken
         keychain[Const.redditRefreshToken] = refreshToken
-        defaults.set(expireDate, forKey: Const.redditExpireDate)
+        defaults?.set(expireDate, forKey: Const.redditExpireDate)
     }
     
     typealias RulesHandler = (RedditRulesResponse) -> Void

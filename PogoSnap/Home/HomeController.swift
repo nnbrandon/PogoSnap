@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import KeychainAccess
 
 class HomeController: UICollectionViewController, PostViewDelegate {
 
@@ -23,7 +22,7 @@ class HomeController: UICollectionViewController, PostViewDelegate {
 
     
     let cellId = "cellId"
-    let defaults = UserDefaults.standard
+    let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
     let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
         control.addTarget(self, action: #selector(refreshPosts), for: .valueChanged)
@@ -137,7 +136,7 @@ class HomeController: UICollectionViewController, PostViewDelegate {
             reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
                 
                 let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                if let subredditRules = self.defaults.stringArray(forKey: "PokemonGoSnapRules") {
+                if let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") {
                     for rule in subredditRules {
                         subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
                             if let reason = action.title {
@@ -153,7 +152,7 @@ class HomeController: UICollectionViewController, PostViewDelegate {
                         
             reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
                 let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                if let siteRules = self.defaults.stringArray(forKey: "SiteRules")  {
+                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules")  {
                     for rule in siteRules {
                         siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
                             if let reason = action.title {
@@ -217,8 +216,8 @@ class HomeController: UICollectionViewController, PostViewDelegate {
             }
             let siteRules = rules.site_rules
             
-            self.defaults.setValue(subredditRules, forKey: "PokemonGoSnapRules")
-            self.defaults.setValue(siteRules, forKey: "SiteRules")
+            self.defaults?.setValue(subredditRules, forKey: "PokemonGoSnapRules")
+            self.defaults?.setValue(siteRules, forKey: "SiteRules")
         }
     }
     
