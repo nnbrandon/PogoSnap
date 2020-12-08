@@ -159,6 +159,7 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
                     if errors.isEmpty {
                         print("posted comment!")
                         self.comments.append(comment)
+                        generatorImpactOccured()
                         DispatchQueue.main.async {
                             showToast(controller: self, message: "Submitted ✓", seconds: 0.3, dismissAfter: false)
                         }

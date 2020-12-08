@@ -201,7 +201,7 @@ struct RedditClient {
     public func fetchUserPosts(username: String, after: String, completion: @escaping PostsHandler) {
         var url = ""
         if getUsername() != nil {
-            url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new"
+            url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -212,7 +212,7 @@ struct RedditClient {
                 }.resume()
             }
         } else {
-            url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new"
+            url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
                 let (posts, nextAfter) = extractPosts(after: after, data: data)
                 completion(posts, nextAfter)
