@@ -11,11 +11,12 @@ import YPImagePicker
 class MainTabBarController: UITabBarController, ShareDelegate {
 
     var user: String = ""
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         delegate = self
         view.backgroundColor = .white
+        
         setupViewControllers()
     }
     
@@ -44,20 +45,44 @@ class MainTabBarController: UITabBarController, ShareDelegate {
         viewControllers = [homeNavController, plusNavController, profileNavController]
     }
     
-    func imageSubmitted(postData: PostData, imageSource: ImageSource, title: String) {
+    func imageSubmitted(image: UIImage, title: String) {
         // Add image to home and user profile controllers since it takes Reddit about 30 seconds
         // to show on user feed
-        guard let author = RedditClient.sharedInstance.getUsername(), let commentsLink = postData.url, let postId = postData.id else {return}
-        let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, liked: true)
+        guard let author = RedditClient.sharedInstance.getUsername() else {return}
 
+        selectedIndex = 0
         DispatchQueue.main.async {
             if let viewControllers = self.viewControllers, let homeNavController = viewControllers.first as? UINavigationController, let userNavController = viewControllers.last as? UINavigationController, let homeController = homeNavController.viewControllers[0] as? HomeController, let userController = userNavController.viewControllers[0] as? UserProfileController {
                 
-                homeController.posts.insert(post, at: 0)
-                userController.posts.insert(post, at: 0)
+                let progressView = homeNavController.view.subviews.last as? UIProgressView
+                progressView?.setProgress(0.5, animated: true)
+                
+                ImgurClient.uploadImageToImgur(image: image) { (imageSource, imageUrlDelete) in
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(0.9, animated: true)
+                    }
+                    RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
+                        DispatchQueue.main.async {
+                            progressView?.setProgress(1.0, animated: true)
+                        }
+                        var message = "Image upload failed 𝗫"
+                        if let postData = postData, let commentsLink = postData.url, let postId = postData.id {
+                            message = "Image upload success ✓"
+                            let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId)
+                            homeController.posts.insert(post, at: 0)
+                            userController.posts.insert(post, at: 0)
+                        }
+                        DispatchQueue.main.async {
+                            generatorImpactOccured()
+                            showToast(controller: self, message: message, seconds: 1.0, dismissAfter: false)
+                            progressView?.setProgress(0, animated: true)
+                        }
+                    }
+                }
             }
         }
     }
+    
 }
 
 extension MainTabBarController: UITabBarControllerDelegate {

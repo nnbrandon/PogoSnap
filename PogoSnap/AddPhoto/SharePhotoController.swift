@@ -8,7 +8,7 @@
 import UIKit
 
 protocol ShareDelegate {
-    func imageSubmitted(postData: PostData, imageSource: ImageSource, title: String)
+    func imageSubmitted(image: UIImage, title: String)
 }
 
 class SharePhotoController: UIViewController {
@@ -20,11 +20,6 @@ class SharePhotoController: UIViewController {
     }
     
     var delegate: ShareDelegate?
-    
-    let activityIndicatorView: UIActivityIndicatorView = {
-        let activityView = UIActivityIndicatorView()
-        return activityView
-    }()
 
     let photoImageView: UIImageView = {
         let imageView = UIImageView()
@@ -44,12 +39,7 @@ class SharePhotoController: UIViewController {
         view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Share", style: .plain, target: self, action: #selector(handleShare))
-        
-        view.addSubview(activityIndicatorView)
-        activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
-        
+                
         setupImageAndTextViews()
     }
     
@@ -83,22 +73,8 @@ class SharePhotoController: UIViewController {
         print("Sharing photo")
         navigationItem.rightBarButtonItem?.isEnabled = false
         if let image = photoImageView.image, let title = textView.text {
-            activityIndicatorView.startAnimating()
-            ImgurClient.uploadImageToImgur(image: image) { (imageSource, imageUrlDelete) in
-                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
-                    var message = ""
-                    if let postData = postData {
-                        message = "Image upload success ✓"
-                        self.delegate?.imageSubmitted(postData: postData, imageSource: imageSource, title: title)
-                    } else {
-                        message = "Image upload failed 𝗫"
-                    }
-                    DispatchQueue.main.async {
-                        self.activityIndicatorView.stopAnimating()
-                        showToast(controller: self, message: message, seconds: 1.0, dismissAfter: true)
-                    }
-                }
-            }
+            delegate?.imageSubmitted(image: image, title: title)
+            dismiss(animated: true, completion: nil)
         }
     }
 }

@@ -42,7 +42,7 @@ struct RedditClient {
 
         static let responseType = "code"
         static let duration = "permanent"
-        static let scope = "read submit identity report save history vote"
+        static let scope = "read submit identity report save history vote privatemessages"
         
         static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
         static let oauthEndpoint = "https://oauth.reddit.com"

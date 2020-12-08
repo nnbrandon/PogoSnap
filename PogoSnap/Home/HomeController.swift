@@ -179,6 +179,7 @@ class HomeController: UICollectionViewController, PostViewDelegate {
             if errors.isEmpty {
                 print("reported!")
                 DispatchQueue.main.async {
+                    generatorImpactOccured()
                     showToast(controller: self, message: "Reported ✓", seconds: 0.5, dismissAfter: false)
                 }
             }

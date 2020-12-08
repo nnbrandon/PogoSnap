@@ -150,6 +150,7 @@ class PostView: UIView {
     
     @objc func handleLike() {
         guard let post = post, let index = index else {return}
+        generatorImpactOccured()
         let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
         let direction = liked ? 0 : 1
         if authenticated && !post.archived {

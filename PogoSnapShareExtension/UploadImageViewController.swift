@@ -14,7 +14,8 @@ class UploadImageViewController: UIViewController {
             photoImageView.image = selectedImage
         }
     }
-        
+    var onClose: (() -> Void)?
+
     let activityIndicatorView: UIActivityIndicatorView = {
         let activityView = UIActivityIndicatorView()
         return activityView
@@ -42,9 +43,22 @@ class UploadImageViewController: UIViewController {
         return button
     }()
     
+    let progressView: UIProgressView = {
+        let bar = UIProgressView(progressViewStyle: .bar)
+        bar.setProgress(0, animated: false)
+        return bar
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
+        
+        view.addSubview(progressView)
+        progressView.translatesAutoresizingMaskIntoConstraints = false
+        progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        progressView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        progressView.heightAnchor.constraint(equalToConstant: 15).isActive = true
                 
         view.addSubview(activityIndicatorView)
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
@@ -54,9 +68,14 @@ class UploadImageViewController: UIViewController {
         view.addSubview(shareButton)
         shareButton.translatesAutoresizingMaskIntoConstraints = false
         shareButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        shareButton.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        shareButton.topAnchor.constraint(equalTo: activityIndicatorView.bottomAnchor).isActive = true
         
         setupImageAndTextViews()
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        onClose?()
     }
     
     fileprivate func setupImageAndTextViews() {
@@ -65,7 +84,7 @@ class UploadImageViewController: UIViewController {
         view.addSubview(containerView)
         
         containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        containerView.topAnchor.constraint(equalTo: progressView.bottomAnchor).isActive = true
         containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
         containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         containerView.heightAnchor.constraint(equalToConstant: 100).isActive = true
@@ -87,20 +106,30 @@ class UploadImageViewController: UIViewController {
     
     @objc func handleShare() {
         print("Sharing photo")
-        navigationItem.rightBarButtonItem?.isEnabled = false
-        if let image = photoImageView.image, let title = textView.text {
-            activityIndicatorView.startAnimating()
-            ImgurClient.uploadImageToImgur(image: image) { (imageSource, imageUrlDelete) in
-                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
-                    var message = ""
-                    if let _ = postData {
-                        message = "Image upload success ✓"
-                    } else {
-                        message = "Image upload failed 𝗫"
-                    }
+        shareButton.isEnabled = false
+        if RedditClient.sharedInstance.getUsername() == nil {
+            showToast(controller: self, message: "You need to be signed in to upload a photo", seconds: 1.0, dismissAfter: true)
+        } else {
+            if let image = photoImageView.image, let title = textView.text {
+                activityIndicatorView.startAnimating()
+                progressView.setProgress(0.5, animated: true)
+                ImgurClient.uploadImageToImgur(image: image) { (imageSource, imageUrlDelete) in
                     DispatchQueue.main.async {
-                        self.activityIndicatorView.stopAnimating()
-                        showToast(controller: self, message: message, seconds: 1.0, dismissAfter: true)
+                        self.progressView.setProgress(0.7, animated: true)
+                    }
+                    RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
+                        var message = ""
+                        if let _ = postData {
+                            message = "Image upload success ✓"
+                        } else {
+                            message = "Image upload failed 𝗫"
+                        }
+                        DispatchQueue.main.async {
+                            self.progressView.setProgress(1, animated: true)
+                            generatorImpactOccured()
+                            self.activityIndicatorView.stopAnimating()
+                            showToast(controller: self, message: message, seconds: 1.0, dismissAfter: true)
+                        }
                     }
                 }
             }

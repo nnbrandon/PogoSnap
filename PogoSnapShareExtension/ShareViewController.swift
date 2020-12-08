@@ -12,9 +12,8 @@ class ShareViewController: UIViewController {
     
     override func viewDidLoad() {
         if let item = self.extensionContext!.inputItems[0] as? NSExtensionItem {
-            if item.attachments != nil {
-                                
-                for itemProvider in item.attachments! {
+            if let attachments = item.attachments {
+                for itemProvider in attachments {
                     if itemProvider.hasItemConformingToTypeIdentifier(kUTTypeJPEG as String) {
                         itemProvider.loadItem(forTypeIdentifier: kUTTypeJPEG as String) { [unowned self] (imageData, error) in
                             if let url = imageData as? URL, let item = try? Data(contentsOf: url) {
@@ -22,6 +21,7 @@ class ShareViewController: UIViewController {
                                 DispatchQueue.main.async {
                                     let sharePhotoController = UploadImageViewController()
                                     sharePhotoController.selectedImage = image
+                                    sharePhotoController.onClose = self.onClose
                                     self.present(sharePhotoController, animated: true, completion: nil)
                                 }
                             } else if let item = imageData as? Data {
@@ -29,6 +29,7 @@ class ShareViewController: UIViewController {
                                 DispatchQueue.main.async {
                                     let sharePhotoController = UploadImageViewController()
                                     sharePhotoController.selectedImage = image
+                                    sharePhotoController.onClose = self.onClose
                                     self.present(sharePhotoController, animated: true, completion: nil)
                                 }
                             }
@@ -37,12 +38,22 @@ class ShareViewController: UIViewController {
                     
                     if itemProvider.hasItemConformingToTypeIdentifier("public.image") {
                         itemProvider.loadItem(forTypeIdentifier: "public.image", options: nil, completionHandler: { (data, error) -> Void in
-                            if data is UIImage {
-                                let image = data as? UIImage
+                            if let image = data as? UIImage {
                                 DispatchQueue.main.async {
                                     let sharePhotoController = UploadImageViewController()
                                     sharePhotoController.selectedImage = image
+                                    sharePhotoController.onClose = self.onClose
                                     self.present(sharePhotoController, animated: true, completion: nil)
+                                }
+                            } else if let data = data as? URL {
+                                if let imageData = try? Data(contentsOf: data) {
+                                    let image = UIImage(data: imageData)
+                                    DispatchQueue.main.async {
+                                        let sharePhotoController = UploadImageViewController()
+                                        sharePhotoController.selectedImage = image
+                                        sharePhotoController.onClose = self.onClose
+                                        self.present(sharePhotoController, animated: true, completion: nil)
+                                    }
                                 }
                             }
                         })
@@ -50,6 +61,10 @@ class ShareViewController: UIViewController {
                 }
             }
         }
+    }
+    
+    func onClose() {
+        self.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
     }
 
 }
