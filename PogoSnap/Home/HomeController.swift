@@ -6,8 +6,19 @@
 //
 
 import UIKit
+import YPImagePicker
 
-class HomeController: UICollectionViewController, PostViewDelegate {
+public class CollectionViewFooterView: UICollectionReusableView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegate {
 
     var posts = [Post]() {
         didSet {
@@ -20,9 +31,10 @@ class HomeController: UICollectionViewController, PostViewDelegate {
     var sort = "best"
     var userSignFlag: String?
 
-    
     let cellId = "cellId"
+    let footerId = "footerId"
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
+
     let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
         control.addTarget(self, action: #selector(refreshPosts), for: .valueChanged)
@@ -32,6 +44,14 @@ class HomeController: UICollectionViewController, PostViewDelegate {
         let activityView = UIActivityIndicatorView()
         return activityView
     }()
+    let footerView = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.medium)
+    let button: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(named: "add-60")?.withRenderingMode(.alwaysOriginal), for: .normal)
+        btn.addTarget(self, action: #selector(handleAdd), for: .touchUpInside)
+        return btn
+    }()
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -39,6 +59,9 @@ class HomeController: UICollectionViewController, PostViewDelegate {
         collectionView.backgroundColor = .white
         collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cellId)
         collectionView.refreshControl = refreshControl
+        collectionView.register(CollectionViewFooterView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: footerId)
+        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.footerReferenceSize = CGSize(width: collectionView.bounds.width, height: 50)
+
         let sortButton = UIBarButtonItem(title: "●●●", style: .plain, target: self, action: #selector(changeSort))
         sortButton.setTitleTextAttributes([NSAttributedString.Key.font: UIFont.systemFont(ofSize: 8), NSAttributedString.Key.foregroundColor: UIColor.black], for: .normal)
         navigationItem.rightBarButtonItem = sortButton
@@ -47,7 +70,14 @@ class HomeController: UICollectionViewController, PostViewDelegate {
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
         activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        
+        view.addSubview(button)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20).isActive = true
+        button.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10).isActive = true
 
+        view.bringSubviewToFront(button)
+        
         userSignFlag = RedditClient.sharedInstance.getUsername()
     }
     
@@ -68,7 +98,7 @@ class HomeController: UICollectionViewController, PostViewDelegate {
         }
     }
     
-    func didTapLike(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
+    func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
         if !authenticated {
             DispatchQueue.main.async {
                 showToast(controller: self, message: "You need to be signed in to like", seconds: 1.0, dismissAfter: false)
@@ -79,11 +109,21 @@ class HomeController: UICollectionViewController, PostViewDelegate {
             }
         } else {
             if direction == 0 {
-                posts[index].liked = nil
-                posts[index].score -= 1
-            } else {
+                if let liked = posts[index].liked {
+                    if liked {
+                        posts[index].liked = nil
+                        posts[index].score -= 1
+                    } else {
+                        posts[index].liked = nil
+                        posts[index].score += 1
+                    }
+                }
+            } else if direction == 1 {
                 posts[index].liked = true
                 posts[index].score += 1
+            } else {
+                posts[index].liked = false
+                posts[index].score -= 1
             }
             votePost(postId: post.id, direction: direction, index: index)
         }
@@ -187,11 +227,7 @@ class HomeController: UICollectionViewController, PostViewDelegate {
     }
     
     private func votePost(postId: String, direction: Int, index: Int) {
-        RedditClient.sharedInstance.votePost(postId: postId, direction: direction) { success in
-            if !success {
-                self.posts[index].liked = direction == 1 ? nil : true
-            }
-        }
+        RedditClient.sharedInstance.votePost(postId: postId, direction: direction) { _ in}
     }
     
     private func fetchPosts() {
@@ -200,12 +236,14 @@ class HomeController: UICollectionViewController, PostViewDelegate {
             RedditClient.sharedInstance.fetchPosts(after: after, sort: sort) { posts, nextAfter in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
+                    self.footerView.stopAnimating()
                 }
                 self.posts.append(contentsOf: posts)
                 self.after = nextAfter
             }
         } else {
             activityIndicatorView.stopAnimating()
+            footerView.stopAnimating()
         }
     }
     
@@ -219,6 +257,43 @@ class HomeController: UICollectionViewController, PostViewDelegate {
             
             self.defaults?.setValue(subredditRules, forKey: "PokemonGoSnapRules")
             self.defaults?.setValue(siteRules, forKey: "SiteRules")
+        }
+    }
+    
+    func imageSubmitted(image: UIImage, title: String) {
+        guard let author = RedditClient.sharedInstance.getUsername() else {return}
+
+        if let navController = self.navigationController {
+            let progressView = navController.view.subviews.last as? UIProgressView
+            progressView?.setProgress(0.5, animated: true)
+            
+            ImgurClient.uploadImageToImgur(image: image) { (imageSource, imageUrlDelete) in
+                DispatchQueue.main.async {
+                    progressView?.setProgress(0.9, animated: true)
+                }
+                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(1.0, animated: true)
+                    }
+                    var message = "Image upload failed 𝗫"
+                    if let postData = postData, let commentsLink = postData.url, let postId = postData.id {
+                        message = "Image upload success ✓"
+                        let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, liked: true)
+                        self.posts.insert(post, at: 0)
+                        DispatchQueue.main.async {
+                            if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
+                                userProfileController.posts.insert(post, at: 0)
+                            }
+                        }
+                    }
+                    DispatchQueue.main.async {
+                        self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+                        generatorImpactOccured()
+                        showToast(controller: self, message: message, seconds: 1.0, dismissAfter: false)
+                        progressView?.setProgress(0, animated: true)
+                    }
+                }
+            }
         }
     }
     
@@ -273,10 +348,39 @@ class HomeController: UICollectionViewController, PostViewDelegate {
         
         present(alertController, animated: true, completion: nil)
     }
+    
+    @objc func handleAdd() {
+        var config = YPImagePickerConfiguration()
+        config.screens = [.library]
+        config.shouldSaveNewPicturesToAlbum = false
+        let picker = YPImagePicker(configuration: config)
+        picker.didFinishPicking { [unowned picker] items, cancelled in
+            if cancelled {
+                picker.dismiss(animated: true, completion: nil)
+            }
+            if let photo = items.singlePhoto {
+                let sharePhotoVC = SharePhotoController()
+                sharePhotoVC.delegate = self
+                sharePhotoVC.selectedImage = photo.image
+                picker.pushViewController(sharePhotoVC, animated: true)
+            }
+        }
+        present(picker, animated: true, completion: nil)
+    }
 }
 
 extension HomeController: UICollectionViewDelegateFlowLayout {
-        
+    
+    override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+         if kind == UICollectionView.elementKindSectionFooter {
+             let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
+             footer.addSubview(footerView)
+             footerView.frame = CGRect(x: 0, y: 0, width: collectionView.bounds.width, height: 50)
+             return footer
+         }
+         return UICollectionReusableView()
+     }
+
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         var height = 8 + 8 + 50 + 40 + view.frame.width
         let title = posts[indexPath.row].title
@@ -305,6 +409,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
     
     override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         if indexPath.row == posts.count - 8, after != nil {
+            footerView.startAnimating()
             fetchPosts()
         }
     }

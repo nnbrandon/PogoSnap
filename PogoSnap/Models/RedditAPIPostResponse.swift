@@ -19,4 +19,5 @@ struct JsonResponse: Decodable {
 struct PostData: Decodable {
     let url: String? // Comment url
     let id: String?  // Post ID
+    let things: [RedditChild]?
 }

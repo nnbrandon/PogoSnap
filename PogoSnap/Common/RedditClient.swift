@@ -138,7 +138,8 @@ struct RedditClient {
         }
     }
     
-    public func postComment(postId: String, text: String, completion: @escaping JsonHandler) {
+    typealias CommentHandler = (Bool, String?) -> Void
+    public func postComment(postId: String, text: String, completion: @escaping CommentHandler) {
         let postId = "t3_" + postId
         let apiType = "json"
         let textEncoded = text.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
@@ -151,23 +152,22 @@ struct RedditClient {
             commentRequest.httpMethod = "POST"
             URLSession.shared.dataTask(with: commentRequest) { data, response, error in
                 if error != nil {
-                    completion(["failed"], nil)
+                    completion(true, nil)
                 }
                 
                 if let httpResponse = response as? HTTPURLResponse, let data = data {
                     if httpResponse.statusCode == 200 {
                         do {
                             let commentResponse = try JSONDecoder().decode(RedditAPIPostResponse.self, from: data)
-                            if let errors = commentResponse.json.errors {
-                                completion(errors, nil)
-                            } else {
-                                completion([String](), nil)
+                            if let commentThings = commentResponse.json.data?.things {
+                                completion(false, commentThings.first?.data?.id)
                             }
                         } catch {
-                            print(error)
+                            completion(true, nil)
                         }
+                        completion(true, nil)
                     } else {
-                        completion(["failed"], nil)
+                        completion(true, nil)
                     }
                 }
             }.resume()

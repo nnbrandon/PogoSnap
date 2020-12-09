@@ -12,12 +12,12 @@ struct Comment: Equatable {
     let body: String
     let depth: Int
     let replies: [Comment]
+    let id: String
     let isAuthorPost: Bool
     var isFolded: Bool = false
-    var imageSources: [ImageSource]?
     
     static func == (lhs: Comment, rhs: Comment) -> Bool {
-        return lhs.author == rhs.author && lhs.body == rhs.body
+        return lhs.author == rhs.author && lhs.body == rhs.body && lhs.id == rhs.id
     }
     
 }

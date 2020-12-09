@@ -80,8 +80,6 @@ open class CommentsController: UITableViewController {
                 linearizedComments.append(c)
                 linearizeComments(comments: c.replies, linearizedComments: &linearizedComments, sort: sort)
             }
-            //            linearizedComments.append(c)
-            //            linearizeComments(comments: c.replies, linearizedComments: &linearizedComments, sort: sort)
         }
     }
     /// Linearize the comments in _currentlyDisplayed.

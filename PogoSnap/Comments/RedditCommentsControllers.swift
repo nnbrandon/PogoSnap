@@ -150,14 +150,15 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
         } else {
             if let username = RedditClient.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
                 let postId = post.id
-                let comment = Comment(author: username, body: body, depth: 0, replies: [Comment](), isAuthorPost: false)
                 DispatchQueue.main.async {
                     self.commentTextField.text = nil
                     self.commentTextField.resignFirstResponder()
                 }
-                RedditClient.sharedInstance.postComment(postId: postId, text: body) { (errors, _) in
-                    if errors.isEmpty {
+                RedditClient.sharedInstance.postComment(postId: postId, text: body) { (errorOccured, commentId) in
+                    if !errorOccured {
                         print("posted comment!")
+                        let comment = Comment(author: username, body: body, depth: 0, replies: [Comment](), id: commentId ?? "", isAuthorPost: false)
+                        print(comment)
                         self.comments.append(comment)
                         generatorImpactOccured()
                         DispatchQueue.main.async {
@@ -182,12 +183,13 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
                 let author = redditComment.author ?? ""
                 let body = redditComment.body ?? ""
                 let depth = redditComment.depth ?? 0
+                let id = redditComment.id ?? ""
 
                 var cReplies = [Comment]()
                 if let commentReplies = redditComment.replies {
                     cReplies = extractReplies(commentReplies: commentReplies)
                 }
-                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, isAuthorPost: false)
+                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: id, isAuthorPost: false)
                 replies.append(comment)
             }
         }
@@ -209,13 +211,14 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
                         let author = redditComment.author ?? ""
                         let body = redditComment.body ?? ""
                         let depth = redditComment.depth ?? 0
+                        let id = redditComment.id ?? ""
 
                         var replies = [Comment]()
                         if let commentReplies = redditComment.replies {
                             replies = extractReplies(commentReplies: commentReplies)
                         }
 
-                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, isAuthorPost: false)
+                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: id, isAuthorPost: false)
                         print(comment)
                         comments.append(comment)
                     }

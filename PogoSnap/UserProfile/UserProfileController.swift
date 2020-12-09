@@ -243,7 +243,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
         present(alertController, animated: true, completion: nil)
     }
     
-    func didTapLike(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
+    func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
         if !authenticated {
             DispatchQueue.main.async {
                 showToast(controller: self, message: "You need to be signed in to like", seconds: 1.0, dismissAfter: false)
@@ -256,9 +256,12 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             if direction == 0 {
                 posts[index].liked = nil
                 posts[index].score -= 1
-            } else {
+            } else if direction == 1 {
                 posts[index].liked = true
                 posts[index].score += 1
+            } else {
+                posts[index].liked = false
+                posts[index].score -= 1
             }
             votePost(postId: post.id, direction: direction, index: index)
         }

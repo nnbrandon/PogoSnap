@@ -11,6 +11,8 @@ extension UINavigationController {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+        navigationBar.backgroundColor = .white
+        navigationBar.isTranslucent = false
 
         let progressView = UIProgressView(progressViewStyle: .bar)
         view.addSubview(progressView)
