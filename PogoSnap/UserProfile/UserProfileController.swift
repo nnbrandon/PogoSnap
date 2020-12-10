@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import OAuthSwift
 
 class UserProfileController: UICollectionViewController, PostViewDelegate, ProfileImageDelegate {
 
@@ -173,8 +172,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
         print(post)
     }
     
-    func didTapComment(post: Post, index: Int) {
-    }
+    func didTapComment(post: Post, index: Int) {}
     
     func didTapUsername(username: String) {
         let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())

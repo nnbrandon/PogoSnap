@@ -109,6 +109,7 @@ class PostView: UIView {
         button.setImage(UIImage(named: "upvte")?.withRenderingMode(.alwaysTemplate), for: .normal)
         button.tintColor = RedditConstants.controlsColor
         button.addTarget(self, action: #selector(handleUpvote), for: .touchUpInside)
+        button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
         return button
     }()
     
@@ -117,6 +118,7 @@ class PostView: UIView {
         button.setImage(UIImage(named: "downvte")?.withRenderingMode(.alwaysTemplate), for: .normal)
         button.tintColor = RedditConstants.controlsColor
         button.addTarget(self, action: #selector(handleDownvote), for: .touchUpInside)
+        button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
         return button
     }()
     

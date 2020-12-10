@@ -22,6 +22,7 @@ extension UINavigationController {
         progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
         progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         progressView.topAnchor.constraint(equalTo: navBar.bottomAnchor).isActive = true
+        progressView.heightAnchor.constraint(equalToConstant: 5).isActive = true
         
         progressView.setProgress(0, animated: false)
 

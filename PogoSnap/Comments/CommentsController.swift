@@ -63,12 +63,8 @@ open class CommentsController: UITableViewController {
          - linearizedComments: a reference to the list that will contain the comments
          - sort: a function that is applied recursively on each sub-list of comments
      */
-    func linearizeComments(comments: [Comment], linearizedComments: inout [Comment], sort: ((inout [Comment])->Void)? = nil) {
-        var coms = comments
-        if sort != nil {
-            sort!(&coms)
-        }
-        for c in coms {
+    func linearizeComments(comments: [Comment], linearizedComments: inout [Comment]) {
+        for c in comments {
             let containsComment = linearizedComments.contains { (comment) -> Bool in
                 if comment == c {
                     return true
@@ -78,10 +74,24 @@ open class CommentsController: UITableViewController {
             }
             if !containsComment {
                 linearizedComments.append(c)
-                linearizeComments(comments: c.replies, linearizedComments: &linearizedComments, sort: sort)
             }
+            linearizeComments(comments: c.replies, linearizedComments: &linearizedComments)
         }
     }
+    
+    func addReply(reply: Comment, parentCommentId: String) {
+        var index = 0
+        for (idx, comment) in _currentlyDisplayed.enumerated() {
+            if comment.id == parentCommentId {
+                index = idx + 1
+            }
+        }
+        _currentlyDisplayed.insert(reply, at: index)
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
+    }
+
     /// Linearize the comments in _currentlyDisplayed.
     public func linearizeCurrentlyDisplayedComs() {
         var linearizedComs: [Comment] = []

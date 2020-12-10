@@ -7,7 +7,7 @@
 
 import UIKit
 
-class RedditCommentsController: CommentsController, CommentDelegate, UITextFieldDelegate {
+class RedditCommentsController: CommentsController, CommentDelegate {
 
     var post: Post? {
         didSet {
@@ -35,9 +35,11 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
         didSet {
             if archived {
                 navigationItem.title = "Archived"
+                addButton.isHidden = true
             }
         }
     }
+    var lastContentOffset: CGFloat = 0.0
     
     private let commentCellId = "redditCommentCellId"
     var comments: [Comment] = [] {
@@ -48,8 +50,12 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
             }
         }
     }
-
-    let defaults = UserDefaults.standard
+    let addButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(named: "comment-60")?.withRenderingMode(.alwaysOriginal), for: .normal)
+        btn.addTarget(self, action: #selector(handleComment), for: .touchUpInside)
+        return btn
+    }()
     
     let postView = PostView()
     
@@ -61,8 +67,13 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
         tableView.alwaysBounceVertical = true
         tableView.tableHeaderView = postView
         postView.commentFlag = true
+        
+        view.addSubview(addButton)
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20).isActive = true
+        addButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10).isActive = true
+        view.bringSubviewToFront(addButton)
 
-        commentTextField.delegate = self
         fullyExpanded = true
         fetchComments()
     }
@@ -71,102 +82,21 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
         let commentCell = tableView.dequeueReusableCell(withIdentifier: commentCellId, for: indexPath) as! RedditCommentCell
         let comment = currentlyDisplayed[indexPath.row]
         commentCell.depth = comment.depth
+        commentCell.commentDepth = comment.depth
         commentCell.commentContent = comment.body
         commentCell.author = comment.author
+        commentCell.commentId = comment.id
         commentCell.isFolded = comment.isFolded && !isCellExpanded(indexPath: indexPath)
         commentCell.delegate = self
         return commentCell
     }
     
-    let commentTextField: UITextField = {
-        let textField = UITextField()
-        textField.placeholder = "Enter Comment"
-        return textField
-    }()
-    
-    lazy var textView: UIView = {
-        let containerview = UIView()
-        containerview.backgroundColor = .white
-        containerview.frame = CGRect(x: 0, y: 0, width: 100, height: 75)
-
-
-        let submitButton = UIButton(type: .system)
-        submitButton.setTitle("Submit", for: .normal)
-        submitButton.setTitleColor(.black, for: .normal)
-        submitButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 14)
-        submitButton.addTarget(self, action: #selector(handleSubmit), for: .touchUpInside)
-
-        containerview.addSubview(submitButton)
-        submitButton.translatesAutoresizingMaskIntoConstraints = false
-        submitButton.topAnchor.constraint(equalTo: containerview.topAnchor).isActive = true
-        submitButton.trailingAnchor.constraint(equalTo: containerview.trailingAnchor, constant: -20).isActive = true
-        submitButton.bottomAnchor.constraint(equalTo: containerview.bottomAnchor).isActive = true
-        submitButton.widthAnchor.constraint(equalToConstant: 50).isActive = true
-
-        containerview.addSubview(commentTextField)
-        commentTextField.translatesAutoresizingMaskIntoConstraints = false
-        commentTextField.topAnchor.constraint(equalTo: containerview.topAnchor).isActive = true
-        commentTextField.leadingAnchor.constraint(equalTo: containerview.leadingAnchor, constant: 20).isActive = true
-        commentTextField.trailingAnchor.constraint(equalTo: submitButton.leadingAnchor).isActive = true
-        commentTextField.bottomAnchor.constraint(equalTo: containerview.bottomAnchor).isActive = true
-
-        let topDividerView = UIView()
-        topDividerView.backgroundColor = UIColor.lightGray
-        containerview.addSubview(topDividerView)
-        topDividerView.translatesAutoresizingMaskIntoConstraints = false
-        topDividerView.topAnchor.constraint(equalTo: commentTextField.topAnchor).isActive = true
-        topDividerView.leadingAnchor.constraint(equalTo: containerview.leadingAnchor).isActive = true
-        topDividerView.trailingAnchor.constraint(equalTo: containerview.trailingAnchor).isActive = true
-        topDividerView.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
-
-        return containerview
-    }()
-    
-    override var inputAccessoryView: UIView? {
-        get {
-            if archived {
-                return nil
-            } else {
-                return textView
-            }
-        }
-    }
-
-    override var canBecomeFirstResponder: Bool {
-        return true
-    }
-    
-    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        return true
-    }
-
-    @objc func handleSubmit() {
-        print("handle submit: ", commentTextField.text ?? "")
-        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
-        if !authenticated {
-            DispatchQueue.main.async {
-                showToast(controller: self, message: "You need to be signed in to comment", seconds: 1.5, dismissAfter: false)
-            }
-        } else {
-            if let username = RedditClient.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
-                let postId = post.id
-                DispatchQueue.main.async {
-                    self.commentTextField.text = nil
-                    self.commentTextField.resignFirstResponder()
-                }
-                RedditClient.sharedInstance.postComment(postId: postId, text: body) { (errorOccured, commentId) in
-                    if !errorOccured {
-                        print("posted comment!")
-                        let comment = Comment(author: username, body: body, depth: 0, replies: [Comment](), id: commentId ?? "", isAuthorPost: false)
-                        print(comment)
-                        self.comments.append(comment)
-                        generatorImpactOccured()
-                        DispatchQueue.main.async {
-                            showToast(controller: self, message: "Submitted ✓", seconds: 0.3, dismissAfter: false)
-                        }
-                    }
-                }
-            }
+    @objc func handleComment() {
+        if let post = post {
+            let textController = RedditCommentTextController()
+            textController.post = post
+            textController.updateComments = updateComments
+            present(textController, animated: true, completion: nil)
         }
     }
     
@@ -239,10 +169,44 @@ class RedditCommentsController: CommentsController, CommentDelegate, UITextField
         }
     }
     
+    public func updateComments(comment: Comment, parentCommentId: String?) {
+        if let parentCommentId = parentCommentId {
+            addReply(reply: comment, parentCommentId: parentCommentId)
+        } else {
+            comments.append(comment)
+        }
+    }
+    
     func didTapUsername(username: String) {
         let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
         userProfileController.usernameProp = username
         navigationController?.pushViewController(userProfileController, animated: true)
         print(username)
+    }
+    
+    func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int) {
+        if let post = post {
+            let textController = RedditCommentTextController()
+            textController.post = post
+            textController.updateComments = updateComments
+            textController.parentCommentId = parentCommentId
+            textController.parentCommentContent = parentCommentContent
+            textController.parentCommentAuthor = parentCommentAuthor
+            textController.parentDepth = parentDepth
+            present(textController, animated: true, completion: nil)
+        }
+    }
+}
+
+extension RedditCommentsController {
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if (scrollView.contentOffset.y + 5 < lastContentOffset) {
+            //Scrolling up
+            addButton.isHidden = false
+        } else if (scrollView.contentOffset.y >= lastContentOffset) {
+            //Scrolling down
+            addButton.isHidden = true
+        }
+        lastContentOffset = scrollView.contentOffset.y
     }
 }

@@ -26,8 +26,8 @@ struct RedditClient {
     private init() {}
 
     struct Const {
-//        static let subredditName = "PokemonGoSnap"
-        static let subredditName = "PogoSnap"
+        static let subredditName = "PokemonGoSnap"
+//        static let subredditName = "PogoSnap"
 
         static let username = "username"
         static let redditAccessToken = "redditAccessToken"
@@ -139,11 +139,10 @@ struct RedditClient {
     }
     
     typealias CommentHandler = (Bool, String?) -> Void
-    public func postComment(postId: String, text: String, completion: @escaping CommentHandler) {
-        let postId = "t3_" + postId
+    public func postComment(parentId: String, text: String, completion: @escaping CommentHandler) {
         let apiType = "json"
         let textEncoded = text.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
-        let url = "\(Const.commentEndpoint)?api_type=\(apiType)&thing_id=\(postId)&text=\(textEncoded!)&sr_name=\(Const.subredditName)"
+        let url = "\(Const.commentEndpoint)?api_type=\(apiType)&thing_id=\(parentId)&text=\(textEncoded!)&sr_name=\(Const.subredditName)"
 
         getAccessToken { accessToken in
             var commentRequest = URLRequest(url: URL(string: url)!)
@@ -199,9 +198,8 @@ struct RedditClient {
     }
     
     public func fetchUserPosts(username: String, after: String, completion: @escaping PostsHandler) {
-        var url = ""
         if getUsername() != nil {
-            url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
+            let url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -212,7 +210,29 @@ struct RedditClient {
                 }.resume()
             }
         } else {
-            url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
+            let url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
+            URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
+                let (posts, nextAfter) = extractPosts(after: after, data: data)
+                completion(posts, nextAfter)
+            }.resume()
+        }
+    }
+    
+    public func searchPosts(query: String, after: String, completion: @escaping PostsHandler) {
+        let query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+        if getUsername() != nil {
+            let url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
+            getAccessToken { accessToken in
+                var postsRequest = URLRequest(url: URL(string: url)!)
+                postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+                postsRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
+                URLSession.shared.dataTask(with: postsRequest) { data, response, error in
+                    let (posts, nextAfter) = extractPosts(after: after, data: data)
+                    completion(posts, nextAfter)
+                }.resume()
+            }
+        } else {
+            let url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
                 let (posts, nextAfter) = extractPosts(after: after, data: data)
                 completion(posts, nextAfter)

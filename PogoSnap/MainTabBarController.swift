@@ -30,12 +30,13 @@ class MainTabBarController: UITabBarController {
         homeNavController.tabBarItem.image = UIImage(named: "home_unselected")
         homeNavController.tabBarItem.selectedImage = UIImage(named: "home_selected")
         
-        // plus icon
-        let plusController = UIViewController()
-        plusController.view.backgroundColor = .white
-        let plusNavController = UINavigationController(rootViewController: plusController)
-        plusNavController.tabBarItem.image = UIImage(named: "plus_unselected")
-        plusNavController.tabBarItem.selectedImage = UIImage(named: "plus_unselected")
+//        // search icon
+//        let searchController = SearchController(collectionViewLayout: UICollectionViewFlowLayout())
+//        let searchNavController = UINavigationController(rootViewController: searchController)
+//        let searchTabBarItem = UITabBarItem(tabBarSystemItem: .search, tag: 1)
+//        searchTabBarItem.imageInsets = UIEdgeInsets(top:6,left:0,bottom:-6,right:0)
+//        searchTabBarItem.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: 300*20)
+//        searchNavController.tabBarItem = searchTabBarItem
 
         let profileVC = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
         let profileNavController = UINavigationController(rootViewController: profileVC)
@@ -44,7 +45,7 @@ class MainTabBarController: UITabBarController {
         
         tabBar.tintColor = .black
         
-        viewControllers = [homeNavController, plusNavController, profileNavController]
+        viewControllers = [homeNavController, profileNavController]
     }
 }
 
@@ -57,6 +58,16 @@ extension MainTabBarController: UITabBarControllerDelegate {
                     let visibleIndexes = homeController.collectionView.indexPathsForVisibleItems
                     if !visibleIndexes.isEmpty {
                         homeController.collectionView.scrollToItem(at: IndexPath (item: 0, section: 0), at: .bottom, animated: true)
+                    }
+                }
+            }
+        }
+        if index == 1 {
+            if let nav = viewController as? UINavigationController, let profileController = nav.viewControllers[0] as? UserProfileController {
+                if profileController.isViewLoaded && (profileController.view.window != nil) && profileController.children.isEmpty {
+                    let visibleIndexes = profileController.collectionView.indexPathsForVisibleItems
+                    if !visibleIndexes.isEmpty {
+                        profileController.collectionView.scrollToItem(at: IndexPath (item: 0, section: 0), at: .bottom, animated: true)
                     }
                 }
             }

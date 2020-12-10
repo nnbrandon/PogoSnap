@@ -58,7 +58,7 @@ class UploadImageViewController: UIViewController {
         progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
         progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         progressView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-        progressView.heightAnchor.constraint(equalToConstant: 15).isActive = true
+        progressView.heightAnchor.constraint(equalToConstant: 5).isActive = true
                 
         view.addSubview(activityIndicatorView)
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false

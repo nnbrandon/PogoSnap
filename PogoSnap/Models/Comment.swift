@@ -11,7 +11,7 @@ struct Comment: Equatable {
     let author: String
     let body: String
     let depth: Int
-    let replies: [Comment]
+    var replies: [Comment]
     let id: String
     let isAuthorPost: Bool
     var isFolded: Bool = false

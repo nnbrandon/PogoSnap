@@ -8,17 +8,7 @@
 import UIKit
 import YPImagePicker
 
-public class CollectionViewFooterView: UICollectionReusableView {
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-
-class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegate {
+class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegate, ProfileImageDelegate {
 
     var posts = [Post]() {
         didSet {
@@ -28,11 +18,15 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         }
     }
     var after: String? = ""
-    var sort = "best"
+    var sort = SortOptions.best
+    var listLayoutOption = ListLayoutOptions.card
     var userSignFlag: String?
+    var lastContentOffset: CGFloat = 0.0
 
-    let cellId = "cellId"
+    let cardCellId = "cardCellId"
+    let galleryCellId = "galleryCellId"
     let footerId = "footerId"
+    let headerId = "headerId"
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
 
     let refreshControl: UIRefreshControl = {
@@ -45,38 +39,35 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         return activityView
     }()
     let footerView = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.medium)
-    let button: UIButton = {
+    let addButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setImage(UIImage(named: "add-60")?.withRenderingMode(.alwaysOriginal), for: .normal)
         btn.addTarget(self, action: #selector(handleAdd), for: .touchUpInside)
         return btn
     }()
 
-
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = "PogoSnap"
         collectionView.backgroundColor = .white
-        collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cellId)
+        collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cardCellId)
+        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: galleryCellId)
         collectionView.refreshControl = refreshControl
+        collectionView.register(HomeHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerId)
         collectionView.register(CollectionViewFooterView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: footerId)
+        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.headerReferenceSize = CGSize(width: collectionView.bounds.width, height: 35)
         (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.footerReferenceSize = CGSize(width: collectionView.bounds.width, height: 50)
 
-        let sortButton = UIBarButtonItem(title: "●●●", style: .plain, target: self, action: #selector(changeSort))
-        sortButton.setTitleTextAttributes([NSAttributedString.Key.font: UIFont.systemFont(ofSize: 8), NSAttributedString.Key.foregroundColor: UIColor.black], for: .normal)
-        navigationItem.rightBarButtonItem = sortButton
-        
         view.addSubview(activityIndicatorView)
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
         activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
         
-        view.addSubview(button)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20).isActive = true
-        button.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10).isActive = true
-
-        view.bringSubviewToFront(button)
+        view.addSubview(addButton)
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20).isActive = true
+        addButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10).isActive = true
+        view.bringSubviewToFront(addButton)
         
         userSignFlag = RedditClient.sharedInstance.getUsername()
     }
@@ -161,6 +152,24 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         present(fullScreen, animated: true, completion: nil)
     }
     
+    func didTapImageGallery(post: Post, index: Int) {
+        var height = 8 + 8 + 50 + 40 + view.frame.width
+        let title = post.title
+        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+        height += titleEstimatedHeight
+        
+        let redditCommentsController = RedditCommentsController()
+        redditCommentsController.hidesBottomBarWhenPushed = true
+        redditCommentsController.commentsLink = post.commentsLink
+        redditCommentsController.archived = post.archived
+        redditCommentsController.post = post
+        redditCommentsController.index = index
+        redditCommentsController.postView.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: height)
+        redditCommentsController.delegate = self
+        navigationController?.pushViewController(redditCommentsController, animated: true)
+        print(post)
+    }
+    
     func didTapOptions(post: Post) {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
@@ -233,7 +242,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     private func fetchPosts() {
         print("fetching posts...")
         if let after = after {
-            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort) { posts, nextAfter in
+            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue) { posts, nextAfter in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
                     self.footerView.stopAnimating()
@@ -276,8 +285,9 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                         progressView?.setProgress(1.0, animated: true)
                     }
                     var message = "Image upload failed 𝗫"
-                    if let postData = postData, let commentsLink = postData.url, let postId = postData.id {
+                    if let postData = postData, let postId = postData.id {
                         message = "Image upload success ✓"
+                        let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
                         let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, liked: true)
                         self.posts.insert(post, at: 0)
                         DispatchQueue.main.async {
@@ -302,7 +312,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         if posts.isEmpty {
             activityIndicatorView.startAnimating()
         }
-        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort) { posts, nextAfter in
+        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue) { posts, nextAfter in
             DispatchQueue.main.async {
                 self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
@@ -315,10 +325,10 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         }
     }
     
-    @objc private func changeSort() {
+    private func changeSort() {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alertController.addAction(UIAlertAction(title: "Best", style: .default, handler: { _ in
-            self.sort = "best"
+            self.sort = SortOptions.best
             self.posts = []
             self.after = ""
             DispatchQueue.main.async {
@@ -327,7 +337,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             self.fetchPosts()
         }))
         alertController.addAction(UIAlertAction(title: "Hot", style: .default, handler: { _ in
-            self.sort = "hot"
+            self.sort = SortOptions.hot
             self.posts = []
             self.after = ""
             DispatchQueue.main.async {
@@ -336,13 +346,32 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             self.fetchPosts()
         }))
         alertController.addAction(UIAlertAction(title: "New", style: .default, handler: { _ in
-            self.sort = "new"
+            self.sort = SortOptions.new
             self.posts = []
             self.after = ""
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
             }
             self.fetchPosts()
+        }))
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        
+        present(alertController, animated: true, completion: nil)
+    }
+    
+    private func changeLayout() {
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        alertController.addAction(UIAlertAction(title: "Card", style: .default, handler: { _ in
+            self.listLayoutOption = .card
+            DispatchQueue.main.async {
+                self.collectionView.reloadData()
+            }
+        }))
+        alertController.addAction(UIAlertAction(title: "Gallery", style: .default, handler: { _ in
+            self.listLayoutOption = .gallery
+            DispatchQueue.main.async {
+                self.collectionView.reloadData()
+            }
         }))
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         
@@ -371,7 +400,27 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
 
 extension HomeController: UICollectionViewDelegateFlowLayout {
     
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if (scrollView.contentOffset.y < lastContentOffset) {
+            //Scrolling up
+            addButton.isHidden = false
+        }
+        else if (scrollView.contentOffset.y > lastContentOffset) {
+            //Scrolling down
+            addButton.isHidden = true
+        }
+        lastContentOffset = scrollView.contentOffset.y
+    }
+    
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        if kind == UICollectionView.elementKindSectionHeader {
+            let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as! HomeHeader
+            header.sortOption = sort
+            header.changeSort = changeSort
+            header.listLayoutOption = listLayoutOption
+            header.changeLayout = changeLayout
+            return header
+        }
          if kind == UICollectionView.elementKindSectionFooter {
              let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
              footer.addSubview(footerView)
@@ -382,11 +431,35 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
      }
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        var height = 8 + 8 + 50 + 40 + view.frame.width
-        let title = posts[indexPath.row].title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
-        height += titleEstimatedHeight
-        return CGSize(width: view.frame.width, height: height)
+        switch listLayoutOption {
+        case .card:
+            var height = 8 + 8 + 50 + 40 + view.frame.width
+            let title = posts[indexPath.row].title
+            let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+            height += titleEstimatedHeight
+            return CGSize(width: view.frame.width, height: height)
+        case .gallery:
+            let width = (view.frame.width - 2) / 3
+            return CGSize(width: width, height: width)
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
+        switch listLayoutOption {
+        case .card:
+            return 10
+        case .gallery:
+            return 1
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+        switch listLayoutOption {
+        case .card:
+            return 10
+        case .gallery:
+            return 1
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -394,17 +467,28 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
     }
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as! HomePostCell
-        for index in 0..<cell.postView.photoImageSlideshow.subviews.count {
-            let imageView = cell.postView.photoImageSlideshow.subviews[index] as! CustomImageView
-            imageView.image = UIImage()
-        }
-
-        cell.post = posts[indexPath.row]
-        cell.index = indexPath.row
-        cell.delegate = self
+        switch listLayoutOption {
+        case .card:
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as! HomePostCell
+            for index in 0..<cell.postView.photoImageSlideshow.subviews.count {
+                let imageView = cell.postView.photoImageSlideshow.subviews[index] as! CustomImageView
+                imageView.image = UIImage()
+            }
+            cell.post = posts[indexPath.row]
+            cell.index = indexPath.row
+            cell.delegate = self
+            
+            return cell
+        case .gallery:
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as! UserProfileCell
+            cell.photoImageView.image = UIImage()
+            let post = posts[indexPath.row]
+            cell.post = post
+            cell.index = indexPath.row
+            cell.delegate = self
         
-        return cell
+            return cell
+        }
     }
     
     override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
@@ -412,5 +496,15 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
             footerView.startAnimating()
             fetchPosts()
         }
+    }
+}
+
+public class CollectionViewFooterView: UICollectionReusableView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }

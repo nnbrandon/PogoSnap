@@ -9,6 +9,7 @@ import UIKit
 
 protocol CommentDelegate {
     func didTapUsername(username: String)
+    func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int)
 }
 
 struct RedditConstants {
@@ -29,6 +30,22 @@ class RedditCommentCell: CommentCell {
     private var content: RedditCommentView {
         get {
             return commentViewContent!
+        }
+    }
+    
+    var commentId: String? {
+        didSet {
+            if let commentId = commentId {
+                content.commentId = commentId
+            }
+        }
+    }
+    
+    var commentDepth: Int? {
+        didSet {
+            if let commentDepth = commentDepth {
+                content.commentDepth = commentDepth
+            }
         }
     }
     
@@ -83,7 +100,9 @@ class RedditCommentCell: CommentCell {
 }
 
 class RedditCommentView: UIView, UIScrollViewDelegate {
-
+    
+    var commentId: String?
+    var commentDepth: Int?
     var commentContent: String = "" {
         didSet {
             contentLabel.text = commentContent
@@ -133,18 +152,25 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         return lbl
     }()
     
-    let replyButton: UIButton = {
-      let btn = UIButton()
+    lazy var replyButton: UIButton = {
+        let btn = UIButton()
         btn.setTitle(" Reply", for: .normal)
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
         btn.setTitleColor(RedditConstants.controlsColor, for: .normal)
         btn.setImage(UIImage(named: "exprt")?.withRenderingMode(.alwaysTemplate), for: .normal)
+        btn.addTarget(self, action: #selector(handleReply), for: .touchUpInside)
         btn.tintColor = RedditConstants.controlsColor
         return btn
     }()
     
     @objc func handleUsername() {
         delegate?.didTapUsername(username: author)
+    }
+    
+    @objc func handleReply() {
+        if let commentId = commentId, let commentDepth = commentDepth {
+            delegate?.didTapReply(parentCommentId: commentId, parentCommentContent: commentContent, parentCommentAuthor: author, parentDepth: commentDepth)
+        }
     }
     
     override init(frame: CGRect) {
@@ -191,6 +217,12 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         controlView.topAnchor.constraint(equalTo: contentLabel.bottomAnchor, constant: 5).isActive = true
         controlView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10).isActive = true
         controlBarHeightConstraint = controlView.heightAnchor.constraint(equalToConstant: 0)
+        
+        addSubview(replyButton)
+        replyButton.translatesAutoresizingMaskIntoConstraints = false
+        replyButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+        replyButton.bottomAnchor.constraint(equalTo: controlView.bottomAnchor).isActive = true
+        replyButton.topAnchor.constraint(equalTo: controlView.topAnchor).isActive = true
     }
     
 
@@ -202,7 +234,6 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         
         controlView.addSubview(topSeparatorView)
         controlView.addSubview(bottomSeparatorView)
-        controlView.addSubview(replyButton)
         
         topSeparatorView.translatesAutoresizingMaskIntoConstraints = false
         bottomSeparatorView.translatesAutoresizingMaskIntoConstraints = false
@@ -216,10 +247,5 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         bottomSeparatorView.topAnchor.constraint(equalTo: controlView.topAnchor).isActive = true
         bottomSeparatorView.widthAnchor.constraint(equalToConstant: 2/UIScreen.main.scale).isActive = true
         bottomSeparatorView.trailingAnchor.constraint(equalTo: controlView.leadingAnchor, constant: -10).isActive = true
-        
-        replyButton.translatesAutoresizingMaskIntoConstraints = false
-        replyButton.trailingAnchor.constraint(equalTo: bottomSeparatorView.leadingAnchor).isActive = true
-        replyButton.bottomAnchor.constraint(equalTo: controlView.bottomAnchor).isActive = true
-        replyButton.topAnchor.constraint(equalTo: controlView.topAnchor).isActive = true
     }
 }
