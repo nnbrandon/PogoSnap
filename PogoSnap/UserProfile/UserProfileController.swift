@@ -47,6 +47,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     override func viewDidLoad() {
         super.viewDidLoad()
         if traitCollection.userInterfaceStyle == .light {
+            view.backgroundColor = .white
             collectionView.backgroundColor = .white
         }
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
@@ -92,7 +93,9 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
                     barButton.tintColor = .white
                     navigationItem.rightBarButtonItem = barButton
                 } else {
-                    navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleOptions))
+                    let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
+                    barButton.tintColor = .darkGray
+                    navigationItem.rightBarButtonItem = barButton
                 }
             }
             RedditClient.sharedInstance.fetchMe { (username, icon_img) in
@@ -109,7 +112,9 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
                 barButton.tintColor = .white
                 navigationItem.rightBarButtonItem = barButton
             } else {
-                navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleOptions))
+                let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
+                barButton.tintColor = .darkGray
+                navigationItem.rightBarButtonItem = barButton
             }
             if posts.isEmpty || posts.count == 1 {
                 print("fetching user posts...")
@@ -128,20 +133,27 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     
     private func fetchUserPosts(username: String) {
         if let after = after {
-            RedditClient.sharedInstance.fetchUserPosts(username: username, after: after) { posts, nextAfter in
-                DispatchQueue.main.async {
-                    self.activityIndicatorView.stopAnimating()
-                }
-                var nextPosts = self.posts
-                for post in posts {
-                    if !nextPosts.contains(post) {
-                        nextPosts.append(post)
+            RedditClient.sharedInstance.fetchUserPosts(username: username, after: after) { posts, nextAfter, errorOccured in
+                if errorOccured {
+                    DispatchQueue.main.async {
+                        showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 1.0)
+                        self.activityIndicatorView.stopAnimating()
                     }
+                } else {
+                    DispatchQueue.main.async {
+                        self.activityIndicatorView.stopAnimating()
+                    }
+                    var nextPosts = self.posts
+                    for post in posts {
+                        if !nextPosts.contains(post) {
+                            nextPosts.append(post)
+                        }
+                    }
+                    if self.posts != nextPosts {
+                        self.posts = nextPosts
+                    }
+                    self.after = nextAfter
                 }
-                if self.posts != nextPosts {
-                    self.posts = nextPosts
-                }
-                self.after = nextAfter
             }
         } else {
             activityIndicatorView.stopAnimating()
@@ -174,13 +186,19 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             username = signedInUser
         }
         
-        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "") { posts, nextAfter in
+        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "") { posts, nextAfter, errorOccured in
             DispatchQueue.main.async {
                 self.activityIndicatorView.stopAnimating()
                 self.refreshControl.endRefreshing()
             }
-            self.posts = posts
-            self.after = nextAfter
+            if errorOccured {
+                DispatchQueue.main.async {
+                    showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 1.0)
+                }
+            } else {
+                self.posts = posts
+                self.after = nextAfter
+            }
         }
     }
     

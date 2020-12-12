@@ -39,7 +39,6 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             }
         }
     }
-    var lastContentOffset: CGFloat = 0.0
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
 
     
@@ -58,6 +57,11 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         btn.addTarget(self, action: #selector(handleComment), for: .touchUpInside)
         return btn
     }()
+    let activityIndicatorView: UIActivityIndicatorView = {
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.startAnimating()
+        return spinner
+    }()
     
     let postView = PostView()
     
@@ -70,12 +74,17 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         tableView.alwaysBounceVertical = true
         tableView.tableHeaderView = postView
         postView.commentFlag = true
+        postView.addCommentFunc = addCommentFunc
         
         view.addSubview(addButton)
         addButton.translatesAutoresizingMaskIntoConstraints = false
         addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20).isActive = true
         addButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10).isActive = true
         view.bringSubviewToFront(addButton)
+        
+        activityIndicatorView.startAnimating()
+        activityIndicatorView.frame = CGRect(x: 0, y: 0, width: tableView.frame.width, height: 44)
+        tableView.tableFooterView = activityIndicatorView
 
         fullyExpanded = true
         fetchComments()
@@ -92,6 +101,10 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         commentCell.isFolded = comment.isFolded && !isCellExpanded(indexPath: indexPath)
         commentCell.delegate = self
         return commentCell
+    }
+    
+    func addCommentFunc() {
+        handleComment()
     }
     
     @objc func handleComment() {
@@ -170,13 +183,21 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
 
     private func fetchComments() {
+        activityIndicatorView.startAnimating()
         if let commentsLink = commentsLink, let url = URL(string: commentsLink) {
-                URLSession.shared.dataTask(with: url) { data, response, error in
-                    if let data = data {
-                        let comments = self.extractComments(data: data)
-                        self.comments = comments
+            URLSession.shared.dataTask(with: url) { data, response, error in
+                DispatchQueue.main.async {
+                    self.activityIndicatorView.stopAnimating()
+                }
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+                    let comments = self.extractComments(data: data)
+                    self.comments = comments
+                } else {
+                    DispatchQueue.main.async {
+                        showErrorToast(controller: self, message: "Unable to retrieve comments", seconds: 1.0)
                     }
-                }.resume()
+                }
+            }.resume()
         }
     }
     
@@ -308,15 +329,27 @@ class RedditCommentsController: CommentsController, CommentDelegate {
 
 extension RedditCommentsController {
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if !archived {
-            if (scrollView.contentOffset.y < lastContentOffset) {
-                //Scrolling up
-                addButton.isHidden = false
-            } else if (scrollView.contentOffset.y > lastContentOffset) {
-                //Scrolling down
-                addButton.isHidden = true
-            }
-            lastContentOffset = scrollView.contentOffset.y
+        let bottomEdge = scrollView.contentOffset.y + scrollView.frame.size.height;
+        if (bottomEdge >= scrollView.contentSize.height && _currentlyDisplayed.count > 2) {
+            addButton.isHidden = true
+        } else {
+            addButton.isHidden = false
         }
     }
+    
+//    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+//        if _currentlyDisplayed.isEmpty {
+//
+//        }
+//       let lastSectionIndex = tableView.numberOfSections - 1
+//       let lastRowIndex = tableView.numberOfRows(inSection: lastSectionIndex) - 1
+//       if indexPath.section ==  lastSectionIndex && indexPath.row == lastRowIndex {
+//        let spinner = UIActivityIndicatorView(style: .medium)
+//           spinner.startAnimating()
+//           spinner.frame = CGRect(x: CGFloat(0), y: CGFloat(0), width: tableView.bounds.width, height: CGFloat(44))
+//
+//        self.tableView.tableFooterView = spinner
+//        self.tableView.tableFooterView?.isHidden = false
+//       }
+//    }
 }

@@ -167,7 +167,8 @@ class UploadImageViewController: UIViewController {
                             DispatchQueue.main.async {
                                 self.progressView.setProgress(0.0, animated: true)
                                 self.submitButton.isHidden = false
-                                showErrorToast(controller: self, message: "Unable to upload image to Imgur", seconds: 1.0)
+                                self.activityIndicatorView.stopAnimating()
+                                showErrorToast(controller: self, message: "Unable to upload image", seconds: 1.0)
                             }
                             return
                         } else {
@@ -177,17 +178,21 @@ class UploadImageViewController: UIViewController {
                         }
                         guard let imageSource = imageSource else {return}
                         RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
-                            var message = ""
-                            if let _ = postData {
-                                message = "Image upload success"
+                            if postData != nil {
+                                DispatchQueue.main.async {
+                                    self.progressView.setProgress(1, animated: true)
+                                    generatorImpactOccured()
+                                    self.activityIndicatorView.stopAnimating()
+                                    showSuccessToastAndDismiss(controller: self, message: "Image upload success", seconds: 0.5)
+                                }
                             } else {
-                                message = "Image upload failed"
-                            }
-                            DispatchQueue.main.async {
-                                self.progressView.setProgress(1, animated: true)
-                                generatorImpactOccured()
-                                self.activityIndicatorView.stopAnimating()
-                                showSuccessToastAndDismiss(controller: self, message: message, seconds: 0.5)
+                                DispatchQueue.main.async {
+                                    self.progressView.setProgress(0, animated: true)
+                                    generatorImpactOccured()
+                                    self.activityIndicatorView.stopAnimating()
+                                    self.submitButton.isHidden = false
+                                    showErrorToast(controller: self, message: "Image upload failed", seconds: 1.0)
+                                }
                             }
                         }
                     }

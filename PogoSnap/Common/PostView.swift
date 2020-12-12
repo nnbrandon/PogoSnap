@@ -68,6 +68,7 @@ class PostView: UIView {
         }
     }
     var commentFlag = false
+    var addCommentFunc: (() -> Void)?
         
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
@@ -164,6 +165,8 @@ class PostView: UIView {
         guard let post = post, let index = index else {return}
         if !commentFlag {
             delegate?.didTapComment(post: post, index: index)
+        } else {
+            addCommentFunc?()
         }
     }
     

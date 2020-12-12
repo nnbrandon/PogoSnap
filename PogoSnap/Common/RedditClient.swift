@@ -180,7 +180,7 @@ struct RedditClient {
         }
     }
         
-    typealias PostsHandler = ([Post], String?) -> Void
+    typealias PostsHandler = ([Post], String?, Bool) -> Void
     public func fetchPosts(after: String, sort: String, completion: @escaping PostsHandler) {
         if let _ = defaults?.string(forKey: "username") {
             print("fetching posts with acesstoken")
@@ -190,16 +190,26 @@ struct RedditClient {
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
                 postsRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
                 URLSession.shared.dataTask(with: postsRequest) { data, response, error in
-                    let (posts, nextAfter) = extractPosts(after: after, data: data)
-                    completion(posts, nextAfter)
+                    if error != nil {
+                        completion([Post](), "", true)
+                    }
+                    if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+                        let (posts, nextAfter) = extractPosts(after: after, data: data)
+                        completion(posts, nextAfter, false)
+                    }
                 }.resume()
             }
         } else {
             print("fetching posts without acesstoken")
             let url = "https://www.reddit.com/r/\(Const.subredditName)/\(sort).json?after=" + after
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-                let (posts, nextAfter) = extractPosts(after: after, data: data)
-                completion(posts, nextAfter)
+                if error != nil {
+                    completion([Post](), "", true)
+                }
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+                    let (posts, nextAfter) = extractPosts(after: after, data: data)
+                    completion(posts, nextAfter, false)
+                }
             }.resume()
         }
     }
@@ -212,40 +222,50 @@ struct RedditClient {
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
                 postsRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
                 URLSession.shared.dataTask(with: postsRequest) { data, response, error in
-                    let (posts, nextAfter) = extractPosts(after: after, data: data)
-                    completion(posts, nextAfter)
+                    if error != nil {
+                        completion([Post](), "", true)
+                    }
+                    if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+                        let (posts, nextAfter) = extractPosts(after: after, data: data)
+                        completion(posts, nextAfter, false)
+                    }
                 }.resume()
             }
         } else {
             let url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-                let (posts, nextAfter) = extractPosts(after: after, data: data)
-                completion(posts, nextAfter)
+                if error != nil {
+                    completion([Post](), "", true)
+                }
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+                    let (posts, nextAfter) = extractPosts(after: after, data: data)
+                    completion(posts, nextAfter, false)
+                }
             }.resume()
         }
     }
     
-    public func searchPosts(query: String, after: String, completion: @escaping PostsHandler) {
-        let query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
-        if getUsername() != nil {
-            let url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
-            getAccessToken { accessToken in
-                var postsRequest = URLRequest(url: URL(string: url)!)
-                postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-                postsRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
-                URLSession.shared.dataTask(with: postsRequest) { data, response, error in
-                    let (posts, nextAfter) = extractPosts(after: after, data: data)
-                    completion(posts, nextAfter)
-                }.resume()
-            }
-        } else {
-            let url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
-            URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-                let (posts, nextAfter) = extractPosts(after: after, data: data)
-                completion(posts, nextAfter)
-            }.resume()
-        }
-    }
+//    public func searchPosts(query: String, after: String, completion: @escaping PostsHandler) {
+//        let query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+//        if getUsername() != nil {
+//            let url = "\(Const.oauthEndpoint)/r/\(RedditClient.Const.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
+//            getAccessToken { accessToken in
+//                var postsRequest = URLRequest(url: URL(string: url)!)
+//                postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+//                postsRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
+//                URLSession.shared.dataTask(with: postsRequest) { data, response, error in
+//                    let (posts, nextAfter) = extractPosts(after: after, data: data)
+//                    completion(posts, nextAfter)
+//                }.resume()
+//            }
+//        } else {
+//            let url = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
+//            URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
+//                let (posts, nextAfter) = extractPosts(after: after, data: data)
+//                completion(posts, nextAfter)
+//            }.resume()
+//        }
+//    }
     
     private func extractPosts(after: String, data: Data?) -> ([Post], String?) {
         if let data = data {

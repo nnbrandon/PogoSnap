@@ -34,9 +34,7 @@ class ShareViewController: UIViewController {
                                 }
                             }
                         }
-                    }
-                    
-                    if itemProvider.hasItemConformingToTypeIdentifier("public.image") {
+                    } else if itemProvider.hasItemConformingToTypeIdentifier("public.image") {
                         itemProvider.loadItem(forTypeIdentifier: "public.image", options: nil, completionHandler: { (data, error) -> Void in
                             if let image = data as? UIImage {
                                 DispatchQueue.main.async {

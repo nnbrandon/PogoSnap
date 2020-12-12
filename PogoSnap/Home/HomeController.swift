@@ -21,7 +21,6 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     var sort = SortOptions.best
     var listLayoutOption = ListLayoutOptions.card
     var userSignFlag: String?
-    var lastContentOffset: CGFloat = 0.0
 
     let cardCellId = "cardCellId"
     let galleryCellId = "galleryCellId"
@@ -39,18 +38,19 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         return activityView
     }()
     let footerView = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.medium)
-    let addButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setImage(UIImage(named: "add-60")?.withRenderingMode(.alwaysOriginal), for: .normal)
-        btn.addTarget(self, action: #selector(handleAdd), for: .touchUpInside)
-        return btn
-    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = "PogoSnap"
         if traitCollection.userInterfaceStyle == .light {
             collectionView.backgroundColor = .white
+            let barButton = UIBarButtonItem(image: UIImage(named: "add-image-30")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
+            barButton.tintColor = .darkGray
+            navigationItem.rightBarButtonItem = barButton
+        } else {
+            let barButton = UIBarButtonItem(image: UIImage(named: "add-image-30")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
+            barButton.tintColor = .white
+            navigationItem.rightBarButtonItem = barButton
         }
         collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cardCellId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: galleryCellId)
@@ -64,12 +64,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
         activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
-        
-        view.addSubview(addButton)
-        addButton.translatesAutoresizingMaskIntoConstraints = false
-        addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20).isActive = true
-        addButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10).isActive = true
-        view.bringSubviewToFront(addButton)
+
         
         userSignFlag = RedditClient.sharedInstance.getUsername()
     }
@@ -296,14 +291,19 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     private func fetchPosts() {
         print("fetching posts...")
         if let after = after {
-            print(sort.rawValue)
-            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue) { posts, nextAfter in
+            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue) { posts, nextAfter, errorOccured in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
                     self.footerView.stopAnimating()
                 }
-                self.posts.append(contentsOf: posts)
-                self.after = nextAfter
+                if errorOccured {
+                    DispatchQueue.main.async {
+                        showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
+                    }
+                } else {
+                    self.posts.append(contentsOf: posts)
+                    self.after = nextAfter
+                }
             }
         } else {
             activityIndicatorView.stopAnimating()
@@ -335,7 +335,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                 if errorOccured {
                     DispatchQueue.main.async {
                         progressView?.setProgress(0.0, animated: true)
-                        showErrorToast(controller: self, message: "Unable to upload image to Imgur", seconds: 1.0)
+                        showErrorToast(controller: self, message: "Unable to upload image", seconds: 1.0)
                     }
                     return
                 } else {
@@ -376,15 +376,20 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         if posts.isEmpty {
             activityIndicatorView.startAnimating()
         }
-        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue) { posts, nextAfter in
+        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue) { posts, nextAfter, errorOccured in
             DispatchQueue.main.async {
                 self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
             }
-            if self.posts != posts {
-                print("settings posts after refresh")
-                self.posts = posts
-                self.after = nextAfter
+            if errorOccured {
+                DispatchQueue.main.async {
+                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
+                }
+            } else {
+                if self.posts != posts {
+                    self.posts = posts
+                    self.after = nextAfter
+                }
             }
         }
     }
@@ -471,17 +476,6 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
 }
 
 extension HomeController: UICollectionViewDelegateFlowLayout {
-    
-    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if (scrollView.contentOffset.y < lastContentOffset) {
-            //Scrolling up
-            addButton.isHidden = false
-        } else if (scrollView.contentOffset.y > lastContentOffset) {
-            //Scrolling down
-            addButton.isHidden = true
-        }
-        lastContentOffset = scrollView.contentOffset.y
-    }
     
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         if kind == UICollectionView.elementKindSectionHeader {
