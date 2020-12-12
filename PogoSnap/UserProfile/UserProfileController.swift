@@ -16,6 +16,13 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     }
 
     var usernameProp: String?
+    var icon_imgProp: String? {
+        didSet {
+            DispatchQueue.main.async {
+                self.collectionView.collectionViewLayout.invalidateLayout()
+            }
+        }
+    }
     var posts = [Post]() {
         didSet {
             DispatchQueue.main.async {
@@ -39,8 +46,9 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        collectionView.backgroundColor = .white
+        if traitCollection.userInterfaceStyle == .light {
+            collectionView.backgroundColor = .white
+        }
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)
         collectionView.refreshControl = refreshControl
@@ -50,11 +58,18 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
         activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
         
+        if let imgurList = ImgurClient.sharedInstance.getImageUrlList() {
+            print(imgurList)
+        }
+        
         if let usernameProp = usernameProp {
             // Check if we are looking at someone else's profile
             if posts.isEmpty {
                 print("fetching user posts... from usernameProp")
                 activityIndicatorView.startAnimating()
+                RedditClient.fetchUserAbout(username: usernameProp) { (_, icon_img) in
+                    self.icon_imgProp = icon_img
+                }
                 fetchUserPosts(username: usernameProp)
             }
         } else if RedditClient.sharedInstance.getUsername() == nil {
@@ -72,7 +87,13 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
                 viewControllers.last?.removeFromParent()
                 viewControllers.last?.view.removeFromSuperview()
                 collectionView.isHidden = false
-                navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
+                if traitCollection.userInterfaceStyle == .dark {
+                    let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
+                    barButton.tintColor = .white
+                    navigationItem.rightBarButtonItem = barButton
+                } else {
+                    navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleOptions))
+                }
             }
             RedditClient.sharedInstance.fetchMe { (username, icon_img) in
                 DispatchQueue.main.async {
@@ -83,11 +104,24 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
                 self.fetchUserPosts(username: username)
             }
         } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
-            navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleLogout))
+            if traitCollection.userInterfaceStyle == .dark {
+                let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
+                barButton.tintColor = .white
+                navigationItem.rightBarButtonItem = barButton
+            } else {
+                navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(handleOptions))
+            }
             if posts.isEmpty || posts.count == 1 {
                 print("fetching user posts...")
                 activityIndicatorView.startAnimating()
-                fetchUserPosts(username: username)
+                RedditClient.sharedInstance.fetchMe { (_, icon_img) in
+                    DispatchQueue.main.async {
+                        self.collectionView.reloadData()
+                        self.activityIndicatorView.startAnimating()
+                    }
+                    print("fetching user posts after fetching me...")
+                    self.fetchUserPosts(username: username)
+                }
             }
         }
     }
@@ -114,8 +148,13 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
         }
     }
     
-    @objc private func handleLogout() {
+    @objc private func handleOptions() {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        alertController.addAction(UIAlertAction(title: "Manage Imgur uploads", style: .default, handler: { (_) in
+            let viewController = ImgurTableController()
+            viewController.hidesBottomBarWhenPushed = true
+            self.navigationController?.pushViewController(viewController, animated: true)
+        }))
         alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
             RedditClient.sharedInstance.deleteCredentials()
             self.posts = [Post]()
@@ -194,7 +233,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
                 DispatchQueue.main.async {
-                    showToast(controller: self, message: "You need to be signed in to report", seconds: 1.0, dismissAfter: false)
+                    showErrorToast(controller: self, message: "You need to be signed in to report", seconds: 1.0)
                 }
                 return
             }
@@ -236,6 +275,11 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
             self.present(reportOptionsController, animated: true, completion: nil)
         }))
+        if let username = RedditClient.sharedInstance.getUsername(), username == post.author {
+            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
+                self.deletePost(postId: post.id)
+            }))
+        }
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         
         present(alertController, animated: true, completion: nil)
@@ -244,11 +288,11 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
         if !authenticated {
             DispatchQueue.main.async {
-                showToast(controller: self, message: "You need to be signed in to like", seconds: 1.0, dismissAfter: false)
+                showErrorToast(controller: self, message: "You need to be signed in to like", seconds: 1.0)
             }
         } else if archived {
             DispatchQueue.main.async {
-                showToast(controller: self, message: "This post has been archived", seconds: 1.0, dismissAfter: false)
+                showErrorToast(controller: self, message: "This post has been archived", seconds: 1.0)
             }
         } else {
             if direction == 0 {
@@ -266,12 +310,45 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     }
     
     private func reportPost(postId: String, reason: String) {
-        RedditClient.sharedInstance.reportPost(postId: postId, reason: reason) { (errors, _) in
+        let postId = "t3_\(postId)"
+        RedditClient.sharedInstance.report(id: postId, reason: reason) { (errors, _) in
             if errors.isEmpty {
-                print("reported!")
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    showToast(controller: self, message: "Reported ✓", seconds: 0.5, dismissAfter: false)
+                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                        showSuccessToast(controller: commentController, message: "Reported", seconds: 0.5)
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                        showSuccessToast(controller: commentController, message: "Could not report", seconds: 0.5)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func deletePost(postId: String) {
+        let id = "t3_\(postId)"
+        RedditClient.sharedInstance.delete(id: id) { errorOccured in
+            if errorOccured {
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                        showErrorToast(controller: commentController, message: "Could not delete the post", seconds: 0.5)
+                    }
+                }
+            } else {
+                if let index = self.posts.firstIndex(where: { post -> Bool in post.id == postId}) {
+                    self.posts.remove(at: index)
+                    DispatchQueue.main.async {
+                        generatorImpactOccured()
+                        if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                            showSuccessToast(controller: commentController, message: "Deleted", seconds: 0.5)
+                        }
+                    }
                 }
             }
         }
@@ -319,11 +396,18 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: Const.headerId, for: indexPath) as! UserProfileHeader
+        if traitCollection.userInterfaceStyle == .dark {
+            header.darkMode = true
+        } else {
+            header.darkMode = false
+        }
 
         if let usernameProp = usernameProp {
             header.username = usernameProp
-        } else if let username = RedditClient.sharedInstance.getUsername() {
+            header.icon_img = icon_imgProp
+        } else if let username = RedditClient.sharedInstance.getUsername(), let icon_img = RedditClient.sharedInstance.getIconImg() {
             header.username = username
+            header.icon_img = icon_img
         }
         
         return header

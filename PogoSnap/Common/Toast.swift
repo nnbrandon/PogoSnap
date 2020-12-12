@@ -6,19 +6,36 @@
 //
 
 import UIKit
+import Toast_Swift
 
-func showToast(controller: UIViewController, message : String, seconds: Double, dismissAfter: Bool) {
-    let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-    alert.view.backgroundColor = UIColor.black
-    alert.view.alpha = 0.6
-    alert.view.layer.cornerRadius = 15
+func showSuccessToast(controller: UIViewController, message : String, seconds: Double) {
+    var style = ToastStyle()
+    style.backgroundColor = .systemBlue
+    style.messageColor = .white
+    controller.view.makeToast(message, duration: seconds, position: .top, style: style)
+}
 
-    controller.present(alert, animated: true)
-
-    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + seconds) {
-        alert.dismiss(animated: true)
-        if dismissAfter {
-            controller.dismiss(animated: true, completion: nil)
-        }
+func showSuccessToastAndDismiss(controller: UIViewController, message : String, seconds: Double) {
+    var style = ToastStyle()
+    style.backgroundColor = .systemBlue
+    style.messageColor = .white
+    controller.view.makeToast(message, duration: seconds, position: .top, style: style) { _ in
+        controller.dismiss(animated: true, completion: nil)
     }
 }
+
+
+func showErrorToast(controller: UIViewController, message : String, seconds: Double) {
+    var style = ToastStyle()
+    style.backgroundColor = .systemRed
+    style.messageColor = .white
+    controller.view.makeToast(message, duration: seconds, position: .top, style: style)
+}
+
+func showImageToast(controller: UIViewController, message: String, image: UIImage, seconds: Double) {
+    var style = ToastStyle()
+    style.backgroundColor = .systemBlue
+    style.messageColor = .white
+    controller.view.makeToast(message, position: .top, image: image, style: style)
+}
+

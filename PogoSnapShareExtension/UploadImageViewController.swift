@@ -28,19 +28,11 @@ class UploadImageViewController: UIViewController {
         return imageView
     }()
     
-    let textView: UITextView = {
-        let tv = UITextView()
-        tv.backgroundColor = .white
-        tv.textColor = UIColor.black
-        tv.font = UIFont.systemFont(ofSize: 14)
-        return tv
-    }()
-    
-    let shareButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Share", for: .normal)
-        button.addTarget(self, action: #selector(handleShare), for: .touchUpInside)
-        return button
+    let textField: UITextField = {
+        let tf = UITextField()
+        tf.font = UIFont.systemFont(ofSize: 18)
+        tf.placeholder = "Enter title"
+        return tf
     }()
     
     let progressView: UIProgressView = {
@@ -49,9 +41,38 @@ class UploadImageViewController: UIViewController {
         return bar
     }()
     
+    let closeButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("𝗫", for: .normal)
+        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 20)
+        button.setTitleColor(.red, for: .normal)
+        button.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
+        return button
+    }()
+    
+    let uploadLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Upload Image"
+        label.font = UIFont.boldSystemFont(ofSize: 18)
+        return label
+    }()
+    
+    let submitButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Submit", for: .normal)
+        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 16)
+        button.setTitleColor(.red, for: .normal)
+        button.addTarget(self, action: #selector(handleShare), for: .touchUpInside)
+        return button
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
+        if traitCollection.userInterfaceStyle == .light {
+            view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
+        } else {
+            view.backgroundColor = .black
+        }
         
         view.addSubview(progressView)
         progressView.translatesAutoresizingMaskIntoConstraints = false
@@ -59,17 +80,29 @@ class UploadImageViewController: UIViewController {
         progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         progressView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
         progressView.heightAnchor.constraint(equalToConstant: 5).isActive = true
-                
+        
+        view.addSubview(closeButton)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        closeButton.topAnchor.constraint(equalTo: progressView.bottomAnchor, constant: 10).isActive = true
+        closeButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8).isActive = true
+
+        view.addSubview(uploadLabel)
+        uploadLabel.translatesAutoresizingMaskIntoConstraints = false
+        uploadLabel.topAnchor.constraint(equalTo: progressView.bottomAnchor, constant: 16).isActive = true
+        uploadLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        
+        view.addSubview(submitButton)
+        submitButton.translatesAutoresizingMaskIntoConstraints = false
+        submitButton.topAnchor.constraint(equalTo: progressView.bottomAnchor, constant: 10).isActive = true
+        submitButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8).isActive = true
+        
         view.addSubview(activityIndicatorView)
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        activityIndicatorView.topAnchor.constraint(equalTo: progressView.bottomAnchor, constant: 12).isActive = true
+        activityIndicatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24).isActive = true
         
-        view.addSubview(shareButton)
-        shareButton.translatesAutoresizingMaskIntoConstraints = false
-        shareButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        shareButton.topAnchor.constraint(equalTo: activityIndicatorView.bottomAnchor).isActive = true
-        
+        textField.delegate = self
+        textField.becomeFirstResponder()
         setupImageAndTextViews()
     }
     
@@ -80,11 +113,15 @@ class UploadImageViewController: UIViewController {
     
     fileprivate func setupImageAndTextViews() {
         let containerView = UIView()
-        containerView.backgroundColor = .white
+        if traitCollection.userInterfaceStyle == .light {
+            containerView.backgroundColor = .white
+        } else {
+            containerView.backgroundColor = .black
+        }
         view.addSubview(containerView)
         
         containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.topAnchor.constraint(equalTo: progressView.bottomAnchor).isActive = true
+        containerView.topAnchor.constraint(equalTo: closeButton.bottomAnchor, constant: 30).isActive = true
         containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
         containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         containerView.heightAnchor.constraint(equalToConstant: 100).isActive = true
@@ -96,39 +133,62 @@ class UploadImageViewController: UIViewController {
         photoImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8).isActive = true
         photoImageView.widthAnchor.constraint(equalToConstant: 84).isActive = true
         
-        containerView.addSubview(textView)
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        textView.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
-        textView.leadingAnchor.constraint(equalTo: photoImageView.trailingAnchor).isActive = true
-        textView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: 4).isActive = true
-        textView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor).isActive = true
+        containerView.addSubview(textField)
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8).isActive = true
+        textField.leadingAnchor.constraint(equalTo: photoImageView.trailingAnchor, constant: 8).isActive = true
+        textField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: 4).isActive = true
+    }
+    
+    @objc func handleClose() {
+        DispatchQueue.main.async {
+            self.dismiss(animated: true, completion: nil)
+        }
     }
     
     @objc func handleShare() {
         print("Sharing photo")
-        shareButton.isEnabled = false
-        if RedditClient.sharedInstance.getUsername() == nil {
-            showToast(controller: self, message: "You need to be signed in to upload a photo", seconds: 1.0, dismissAfter: true)
+        if let title = textField.text, title.isEmpty {
+            showErrorToast(controller: self, message: "Enter a title", seconds: 0.5)
         } else {
-            if let image = photoImageView.image, let title = textView.text {
-                activityIndicatorView.startAnimating()
-                progressView.setProgress(0.5, animated: true)
-                ImgurClient.uploadImageToImgur(image: image) { (imageSource, imageUrlDelete) in
-                    DispatchQueue.main.async {
-                        self.progressView.setProgress(0.7, animated: true)
-                    }
-                    RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
-                        var message = ""
-                        if let _ = postData {
-                            message = "Image upload success ✓"
+            DispatchQueue.main.async {
+                self.activityIndicatorView.startAnimating()
+                self.submitButton.isHidden = true
+            }
+            if RedditClient.sharedInstance.getUsername() == nil {
+                showErrorToast(controller: self, message: "You need to be signed in to upload a photo", seconds: 1.0)
+                submitButton.isHidden = false
+            } else {
+                if let image = photoImageView.image, let title = textField.text {
+                    activityIndicatorView.startAnimating()
+                    progressView.setProgress(0.5, animated: true)
+                    ImgurClient.sharedInstance.uploadImageToImgur(image: image) { (imageSource, errorOccured) in
+                        if errorOccured {
+                            DispatchQueue.main.async {
+                                self.progressView.setProgress(0.0, animated: true)
+                                self.submitButton.isHidden = false
+                                showErrorToast(controller: self, message: "Unable to upload image to Imgur", seconds: 1.0)
+                            }
+                            return
                         } else {
-                            message = "Image upload failed 𝗫"
+                            DispatchQueue.main.async {
+                                self.progressView.setProgress(0.7, animated: true)
+                            }
                         }
-                        DispatchQueue.main.async {
-                            self.progressView.setProgress(1, animated: true)
-                            generatorImpactOccured()
-                            self.activityIndicatorView.stopAnimating()
-                            showToast(controller: self, message: message, seconds: 1.0, dismissAfter: true)
+                        guard let imageSource = imageSource else {return}
+                        RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
+                            var message = ""
+                            if let _ = postData {
+                                message = "Image upload success"
+                            } else {
+                                message = "Image upload failed"
+                            }
+                            DispatchQueue.main.async {
+                                self.progressView.setProgress(1, animated: true)
+                                generatorImpactOccured()
+                                self.activityIndicatorView.stopAnimating()
+                                showSuccessToastAndDismiss(controller: self, message: message, seconds: 0.5)
+                            }
                         }
                     }
                 }
@@ -137,3 +197,14 @@ class UploadImageViewController: UIViewController {
     }
 
 }
+
+extension UploadImageViewController: UITextFieldDelegate {
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        return true
+    }
+}
+

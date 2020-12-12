@@ -12,3 +12,13 @@ struct RedditMeResponse: Decodable {
     let icon_img: String
     let id: String
 }
+
+struct RedditAboutResponse: Decodable {
+    let data: RedditMeResponse
+}
+
+//struct RedditAboutData: Decodable {
+//    let name: String
+//    let icon_img: String
+//    let id: String
+//}

@@ -16,10 +16,26 @@ class UserProfileHeader: UICollectionViewCell {
             }
         }
     }
+    var icon_img: String? {
+        didSet {
+            if let icon_img = icon_img {
+                profileImageView.loadImage(urlString: icon_img)
+            }
+        }
+    }
+    var darkMode: Bool = false {
+        didSet {
+            if darkMode {
+                gridButton.tintColor = .white
+            } else {
+                gridButton.tintColor = UIColor(white: 0, alpha: 0.2)
+            }
+        }
+    }
 
     let profileImageView: CustomImageView = {
        let imageView = CustomImageView()
-        imageView.image = UIImage(named: "PikachuReddit")
+//        imageView.image = UIImage(named: "PikachuReddit")
         return imageView
     }()
     

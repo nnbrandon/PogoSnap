@@ -28,24 +28,35 @@ class SharePhotoController: UIViewController {
         return imageView
     }()
     
-    let textView: UITextView = {
-        let tv = UITextView()
-        tv.font = UIFont.systemFont(ofSize: 14)
-        return tv
+    let textField: UITextField = {
+        let tf = UITextField()
+        tf.font = UIFont.systemFont(ofSize: 18)
+        tf.placeholder = "Enter title"
+        return tf
     }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
+        if traitCollection.userInterfaceStyle == .light {
+            view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
+        } else {
+            view.backgroundColor = .black
+        }
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Share", style: .plain, target: self, action: #selector(handleShare))
                 
+        textField.delegate = self
+        textField.becomeFirstResponder()
         setupImageAndTextViews()
     }
     
     fileprivate func setupImageAndTextViews() {
         let containerView = UIView()
-        containerView.backgroundColor = .white
+        if traitCollection.userInterfaceStyle == .light {
+            containerView.backgroundColor = .white
+        } else {
+            containerView.backgroundColor = .black
+        }
         view.addSubview(containerView)
         
         containerView.translatesAutoresizingMaskIntoConstraints = false
@@ -61,20 +72,34 @@ class SharePhotoController: UIViewController {
         photoImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8).isActive = true
         photoImageView.widthAnchor.constraint(equalToConstant: 84).isActive = true
         
-        containerView.addSubview(textView)
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        textView.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
-        textView.leadingAnchor.constraint(equalTo: photoImageView.trailingAnchor).isActive = true
-        textView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: 4).isActive = true
-        textView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor).isActive = true
+        containerView.addSubview(textField)
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8).isActive = true
+        textField.leadingAnchor.constraint(equalTo: photoImageView.trailingAnchor, constant: 8).isActive = true
+        textField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: 4).isActive = true
     }
     
     @objc func handleShare() {
-        print("Sharing photo")
-        navigationItem.rightBarButtonItem?.isEnabled = false
-        if let image = photoImageView.image, let title = textView.text {
-            delegate?.imageSubmitted(image: image, title: title)
-            dismiss(animated: true, completion: nil)
+        if let title = textField.text, title.isEmpty {
+            DispatchQueue.main.async {
+                showErrorToast(controller: self, message: "Enter a title", seconds: 0.5)
+            }
+        } else {
+            navigationItem.rightBarButtonItem?.isEnabled = false
+            if let image = photoImageView.image, let title = textField.text {
+                delegate?.imageSubmitted(image: image, title: title)
+                dismiss(animated: true, completion: nil)
+            }
         }
+    }
+}
+
+extension SharePhotoController: UITextFieldDelegate {
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        return true
     }
 }

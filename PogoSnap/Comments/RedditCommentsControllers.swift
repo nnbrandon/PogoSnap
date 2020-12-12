@@ -40,6 +40,8 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         }
     }
     var lastContentOffset: CGFloat = 0.0
+    let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
+
     
     private let commentCellId = "redditCommentCellId"
     var comments: [Comment] = [] {
@@ -62,8 +64,9 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(RedditCommentCell.self, forCellReuseIdentifier: commentCellId)
-        tableView.backgroundColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
-        tableView.keyboardDismissMode = .interactive
+        if traitCollection.userInterfaceStyle == .light {
+            tableView.backgroundColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
+        }
         tableView.alwaysBounceVertical = true
         tableView.tableHeaderView = postView
         postView.commentFlag = true
@@ -92,11 +95,19 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     @objc func handleComment() {
-        if let post = post {
-            let textController = RedditCommentTextController()
-            textController.post = post
-            textController.updateComments = updateComments
-            present(textController, animated: true, completion: nil)
+        if RedditClient.sharedInstance.getUsername() == nil {
+            DispatchQueue.main.async {
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "You need to sign in to comment", seconds: 0.5)
+                }
+            }
+        } else {
+            if let post = post {
+                let textController = RedditCommentTextController()
+                textController.post = post
+                textController.updateComments = updateComments
+                present(textController, animated: true, completion: nil)
+            }
         }
     }
     
@@ -170,6 +181,11 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     public func updateComments(comment: Comment, parentCommentId: String?) {
+        DispatchQueue.main.async {
+            if let navController = self.navigationController {
+                showSuccessToast(controller: navController, message: "Comment posted", seconds: 0.5)
+            }
+        }
         if let parentCommentId = parentCommentId {
             addReply(reply: comment, parentCommentId: parentCommentId)
         } else {
@@ -196,17 +212,111 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             present(textController, animated: true, completion: nil)
         }
     }
+    
+    
+    func didTapOptions(commentId: String, author: String) {
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
+            
+            if !RedditClient.sharedInstance.isUserAuthenticated() {
+                DispatchQueue.main.async {
+                    showErrorToast(controller: self, message: "You need to be signed in to report", seconds: 1.0)
+                }
+                return
+            }
+            
+            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
+                
+                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+                if let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") {
+                    for rule in subredditRules {
+                        subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+                            if let reason = action.title {
+                                self.reportComment(commentId: commentId, reason: reason)
+                            }
+                        }))
+                    }
+                }
+                subredditRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                self.present(subredditRulesController, animated: true, completion: nil)
+            }))
+                        
+            reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
+                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules")  {
+                    for rule in siteRules {
+                        siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+                            if let reason = action.title {
+                                self.reportComment(commentId: commentId, reason: reason)
+                            }
+                        }))
+                    }
+                }
+                siteRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                self.present(siteRulesController, animated: true, completion: nil)
+            }))
+            
+            reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            self.present(reportOptionsController, animated: true, completion: nil)
+        }))
+        if let username = RedditClient.sharedInstance.getUsername(), username == author {
+            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
+                self.deleteComment(commentId: commentId)
+            }))
+        }
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        
+        present(alertController, animated: true, completion: nil)
+    }
+    
+    private func deleteComment(commentId: String) {
+        let id = "t1_\(commentId)"
+        RedditClient.sharedInstance.delete(id: id) { errorOccured in
+            if errorOccured {
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    showErrorToast(controller: self, message: "Could not delete the comment", seconds: 0.5)
+                }
+            } else {
+                self.removeComment(commentId: commentId)
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    showSuccessToast(controller: self, message: "Deleted", seconds: 0.5)
+                }
+            }
+        }
+    }
+    
+    private func reportComment(commentId: String, reason: String) {
+        let commentId = "t1_\(commentId)"
+        RedditClient.sharedInstance.report(id: commentId, reason: reason) { (errors, _) in
+            if errors.isEmpty {
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    showSuccessToast(controller: self, message: "Reported", seconds: 0.5)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    showErrorToast(controller: self, message: "Could not report the post", seconds: 0.5)
+                }
+            }
+        }
+    }
 }
 
 extension RedditCommentsController {
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if (scrollView.contentOffset.y + 5 < lastContentOffset) {
-            //Scrolling up
-            addButton.isHidden = false
-        } else if (scrollView.contentOffset.y >= lastContentOffset) {
-            //Scrolling down
-            addButton.isHidden = true
+        if !archived {
+            if (scrollView.contentOffset.y < lastContentOffset) {
+                //Scrolling up
+                addButton.isHidden = false
+            } else if (scrollView.contentOffset.y > lastContentOffset) {
+                //Scrolling down
+                addButton.isHidden = true
+            }
+            lastContentOffset = scrollView.contentOffset.y
         }
-        lastContentOffset = scrollView.contentOffset.y
     }
 }

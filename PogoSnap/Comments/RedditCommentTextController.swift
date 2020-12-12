@@ -41,7 +41,6 @@ class RedditCommentTextController: UIViewController {
         let label = UILabel()
         label.text = "Comment"
         label.font = UIFont.boldSystemFont(ofSize: 18)
-        label.textColor = .black
         return label
     }()
     
@@ -62,7 +61,7 @@ class RedditCommentTextController: UIViewController {
     
     let usernameLabel: UILabel = {
         let lbl = UILabel()
-        lbl.textColor = RedditConstants.metadataColor
+        lbl.textColor = .gray
         lbl.font = RedditConstants.metadataFont
         lbl.textAlignment = .left
         return lbl
@@ -70,7 +69,6 @@ class RedditCommentTextController: UIViewController {
     
     let parentContentLabel: UILabel = {
         let lbl = UILabel()
-        lbl.textColor = RedditConstants.textColor
         lbl.lineBreakMode = .byWordWrapping
         lbl.font = RedditConstants.textFont
         lbl.numberOfLines = 0
@@ -85,7 +83,11 @@ class RedditCommentTextController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
+        if traitCollection.userInterfaceStyle == .light {
+            view.backgroundColor = .white
+        } else {
+            view.backgroundColor = .black
+        }
         commentTextField.delegate = self
         commentTextField.becomeFirstResponder()
                 
@@ -136,7 +138,7 @@ class RedditCommentTextController: UIViewController {
         let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
         if !authenticated {
             DispatchQueue.main.async {
-                showToast(controller: self, message: "You need to be signed in to comment", seconds: 1.5, dismissAfter: false)
+                showErrorToast(controller: self, message: "You need to be signed in to comment", seconds: 1.0)
             }
         } else {
             if let username = RedditClient.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
@@ -161,7 +163,6 @@ class RedditCommentTextController: UIViewController {
                         self.updateComments?(comment, self.parentCommentId)
                         generatorImpactOccured()
                         DispatchQueue.main.async {
-                            self.activityIndicatorView.stopAnimating()
                             self.dismiss(animated: true, completion: nil)
                         }
                     } else {
@@ -169,7 +170,7 @@ class RedditCommentTextController: UIViewController {
                         DispatchQueue.main.async {
                             self.activityIndicatorView.stopAnimating()
                             self.submitButton.isHidden = false
-                            showToast(controller: self, message: "Unable to post comment", seconds: 0.5, dismissAfter: false)
+                            showErrorToast(controller: self, message: "Unable to post comment", seconds: 0.5)
                         }
                     }
                 }

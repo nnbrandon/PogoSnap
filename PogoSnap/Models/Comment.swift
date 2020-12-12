@@ -8,8 +8,8 @@
 import Foundation
 
 struct Comment: Equatable {
-    let author: String
-    let body: String
+    var author: String
+    var body: String
     let depth: Int
     var replies: [Comment]
     let id: String

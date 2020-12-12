@@ -91,6 +91,20 @@ open class CommentsController: UITableViewController {
             self.tableView.reloadData()
         }
     }
+    
+    func removeComment(commentId: String) {
+        if let index = _currentlyDisplayed.firstIndex(where: { comment -> Bool in comment.id == commentId}) {
+//            if _currentlyDisplayed[index].replies.isEmpty {
+//                _currentlyDisplayed.remove(at: index)
+//            } else {
+            _currentlyDisplayed[index].author = "[deleted]"
+            _currentlyDisplayed[index].body = "[deleted]"
+//            }
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
+    }
 
     /// Linearize the comments in _currentlyDisplayed.
     public func linearizeCurrentlyDisplayedComs() {

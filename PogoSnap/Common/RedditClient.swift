@@ -26,10 +26,11 @@ struct RedditClient {
     private init() {}
 
     struct Const {
-        static let subredditName = "PokemonGoSnap"
-//        static let subredditName = "PogoSnap"
+//        static let subredditName = "PokemonGoSnap"
+        static let subredditName = "PogoSnap"
 
         static let username = "username"
+        static let icon_img = "icon_img"
         static let redditAccessToken = "redditAccessToken"
         static let redditRefreshToken = "redditRefreshToken"
         static let redditExpireDate = "redditExpireDate"
@@ -42,7 +43,7 @@ struct RedditClient {
 
         static let responseType = "code"
         static let duration = "permanent"
-        static let scope = "read submit identity report save history vote privatemessages"
+        static let scope = "read submit edit identity report save history vote privatemessages"
         
         static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
         static let oauthEndpoint = "https://oauth.reddit.com"
@@ -51,6 +52,7 @@ struct RedditClient {
         static let voteEndpoint = oauthEndpoint + "/api/vote"
         static let commentEndpoint = oauthEndpoint + "/api/comment"
         static let submitEndpoint = oauthEndpoint + "/api/submit"
+        static let deleteEndpoint = oauthEndpoint + "/api/del"
     }
     
     private func isTokenExpired(expireDate: Date) -> Bool {
@@ -82,10 +84,6 @@ struct RedditClient {
         }
     }
     
-    public func getUsername() -> String? {
-        return defaults?.string(forKey: Const.username)
-    }
-    
     typealias MeHandler = (String, String) -> Void
     public func fetchMe(completion: @escaping MeHandler) {
         getAccessToken { accessToken in
@@ -96,8 +94,19 @@ struct RedditClient {
                 if let data = data {
                     do {
                         let meResponse = try JSONDecoder().decode(RedditMeResponse.self, from: data)
-                        defaults?.setValue(meResponse.name, forKey: Const.username)
-                        completion(meResponse.name, meResponse.icon_img)
+                        let filteredIconImg = meResponse.icon_img.replacingOccurrences(of: "amp;", with: "")
+                        if let username = getUsername(), let icon_img = getIconImg() {
+                            if username != meResponse.name {
+                                defaults?.setValue(meResponse.name, forKey: Const.username)
+                            }
+                            if icon_img != meResponse.icon_img {
+                                defaults?.setValue(filteredIconImg, forKey: Const.icon_img)
+                            }
+                        } else {
+                            defaults?.setValue(meResponse.name, forKey: Const.username)
+                            defaults?.setValue(filteredIconImg, forKey: Const.icon_img)
+                        }
+                        completion(meResponse.name, filteredIconImg)
                     } catch {
                         print(error)
                     }
@@ -109,11 +118,10 @@ struct RedditClient {
     
     // errors, PostData
     typealias JsonHandler = ([String], PostData?) -> Void
-    public func reportPost(postId: String, reason: String, completion: @escaping JsonHandler) {
-        let postId = "t3_" + postId
+    public func report(id: String, reason: String, completion: @escaping JsonHandler) {
         let reason = reason.replacingOccurrences(of: " ", with: "%20").replacingOccurrences(of: ",", with: "%2C")
         let apiType = "json"
-        let url = "\(Const.reportEndpoint)?api_type=\(apiType)&reason=\(reason)&thing_id=\(postId)&sr_name=\(Const.subredditName)"
+        let url = "\(Const.reportEndpoint)?api_type=\(apiType)&reason=\(reason)&thing_id=\(id)&sr_name=\(Const.subredditName)"
         
         getAccessToken { accessToken in
             var meRequest = URLRequest(url: URL(string: url)!)
@@ -164,7 +172,6 @@ struct RedditClient {
                         } catch {
                             completion(true, nil)
                         }
-                        completion(true, nil)
                     } else {
                         completion(true, nil)
                     }
@@ -308,8 +315,29 @@ struct RedditClient {
         }
     }
     
+    public func delete(id: String, completion: @escaping BoolHandler) {
+        let url = "\(Const.deleteEndpoint)?id=\(id)"
+        getAccessToken { accessToken in
+            var deleteRequest = URLRequest(url: URL(string: url)!)
+            deleteRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            deleteRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
+            deleteRequest.httpMethod = "POST"
+            URLSession.shared.dataTask(with: deleteRequest) { data, response, error in
+                if error != nil {
+                    completion(true)
+                }
+                if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 200 {
+                        completion(false)
+                    } else {
+                        completion(true)
+                    }
+                }
+            }.resume()
+        }
+    }
+    
     public func submitImageLink(link: String, text: String, completion: @escaping JsonHandler) {
-        print(link)
         let apiType = "json"
         let kind = "link"
         let textEncoded = text.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
@@ -345,6 +373,13 @@ struct RedditClient {
         }
     }
     
+    public func getUsername() -> String? {
+        return defaults?.string(forKey: Const.username)
+    }
+    
+    public func getIconImg() -> String? {
+        return defaults?.string(forKey: Const.icon_img)
+    }
     
     public func isUserAuthenticated() -> Bool {
         if let _ = keychain[Const.redditAccessToken] {
@@ -359,6 +394,7 @@ struct RedditClient {
             try keychain.remove(Const.redditAccessToken)
             try keychain.remove(Const.redditRefreshToken)
             defaults?.removeObject(forKey: Const.username)
+            defaults?.removeObject(forKey: Const.icon_img)
             defaults?.removeObject(forKey: Const.redditExpireDate)
         } catch _ {
             print("unable to delete credentials")
@@ -379,6 +415,22 @@ struct RedditClient {
                     do {
                         let rulesResponse = try JSONDecoder().decode(RedditRulesResponse.self, from: data)
                         completion(rulesResponse)
+                    } catch {
+                        print(error)
+                    }
+                }
+            }.resume()
+        }
+    }
+    
+    static func fetchUserAbout(username: String, completion: @escaping MeHandler) {
+        if let url = URL(string: "https://www.reddit.com/user/\(username)/about.json") {
+            URLSession.shared.dataTask(with: url) { data, response, error in
+                if let data = data {
+                    do {
+                        let aboutResponse = try JSONDecoder().decode(RedditAboutResponse.self, from: data)
+                        let filteredIconImg = aboutResponse.data.icon_img.replacingOccurrences(of: "amp;", with: "")
+                        completion(aboutResponse.data.name, filteredIconImg)
                     } catch {
                         print(error)
                     }

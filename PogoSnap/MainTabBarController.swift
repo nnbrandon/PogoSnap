@@ -15,9 +15,15 @@ class MainTabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
         delegate = self
-        view.backgroundColor = .white
-        tabBar.barTintColor = .white
-        tabBar.isTranslucent = false
+        if traitCollection.userInterfaceStyle == .light {
+            tabBar.barTintColor = .white
+            tabBar.tintColor = .black
+            tabBar.isTranslucent = false
+        } else {
+            tabBar.barTintColor = .black
+            tabBar.tintColor = .white
+            tabBar.isTranslucent = false
+        }
         
         setupViewControllers()
     }
@@ -42,9 +48,7 @@ class MainTabBarController: UITabBarController {
         let profileNavController = UINavigationController(rootViewController: profileVC)
         profileNavController.tabBarItem.image = UIImage(named: "profile_unselected")
         profileNavController.tabBarItem.selectedImage = UIImage(named: "profile_selected")
-        
-        tabBar.tintColor = .black
-        
+
         viewControllers = [homeNavController, profileNavController]
     }
 }

@@ -10,18 +10,18 @@ import UIKit
 protocol CommentDelegate {
     func didTapUsername(username: String)
     func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int)
+    func didTapOptions(commentId: String, author: String)
 }
 
 struct RedditConstants {
     static let sepColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
+    static let darkSepColor = UIColor.darkGray
     static let backgroundColor = #colorLiteral(red: 0.9961144328, green: 1, blue: 0.9999337792, alpha: 1)
     static let commentMarginColor = RedditConstants.backgroundColor
     static let rootCommentMarginColor = #colorLiteral(red: 0.9332661033, green: 0.9416968226, blue: 0.9327681065, alpha: 1)
     static let identationColor = #colorLiteral(red: 0.929128468, green: 0.9298127294, blue: 0.9208832383, alpha: 1)
     static let metadataFont = UIFont.boldSystemFont(ofSize: 14)
-    static let metadataColor = UIColor.black
-    static let textFont = UIFont.systemFont(ofSize: 14, weight: .regular)
-    static let textColor = UIColor.black
+    static let textFont = UIFont.systemFont(ofSize: 14, weight: .medium)
     static let controlsColor = #colorLiteral(red: 0.7295756936, green: 0.733242631, blue: 0.7375010848, alpha: 1)
 }
 
@@ -84,11 +84,17 @@ class RedditCommentCell: CommentCell {
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         commentViewContent = RedditCommentView()
-        backgroundColor = RedditConstants.backgroundColor
-        commentMarginColor = RedditConstants.commentMarginColor
+        if traitCollection.userInterfaceStyle == .light {
+            backgroundColor = RedditConstants.backgroundColor
+            commentMarginColor = RedditConstants.commentMarginColor
+            rootCommentMarginColor = RedditConstants.rootCommentMarginColor
+            indentationIndicatorColor = RedditConstants.identationColor
+        } else {
+            commentMarginColor = .darkGray
+            rootCommentMarginColor = .black
+            indentationIndicatorColor = .darkGray
+        }
         rootCommentMargin = 8
-        rootCommentMarginColor = RedditConstants.rootCommentMarginColor
-        indentationIndicatorColor = RedditConstants.identationColor
         commentMargin = 0
         isIndentationIndicatorsExtended = true
     }
@@ -131,7 +137,6 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     
     let contentLabel: UILabel = {
         let lbl = UILabel()
-        lbl.textColor = RedditConstants.textColor
         lbl.lineBreakMode = .byWordWrapping
         lbl.font = RedditConstants.textFont
         lbl.numberOfLines = 0
@@ -141,15 +146,24 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     
     lazy var usernameLabel: UILabel = {
         let lbl = UILabel()
-        lbl.textColor = RedditConstants.metadataColor
         lbl.font = RedditConstants.metadataFont
         lbl.textAlignment = .left
+        lbl.textColor = .gray
         
         lbl.isUserInteractionEnabled = true
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
         lbl.addGestureRecognizer(guestureRecognizer)
         
         return lbl
+    }()
+    
+    lazy var optionsButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("●●●", for: .normal)
+        button.setTitleColor(.gray, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 5)
+        button.addTarget(self, action: #selector(handleOptions), for: .touchUpInside)
+        return button
     }()
     
     lazy var replyButton: UIButton = {
@@ -165,6 +179,12 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     
     @objc func handleUsername() {
         delegate?.didTapUsername(username: author)
+    }
+    
+    @objc func handleOptions() {
+        if let commentId = commentId {
+            delegate?.didTapOptions(commentId: commentId, author: author)
+        }
     }
     
     @objc func handleReply() {
@@ -217,10 +237,16 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         controlView.topAnchor.constraint(equalTo: contentLabel.bottomAnchor, constant: 5).isActive = true
         controlView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10).isActive = true
         controlBarHeightConstraint = controlView.heightAnchor.constraint(equalToConstant: 0)
+
+        addSubview(optionsButton)
+        optionsButton.translatesAutoresizingMaskIntoConstraints = false
+        optionsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+        optionsButton.bottomAnchor.constraint(equalTo: controlView.bottomAnchor).isActive = true
+        optionsButton.topAnchor.constraint(equalTo: controlView.topAnchor).isActive = true
         
         addSubview(replyButton)
         replyButton.translatesAutoresizingMaskIntoConstraints = false
-        replyButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+        replyButton.trailingAnchor.constraint(equalTo: optionsButton.leadingAnchor, constant: -8).isActive = true
         replyButton.bottomAnchor.constraint(equalTo: controlView.bottomAnchor).isActive = true
         replyButton.topAnchor.constraint(equalTo: controlView.topAnchor).isActive = true
     }
@@ -228,9 +254,14 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
 
     private func setupControlView() {
         let topSeparatorView = UIView()
-        topSeparatorView.backgroundColor = RedditConstants.sepColor
         let bottomSeparatorView = UIView()
-        bottomSeparatorView.backgroundColor = RedditConstants.sepColor
+        if traitCollection.userInterfaceStyle == .light {
+            topSeparatorView.backgroundColor = RedditConstants.sepColor
+            bottomSeparatorView.backgroundColor = RedditConstants.sepColor
+        } else {
+//            topSeparatorView.backgroundColor = RedditConstants.darkSepColor
+//            bottomSeparatorView.backgroundColor = RedditConstants.darkSepColor
+        }
         
         controlView.addSubview(topSeparatorView)
         controlView.addSubview(bottomSeparatorView)

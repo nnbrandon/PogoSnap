@@ -23,7 +23,7 @@ class PostView: UIView {
                 photoImageSlideshow.imageSources = post.imageSources
                 usernameLabel.text = "u/" + post.author
                 
-                let titleText = NSAttributedString(string: post.title, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16)])
+                let titleText = NSAttributedString(string: post.title, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16, weight: .medium)])
                 titleLabel.attributedText = titleText
                 
                 likeLabel.text = String(post.score)
@@ -98,6 +98,8 @@ class PostView: UIView {
     lazy var usernameLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 14)
+        label.textColor = .gray
+
         label.isUserInteractionEnabled = true
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
         label.addGestureRecognizer(guestureRecognizer)

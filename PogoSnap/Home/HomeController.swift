@@ -49,7 +49,9 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = "PogoSnap"
-        collectionView.backgroundColor = .white
+        if traitCollection.userInterfaceStyle == .light {
+            collectionView.backgroundColor = .white
+        }
         collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cardCellId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: galleryCellId)
         collectionView.refreshControl = refreshControl
@@ -89,14 +91,18 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         }
     }
     
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+    
     func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
         if !authenticated {
             DispatchQueue.main.async {
-                showToast(controller: self, message: "You need to be signed in to like", seconds: 1.0, dismissAfter: false)
+                showErrorToast(controller: self, message: "You need to be signed in to like", seconds: 1.0)
             }
         } else if archived {
             DispatchQueue.main.async {
-                showToast(controller: self, message: "This post has been archived", seconds: 1.0, dismissAfter: false)
+                showErrorToast(controller: self, message: "This post has been archived", seconds: 1.0)
             }
         } else {
             if direction == 0 {
@@ -176,7 +182,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
                 DispatchQueue.main.async {
-                    showToast(controller: self, message: "You need to be signed in to report", seconds: 1.0, dismissAfter: false)
+                    showErrorToast(controller: self, message: "You need to be signed in to report", seconds: 1.0)
                 }
                 return
             }
@@ -218,18 +224,66 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
             self.present(reportOptionsController, animated: true, completion: nil)
         }))
+        if let username = RedditClient.sharedInstance.getUsername(), username == post.author {
+            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
+                self.deletePost(postId: post.id)
+            }))
+        }
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         
         present(alertController, animated: true, completion: nil)
     }
     
     private func reportPost(postId: String, reason: String) {
-        RedditClient.sharedInstance.reportPost(postId: postId, reason: reason) { (errors, _) in
+        let postId = "t3_\(postId)"
+        RedditClient.sharedInstance.report(id: postId, reason: reason) { (errors, _) in
             if errors.isEmpty {
-                print("reported!")
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    showToast(controller: self, message: "Reported ✓", seconds: 0.5, dismissAfter: false)
+                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                        showSuccessToast(controller: commentController, message: "Reported", seconds: 0.5)
+                    } else {
+                        showSuccessToast(controller: self, message: "Reported", seconds: 0.5)
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    showErrorToast(controller: self, message: "Could not report the post", seconds: 0.5)
+                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                        showErrorToast(controller: commentController, message: "Could not report the post", seconds: 0.5)
+                    } else {
+                        showErrorToast(controller: self, message: "Could not report the post", seconds: 0.5)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func deletePost(postId: String) {
+        let id = "t3_\(postId)"
+        RedditClient.sharedInstance.delete(id: id) { errorOccured in
+            if errorOccured {
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    showErrorToast(controller: self, message: "Could not delete the post", seconds: 0.5)
+                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                        showErrorToast(controller: commentController, message: "Could not delete the post", seconds: 0.5)
+                    } else {
+                        showErrorToast(controller: self, message: "Could not delete the post", seconds: 0.5)
+                    }
+                }
+            } else {
+                if let index = self.posts.firstIndex(where: { post -> Bool in post.id == postId}) {
+                    self.posts.remove(at: index)
+                    DispatchQueue.main.async {
+                        generatorImpactOccured()
+                        if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
+                            showSuccessToast(controller: commentController, message: "Deleted", seconds: 0.5)
+                        } else {
+                            showSuccessToast(controller: self, message: "Deleted", seconds: 0.5)
+                        }
+                    }
                 }
             }
         }
@@ -242,6 +296,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     private func fetchPosts() {
         print("fetching posts...")
         if let after = after {
+            print(sort.rawValue)
             RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue) { posts, nextAfter in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
@@ -276,17 +331,26 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             let progressView = navController.view.subviews.last as? UIProgressView
             progressView?.setProgress(0.5, animated: true)
             
-            ImgurClient.uploadImageToImgur(image: image) { (imageSource, imageUrlDelete) in
-                DispatchQueue.main.async {
-                    progressView?.setProgress(0.9, animated: true)
+            ImgurClient.sharedInstance.uploadImageToImgur(image: image) { (imageSource, errorOccured) in
+                if errorOccured {
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(0.0, animated: true)
+                        showErrorToast(controller: self, message: "Unable to upload image to Imgur", seconds: 1.0)
+                    }
+                    return
+                } else {
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(0.9, animated: true)
+                    }
                 }
+                guard let imageSource = imageSource else {return}
                 RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
                     DispatchQueue.main.async {
                         progressView?.setProgress(1.0, animated: true)
                     }
-                    var message = "Image upload failed 𝗫"
+                    var message = "Image upload failed"
                     if let postData = postData, let postId = postData.id {
-                        message = "Image upload success ✓"
+                        message = "Image upload success"
                         let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
                         let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, liked: true)
                         self.posts.insert(post, at: 0)
@@ -299,7 +363,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                     DispatchQueue.main.async {
                         self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
                         generatorImpactOccured()
-                        showToast(controller: self, message: message, seconds: 1.0, dismissAfter: false)
+                        showImageToast(controller: self, message: message, image: image, seconds: 2.0)
                         progressView?.setProgress(0, animated: true)
                     }
                 }
@@ -379,22 +443,30 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     }
     
     @objc func handleAdd() {
-        var config = YPImagePickerConfiguration()
-        config.screens = [.library]
-        config.shouldSaveNewPicturesToAlbum = false
-        let picker = YPImagePicker(configuration: config)
-        picker.didFinishPicking { [unowned picker] items, cancelled in
-            if cancelled {
-                picker.dismiss(animated: true, completion: nil)
+        if RedditClient.sharedInstance.getUsername() == nil {
+            DispatchQueue.main.async {
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "You need to sign in to upload an image", seconds: 0.5)
+                }
             }
-            if let photo = items.singlePhoto {
-                let sharePhotoVC = SharePhotoController()
-                sharePhotoVC.delegate = self
-                sharePhotoVC.selectedImage = photo.image
-                picker.pushViewController(sharePhotoVC, animated: true)
+        } else {
+            var config = YPImagePickerConfiguration()
+            config.screens = [.library]
+            config.shouldSaveNewPicturesToAlbum = false
+            let picker = YPImagePicker(configuration: config)
+            picker.didFinishPicking { [unowned picker] items, cancelled in
+                if cancelled {
+                    picker.dismiss(animated: true, completion: nil)
+                }
+                if let photo = items.singlePhoto {
+                    let sharePhotoVC = SharePhotoController()
+                    sharePhotoVC.delegate = self
+                    sharePhotoVC.selectedImage = photo.image
+                    picker.pushViewController(sharePhotoVC, animated: true)
+                }
             }
+            present(picker, animated: true, completion: nil)
         }
-        present(picker, animated: true, completion: nil)
     }
 }
 
@@ -404,8 +476,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
         if (scrollView.contentOffset.y < lastContentOffset) {
             //Scrolling up
             addButton.isHidden = false
-        }
-        else if (scrollView.contentOffset.y > lastContentOffset) {
+        } else if (scrollView.contentOffset.y > lastContentOffset) {
             //Scrolling down
             addButton.isHidden = true
         }
