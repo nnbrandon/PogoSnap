@@ -189,7 +189,9 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             }
             if errorOccured {
                 DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 1.0)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Failed to retrieve user's posts", seconds: 1.0)
+                    }
                 }
             } else {
                 self.posts = posts
@@ -247,7 +249,9 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
                 DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "You need to be signed in to report", seconds: 1.0)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
+                    }
                 }
                 return
             }
@@ -302,11 +306,15 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
         if !authenticated {
             DispatchQueue.main.async {
-                showErrorToast(controller: self, message: "You need to be signed in to like", seconds: 1.0)
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "You need to be signed in to like", seconds: 1.0)
+                }
             }
         } else if archived {
             DispatchQueue.main.async {
-                showErrorToast(controller: self, message: "This post has been archived", seconds: 1.0)
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "This post has been archived", seconds: 1.0)
+                }
             }
         } else {
             if direction == 0 {
@@ -329,15 +337,15 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             if errors.isEmpty {
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                        showSuccessToast(controller: commentController, message: "Reported", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
                     }
                 }
             } else {
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                        showSuccessToast(controller: commentController, message: "Could not report", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showSuccessToast(controller: navController, message: "Could not report", seconds: 0.5)
                     }
                 }
             }
@@ -350,8 +358,8 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             if errorOccured {
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                        showErrorToast(controller: commentController, message: "Could not delete the post", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not delete the post", seconds: 0.5)
                     }
                 }
             } else {
@@ -359,8 +367,8 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
                     self.posts.remove(at: index)
                     DispatchQueue.main.async {
                         generatorImpactOccured()
-                        if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                            showSuccessToast(controller: commentController, message: "Deleted", seconds: 0.5)
+                        if let navController = self.navigationController {
+                            showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
                         }
                     }
                 }

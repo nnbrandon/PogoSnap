@@ -258,9 +258,6 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         if traitCollection.userInterfaceStyle == .light {
             topSeparatorView.backgroundColor = RedditConstants.sepColor
             bottomSeparatorView.backgroundColor = RedditConstants.sepColor
-        } else {
-//            topSeparatorView.backgroundColor = RedditConstants.darkSepColor
-//            bottomSeparatorView.backgroundColor = RedditConstants.darkSepColor
         }
         
         controlView.addSubview(topSeparatorView)

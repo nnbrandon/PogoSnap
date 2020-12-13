@@ -204,7 +204,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     public func updateComments(comment: Comment, parentCommentId: String?) {
         DispatchQueue.main.async {
             if let navController = self.navigationController {
-                showSuccessToast(controller: navController, message: "Comment posted", seconds: 0.5)
+                showSuccessToast(controller: navController, message: "Comment posted", seconds: 1.0)
             }
         }
         if let parentCommentId = parentCommentId {
@@ -336,20 +336,4 @@ extension RedditCommentsController {
             addButton.isHidden = false
         }
     }
-    
-//    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-//        if _currentlyDisplayed.isEmpty {
-//
-//        }
-//       let lastSectionIndex = tableView.numberOfSections - 1
-//       let lastRowIndex = tableView.numberOfRows(inSection: lastSectionIndex) - 1
-//       if indexPath.section ==  lastSectionIndex && indexPath.row == lastRowIndex {
-//        let spinner = UIActivityIndicatorView(style: .medium)
-//           spinner.startAnimating()
-//           spinner.frame = CGRect(x: CGFloat(0), y: CGFloat(0), width: tableView.bounds.width, height: CGFloat(44))
-//
-//        self.tableView.tableFooterView = spinner
-//        self.tableView.tableFooterView?.isHidden = false
-//       }
-//    }
 }

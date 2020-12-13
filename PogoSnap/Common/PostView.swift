@@ -73,9 +73,9 @@ class PostView: UIView {
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
         pageControl.currentPage = 0
-        pageControl.pageIndicatorTintColor = .lightGray
-        pageControl.currentPageIndicatorTintColor = .darkGray
-        pageControl.tintColor = .lightGray
+        pageControl.pageIndicatorTintColor = .gray
+        pageControl.currentPageIndicatorTintColor = .white
+        pageControl.tintColor = .white
         return pageControl
     }()
     
@@ -306,6 +306,12 @@ class PostView: UIView {
         dots.translatesAutoresizingMaskIntoConstraints = false
         dots.bottomAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor, constant: -8).isActive = true
         dots.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
+        
+        if traitCollection.userInterfaceStyle == .light {
+            dots.currentPageIndicatorTintColor = .black
+        } else {
+            dots.currentPageIndicatorTintColor = .white
+        }
     }
     
     required init?(coder: NSCoder) {

@@ -93,11 +93,15 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
         if !authenticated {
             DispatchQueue.main.async {
-                showErrorToast(controller: self, message: "You need to be signed in to like", seconds: 1.0)
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "You need to be signed in to like", seconds: 1.0)
+                }
             }
         } else if archived {
             DispatchQueue.main.async {
-                showErrorToast(controller: self, message: "This post has been archived", seconds: 1.0)
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "This post has been archived", seconds: 1.0)
+                }
             }
         } else {
             if direction == 0 {
@@ -177,7 +181,9 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
                 DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "You need to be signed in to report", seconds: 1.0)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
+                    }
                 }
                 return
             }
@@ -235,20 +241,15 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             if errors.isEmpty {
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                        showSuccessToast(controller: commentController, message: "Reported", seconds: 0.5)
-                    } else {
-                        showSuccessToast(controller: self, message: "Reported", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
                     }
                 }
             } else {
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    showErrorToast(controller: self, message: "Could not report the post", seconds: 0.5)
-                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                        showErrorToast(controller: commentController, message: "Could not report the post", seconds: 0.5)
-                    } else {
-                        showErrorToast(controller: self, message: "Could not report the post", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not report the post", seconds: 0.5)
                     }
                 }
             }
@@ -261,11 +262,8 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             if errorOccured {
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    showErrorToast(controller: self, message: "Could not delete the post", seconds: 0.5)
-                    if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                        showErrorToast(controller: commentController, message: "Could not delete the post", seconds: 0.5)
-                    } else {
-                        showErrorToast(controller: self, message: "Could not delete the post", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not delete the post", seconds: 0.5)
                     }
                 }
             } else {
@@ -273,10 +271,8 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                     self.posts.remove(at: index)
                     DispatchQueue.main.async {
                         generatorImpactOccured()
-                        if let commentController = self.navigationController?.viewControllers.last as? RedditCommentsController {
-                            showSuccessToast(controller: commentController, message: "Deleted", seconds: 0.5)
-                        } else {
-                            showSuccessToast(controller: self, message: "Deleted", seconds: 0.5)
+                        if let navController = self.navigationController {
+                            showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
                         }
                     }
                 }
@@ -335,7 +331,9 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                 if errorOccured {
                     DispatchQueue.main.async {
                         progressView?.setProgress(0.0, animated: true)
-                        showErrorToast(controller: self, message: "Unable to upload image", seconds: 3.0)
+                        if let navController = self.navigationController {
+                            showErrorToast(controller: navController, message: "Unable to upload image", seconds: 3.0)
+                        }
                     }
                     return
                 } else {
@@ -363,7 +361,9 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                     DispatchQueue.main.async {
                         self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
                         generatorImpactOccured()
-                        showImageToast(controller: self, message: message, image: image, seconds: 3.0)
+                        if let navController = self.navigationController {
+                            showImageToast(controller: navController, message: message, image: image, seconds: 3.0)
+                        }
                         progressView?.setProgress(0, animated: true)
                     }
                 }

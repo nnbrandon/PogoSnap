@@ -28,7 +28,7 @@ class UserProfileHeader: UICollectionViewCell {
             if darkMode {
                 gridButton.tintColor = .white
             } else {
-                gridButton.tintColor = UIColor(white: 0, alpha: 0.2)
+                gridButton.tintColor = .black
             }
         }
     }
@@ -41,7 +41,6 @@ class UserProfileHeader: UICollectionViewCell {
     let gridButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(named: "grid"), for: .normal)
-        button.tintColor = UIColor(white: 0, alpha: 0.2)
         return button
     }()
     
