@@ -35,28 +35,12 @@ class ImgurTableController: UITableViewController {
             self.imgurDeletes = imgurDeletes
         }
     }
-}
-
-extension ImgurTableController {
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return imgurDeletes.count
-    }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellId) as! ImgurCell
-        let imgurDelete = imgurDeletes[indexPath.row]
+    func deleteImgurPhoto(imgurDelete: ImageUrlDelete, index: Int) {
         
-        cell.photoImageView.loadImage(urlString: imgurDelete.url)
-        cell.imgurLabel.text = imgurDelete.url
-        
-        return cell
-    }
-    
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            generatorImpactOccured()
-            let imgurDelete = imgurDeletes[indexPath.row]
-            ImgurClient.sharedInstance.deleteImgurPhoto(imageUrlDelete: imgurDelete, imageUrlDeletes: imgurDeletes) { errorOccured in
+        let alertController = UIAlertController(title: "Delete the upload from Imgur?", message: nil, preferredStyle: .actionSheet)
+        alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
+            ImgurClient.sharedInstance.deleteImgurPhoto(imageUrlDelete: imgurDelete, imageUrlDeletes: self.imgurDeletes) { errorOccured in
                 if errorOccured {
                     DispatchQueue.main.async {
                         if let navController = self.navigationController {
@@ -70,9 +54,40 @@ extension ImgurTableController {
                             showSuccessToast(controller: navController, message: "Deleted imgur upload", seconds: 0.5)
                         }
                     }
-                    self.imgurDeletes.remove(at: indexPath.row)
+                    self.imgurDeletes.remove(at: index)
                 }
             }
+        }))
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        
+        present(alertController, animated: true, completion: nil)
+    }
+}
+
+extension ImgurTableController {
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return imgurDeletes.count
+    }
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellId) as! ImgurCell
+        let imgurDelete = imgurDeletes[indexPath.row]
+        
+        cell.imageUrlDelete = imgurDelete
+        return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let imgurDelete = imgurDeletes[indexPath.row]
+        generatorImpactOccured()
+        deleteImgurPhoto(imgurDelete: imgurDelete, index: indexPath.row)
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            generatorImpactOccured()
+            let imgurDelete = imgurDeletes[indexPath.row]
+            deleteImgurPhoto(imgurDelete: imgurDelete, index: indexPath.row)
         }
     }
 }

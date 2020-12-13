@@ -9,6 +9,15 @@ import UIKit
 
 class ImgurCell: UITableViewCell {
     
+    var imageUrlDelete: ImageUrlDelete? {
+        didSet {
+            if let imageUrlDelete = imageUrlDelete {
+                imgurLabel.text = imageUrlDelete.url
+                photoImageView.loadImage(urlString: imageUrlDelete.url)
+            }
+        }
+    }
+    
     let photoImageView: CustomImageView = {
         let imageView = CustomImageView()
         imageView.contentMode = .scaleAspectFill
@@ -38,8 +47,10 @@ class ImgurCell: UITableViewCell {
         imgurLabel.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
         imgurLabel.leadingAnchor.constraint(equalTo: photoImageView.trailingAnchor, constant: 20).isActive = true
         imgurLabel.heightAnchor.constraint(equalToConstant: 80).isActive = true
-        imgurLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12).isActive = true
+        imgurLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
     }
+    
+    @objc func handleDelete() {    }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")

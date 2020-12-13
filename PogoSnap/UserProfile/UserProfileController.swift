@@ -59,10 +59,6 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
         activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
         
-        if let imgurList = ImgurClient.sharedInstance.getImageUrlList() {
-            print(imgurList)
-        }
-        
         if let usernameProp = usernameProp {
             // Check if we are looking at someone else's profile
             if posts.isEmpty {

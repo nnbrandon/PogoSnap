@@ -12,7 +12,14 @@ class SignInController: OAuthViewController {
     
     var oauthSwift: OAuthSwift?
     
-    let signInButton = UIButton(type: .system)
+    let signInButton: UIButton = {
+        let btn = UIButton()
+        btn.setTitle("   Sign in with Reddit", for: .normal)
+        btn.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        btn.setImage(UIImage(named: "reddit-30")?.withRenderingMode(.alwaysOriginal), for: .normal)
+        btn.addTarget(self, action: #selector(signIn), for: .touchDown)
+        return btn
+    }()
 
     lazy var internalWebViewController: WebViewController = {
         let controller = WebViewController()
@@ -30,8 +37,11 @@ class SignInController: OAuthViewController {
         signInButton.translatesAutoresizingMaskIntoConstraints = false
         signInButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         signInButton.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
-        signInButton.addTarget(self, action: #selector(signIn), for: .touchDown)
-        signInButton.setTitle("Sign in with Reddit", for: .normal)
+        if traitCollection.userInterfaceStyle == .light {
+            signInButton.setTitleColor(.black, for: .normal)
+        } else {
+            signInButton.setTitleColor(.white, for: .normal)
+        }
     }
     
     @objc fileprivate func signIn() {
@@ -70,6 +80,12 @@ class SignInController: OAuthViewController {
     }
     
     func getURLHandler() -> OAuthSwiftURLHandlerType {
+        internalWebViewController = WebViewController()
+        internalWebViewController.view = UIView(frame: UIScreen.main.bounds) // needed if no nib or not loaded from storyboard
+        internalWebViewController.delegate = self
+        internalWebViewController.viewDidLoad() // allow WebViewController to use this ViewController as parent to be presented
+        internalWebViewController.hidesBottomBarWhenPushed = true
+
         if internalWebViewController.parent == nil {
             addChild(internalWebViewController)
         }
@@ -95,7 +111,6 @@ extension SignInController: OAuthWebViewControllerDelegate {
     
     func oauthWebViewControllerDidDisappear() {
         oauthSwift?.cancel()
-        print("webview disappeared")
     }
     
 }

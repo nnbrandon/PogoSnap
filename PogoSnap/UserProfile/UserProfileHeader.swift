@@ -35,7 +35,6 @@ class UserProfileHeader: UICollectionViewCell {
 
     let profileImageView: CustomImageView = {
        let imageView = CustomImageView()
-//        imageView.image = UIImage(named: "PikachuReddit")
         return imageView
     }()
     
@@ -89,7 +88,6 @@ class UserProfileHeader: UICollectionViewCell {
     }
     
     fileprivate func setupBottomToolBar() {
-        //        let stackView = UIStackView(arrangedSubviews: [gridButton, listButton])
         let stackView = UIStackView(arrangedSubviews: [gridButton])
         addSubview(stackView)
         stackView.axis = .horizontal

@@ -335,7 +335,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                 if errorOccured {
                     DispatchQueue.main.async {
                         progressView?.setProgress(0.0, animated: true)
-                        showErrorToast(controller: self, message: "Unable to upload image", seconds: 1.0)
+                        showErrorToast(controller: self, message: "Unable to upload image", seconds: 3.0)
                     }
                     return
                 } else {
@@ -363,7 +363,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                     DispatchQueue.main.async {
                         self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
                         generatorImpactOccured()
-                        showImageToast(controller: self, message: message, image: image, seconds: 2.0)
+                        showImageToast(controller: self, message: message, image: image, seconds: 3.0)
                         progressView?.setProgress(0, animated: true)
                     }
                 }
