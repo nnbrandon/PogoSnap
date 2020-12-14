@@ -16,6 +16,7 @@ struct Post: Equatable {
     let commentsLink: String
     let archived: Bool
     let id: String
+    let created_utc: TimeInterval
     var liked: Bool?
     
     

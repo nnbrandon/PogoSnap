@@ -45,14 +45,15 @@ extension WebViewController: WKNavigationDelegate {
         if let url = navigationAction.request.url, url.scheme == "pogosnap" {
             AppDelegate.sharedInstance.applicationHandle(url: url)
             decisionHandler(.cancel)
-            dismissWebViewController()
+            if url.absoluteString.contains("access_denied") {
+                dismissWebViewController()
+            }
             return
         }
         decisionHandler(.allow)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        print("\(error)")
         dismissWebViewController()
     }
 }

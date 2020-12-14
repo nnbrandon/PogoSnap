@@ -128,7 +128,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     func didTapComment(post: Post, index: Int) {
         var height = 8 + 8 + 50 + 40 + view.frame.width
         let title = posts[index].title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
         height += titleEstimatedHeight
         
         let redditCommentsController = RedditCommentsController()
@@ -350,7 +350,8 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
                     if let postData = postData, let postId = postData.id {
                         message = "Image upload success"
                         let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
-                        let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, liked: true)
+                        let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970
+, liked: true)
                         self.posts.insert(post, at: 0)
                         DispatchQueue.main.async {
                             if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
@@ -500,7 +501,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
         case .card:
             var height = 8 + 8 + 50 + 40 + view.frame.width
             let title = posts[indexPath.row].title
-            let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+            let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
             height += titleEstimatedHeight
             return CGSize(width: view.frame.width, height: height)
         case .gallery:

@@ -42,9 +42,9 @@ class FullScreenImageController: UIViewController {
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
         pageControl.currentPage = 0
-        pageControl.pageIndicatorTintColor = .lightGray
-        pageControl.currentPageIndicatorTintColor = .darkGray
-        pageControl.tintColor = .lightGray
+        pageControl.pageIndicatorTintColor = .gray
+        pageControl.currentPageIndicatorTintColor = .white
+        pageControl.tintColor = .white
         return pageControl
     }()
     
@@ -80,6 +80,12 @@ class FullScreenImageController: UIViewController {
         dots.translatesAutoresizingMaskIntoConstraints = false
         dots.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         dots.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50).isActive = true
+        
+        if traitCollection.userInterfaceStyle == .light {
+            dots.currentPageIndicatorTintColor = .black
+        } else {
+            dots.currentPageIndicatorTintColor = .white
+        }
     }
 }
 

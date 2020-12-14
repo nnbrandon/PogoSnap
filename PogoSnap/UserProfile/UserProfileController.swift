@@ -19,7 +19,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     var icon_imgProp: String? {
         didSet {
             DispatchQueue.main.async {
-                self.collectionView.collectionViewLayout.invalidateLayout()
+                self.collectionView.reloadData()
             }
         }
     }
@@ -59,6 +59,18 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
         activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
         
+        if usernameProp == nil {
+            if traitCollection.userInterfaceStyle == .dark {
+                let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
+                barButton.tintColor = .white
+                navigationItem.rightBarButtonItem = barButton
+            } else {
+                let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
+                barButton.tintColor = .darkGray
+                navigationItem.rightBarButtonItem = barButton
+            }
+        }
+        
         if let usernameProp = usernameProp {
             // Check if we are looking at someone else's profile
             if posts.isEmpty {
@@ -84,15 +96,6 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
                 viewControllers.last?.removeFromParent()
                 viewControllers.last?.view.removeFromSuperview()
                 collectionView.isHidden = false
-                if traitCollection.userInterfaceStyle == .dark {
-                    let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
-                    barButton.tintColor = .white
-                    navigationItem.rightBarButtonItem = barButton
-                } else {
-                    let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
-                    barButton.tintColor = .darkGray
-                    navigationItem.rightBarButtonItem = barButton
-                }
             }
             RedditClient.sharedInstance.fetchMe { (username, icon_img) in
                 DispatchQueue.main.async {
@@ -103,26 +106,11 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
                 self.fetchUserPosts(username: username)
             }
         } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
-            if traitCollection.userInterfaceStyle == .dark {
-                let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
-                barButton.tintColor = .white
-                navigationItem.rightBarButtonItem = barButton
-            } else {
-                let barButton = UIBarButtonItem(image: UIImage(named: "gear")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleOptions))
-                barButton.tintColor = .darkGray
-                navigationItem.rightBarButtonItem = barButton
-            }
             if posts.isEmpty || posts.count == 1 {
                 print("fetching user posts...")
                 activityIndicatorView.startAnimating()
-                RedditClient.sharedInstance.fetchMe { (_, icon_img) in
-                    DispatchQueue.main.async {
-                        self.collectionView.reloadData()
-                        self.activityIndicatorView.startAnimating()
-                    }
-                    print("fetching user posts after fetching me...")
-                    self.fetchUserPosts(username: username)
-                }
+                RedditClient.sharedInstance.fetchMe { (_, _) in}
+                fetchUserPosts(username: username)
             }
         }
     }
@@ -163,12 +151,14 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             viewController.hidesBottomBarWhenPushed = true
             self.navigationController?.pushViewController(viewController, animated: true)
         }))
-        alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
-            RedditClient.sharedInstance.deleteCredentials()
-            self.posts = [Post]()
-            self.after = ""
-            self.showSignInVC()
-        }))
+        if RedditClient.sharedInstance.getUsername() != nil {
+            alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
+                RedditClient.sharedInstance.deleteCredentials()
+                self.posts = [Post]()
+                self.after = ""
+                self.showSignInVC()
+            }))
+        }
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         present(alertController, animated: true, completion: nil)
     }
@@ -201,7 +191,6 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     }
     
     private func showSignInVC() {
-        navigationItem.rightBarButtonItem = nil
         collectionView.isHidden = true
         let signInVC = SignInController()
         addChild(signInVC)

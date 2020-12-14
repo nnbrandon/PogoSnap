@@ -153,13 +153,11 @@ class RedditCommentTextController: UIViewController {
                 }
                 RedditClient.sharedInstance.postComment(parentId: parentId, text: body) { (errorOccured, commentId) in
                     if !errorOccured {
-                        print("posted comment!")
                         var depth = 0
                         if let parentDepth = self.parentDepth {
                             depth = parentDepth + 1
                         }
-                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId ?? "", isAuthorPost: false)
-                        print(comment)
+                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId ?? "", isAuthorPost: false, created_utc: Date().timeIntervalSince1970)
                         self.updateComments?(comment, self.parentCommentId)
                         generatorImpactOccured()
                         DispatchQueue.main.async {

@@ -21,7 +21,8 @@ class PostView: UIView {
         didSet {
             if let post = post {
                 photoImageSlideshow.imageSources = post.imageSources
-                usernameLabel.text = "u/" + post.author
+                let date = Date(timeIntervalSince1970: post.created_utc)
+                usernameLabel.text = "u/\(post.author)・\(date.timeAgoSinceDate())"
                 
                 let titleText = NSAttributedString(string: post.title, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16, weight: .medium)])
                 titleLabel.attributedText = titleText
@@ -158,10 +159,14 @@ class PostView: UIView {
         let label = UILabel()
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
+        
+        label.isUserInteractionEnabled = true
+        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTitle))
+        label.addGestureRecognizer(guestureRecognizer)
         return label
     }()
     
-    @objc fileprivate func handleComment() {
+    @objc private func handleComment() {
         guard let post = post, let index = index else {return}
         if !commentFlag {
             delegate?.didTapComment(post: post, index: index)
@@ -170,18 +175,26 @@ class PostView: UIView {
         }
     }
     
-    @objc fileprivate func handleUsername() {
+    @objc private func handleTitle() {
+        guard let post = post, let index = index else {return}
+        if !commentFlag {
+            delegate?.didTapComment(post: post, index: index)
+        }
+    }
+    
+    @objc private func handleUsername() {
         guard let post = post else {return}
         delegate?.didTapUsername(username: post.author)
     }
     
-    @objc fileprivate func handleImage() {
+    @objc private func handleImage() {
         guard let post = post else {return}
         delegate?.didTapImage(imageSources: post.imageSources, position: dots.currentPage)
     }
     
     @objc func handleOptions() {
         guard let post = post else {return}
+        generatorImpactOccured()
         delegate?.didTapOptions(post: post)
     }
     
@@ -228,22 +241,22 @@ class PostView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         
-        let usernameStackView = UIStackView(arrangedSubviews: [usernameLabel])
-        addSubview(usernameStackView)
-        usernameStackView.translatesAutoresizingMaskIntoConstraints = false
-        usernameStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
-        usernameStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        
-        let optionsStackView = UIStackView(arrangedSubviews: [optionsButton])
-        addSubview(optionsStackView)
-        optionsStackView.translatesAutoresizingMaskIntoConstraints = false
-        optionsStackView.leadingAnchor.constraint(equalTo: usernameStackView.trailingAnchor).isActive = true
-        optionsStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
-        optionsStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        addSubview(usernameLabel)
+        usernameLabel.translatesAutoresizingMaskIntoConstraints = false
+        usernameLabel.topAnchor.constraint(equalTo: topAnchor).isActive = true
+        usernameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
+        usernameLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
+
+        addSubview(optionsButton)
+        optionsButton.translatesAutoresizingMaskIntoConstraints = false
+        optionsButton.topAnchor.constraint(equalTo: topAnchor).isActive = true
+        optionsButton.leadingAnchor.constraint(equalTo: usernameLabel.trailingAnchor).isActive = true
+        optionsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+        optionsButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
         addSubview(titleLabel)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.topAnchor.constraint(equalTo: usernameStackView.bottomAnchor).isActive = true
+        titleLabel.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor).isActive = true
         titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
         

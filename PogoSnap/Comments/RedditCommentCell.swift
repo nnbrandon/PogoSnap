@@ -41,6 +41,14 @@ class RedditCommentCell: CommentCell {
         }
     }
     
+    var created: TimeInterval? {
+        didSet {
+            if let created = created {
+                content.created = created
+            }
+        }
+    }
+    
     var commentDepth: Int? {
         didSet {
             if let commentDepth = commentDepth {
@@ -109,6 +117,15 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     
     var commentId: String?
     var commentDepth: Int?
+    var created: TimeInterval? {
+        didSet {
+            if let created = created, let userText = usernameLabel.text {
+                let date = Date(timeIntervalSince1970: created)
+                let userTextWithDate = "\(userText)・\(date.timeAgoSinceDate())"
+                usernameLabel.text = userTextWithDate
+            }
+        }
+    }
     var commentContent: String = "" {
         didSet {
             contentLabel.text = commentContent

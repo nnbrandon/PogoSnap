@@ -298,7 +298,8 @@ struct RedditClient {
                         continue
                     }
                     let commentsLink = "https://www.reddit.com/r/\(Const.subredditName)/comments/" + redditPost.id + ".json"
-                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, liked: redditPost.likes)
+                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes)
+                    print(post)
                     posts.append(post)
                 }
                 return (posts, nextAfter)

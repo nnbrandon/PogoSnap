@@ -32,6 +32,7 @@ struct RedditPost: Decodable {
     let num_comments: Int
     let id: String
     let likes: Bool?
+    let created_utc: TimeInterval
 }
 
 struct Preview: Decodable {

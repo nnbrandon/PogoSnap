@@ -97,6 +97,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         commentCell.commentDepth = comment.depth
         commentCell.commentContent = comment.body
         commentCell.author = comment.author
+        commentCell.created = comment.created_utc
         commentCell.commentId = comment.id
         commentCell.isFolded = comment.isFolded && !isCellExpanded(indexPath: indexPath)
         commentCell.delegate = self
@@ -143,7 +144,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                 if let commentReplies = redditComment.replies {
                     cReplies = extractReplies(commentReplies: commentReplies)
                 }
-                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: id, isAuthorPost: false)
+                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: id, isAuthorPost: false, created_utc: redditComment.created_utc)
                 replies.append(comment)
             }
         }
@@ -172,7 +173,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                             replies = extractReplies(commentReplies: commentReplies)
                         }
 
-                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: id, isAuthorPost: false)
+                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: id, isAuthorPost: false, created_utc: redditComment.created_utc)
                         print(comment)
                         comments.append(comment)
                     }
@@ -236,6 +237,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     
     
     func didTapOptions(commentId: String, author: String) {
+        generatorImpactOccured()
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
             
@@ -329,11 +331,13 @@ class RedditCommentsController: CommentsController, CommentDelegate {
 
 extension RedditCommentsController {
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let bottomEdge = scrollView.contentOffset.y + scrollView.frame.size.height;
-        if (bottomEdge >= scrollView.contentSize.height && _currentlyDisplayed.count > 2) {
-            addButton.isHidden = true
-        } else {
-            addButton.isHidden = false
+        if !archived {
+            let bottomEdge = scrollView.contentOffset.y + scrollView.frame.size.height;
+            if (bottomEdge >= scrollView.contentSize.height && _currentlyDisplayed.count > 2) {
+                addButton.isHidden = true
+            } else {
+                addButton.isHidden = false
+            }
         }
     }
 }
