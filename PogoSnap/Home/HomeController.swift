@@ -8,15 +8,8 @@
 import UIKit
 import YPImagePicker
 
-class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegate, ProfileImageDelegate {
+class HomeController: PostCollectionController {
 
-    var posts = [Post]() {
-        didSet {
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
-        }
-    }
     var after: String? = ""
     var sort = SortOptions.best
     var topOption: String?
@@ -91,200 +84,6 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         collectionView.collectionViewLayout.invalidateLayout()
     }
     
-    func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
-        if !authenticated {
-            DispatchQueue.main.async {
-                if let navController = self.navigationController {
-                    showErrorToast(controller: navController, message: "You need to be signed in to like", seconds: 1.0)
-                }
-            }
-        } else if archived {
-            DispatchQueue.main.async {
-                if let navController = self.navigationController {
-                    showErrorToast(controller: navController, message: "This post has been archived", seconds: 1.0)
-                }
-            }
-        } else {
-            if direction == 0 {
-                if let liked = posts[index].liked {
-                    if liked {
-                        posts[index].liked = nil
-                        posts[index].score -= 1
-                    } else {
-                        posts[index].liked = nil
-                        posts[index].score += 1
-                    }
-                }
-            } else if direction == 1 {
-                posts[index].liked = true
-                posts[index].score += 1
-            } else {
-                posts[index].liked = false
-                posts[index].score -= 1
-            }
-            votePost(postId: post.id, direction: direction, index: index)
-        }
-    }
-    
-    func didTapComment(post: Post, index: Int) {
-        var height = 8 + 8 + 50 + 40 + view.frame.width
-        let title = posts[index].title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
-        height += titleEstimatedHeight
-        
-        let redditCommentsController = RedditCommentsController()
-        redditCommentsController.hidesBottomBarWhenPushed = true
-        redditCommentsController.commentsLink = post.commentsLink
-        redditCommentsController.archived = post.archived
-        redditCommentsController.post = post
-        redditCommentsController.index = index
-        redditCommentsController.postView.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: height)
-        redditCommentsController.delegate = self
-        navigationController?.pushViewController(redditCommentsController, animated: true)
-        print(post)
-    }
-    
-    func didTapUsername(username: String) {
-        let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
-        userProfileController.usernameProp = username
-        navigationController?.pushViewController(userProfileController, animated: true)
-        print(username)
-    }
-    
-    func didTapImage(imageSources: [ImageSource], position: Int) {
-        let fullScreen = FullScreenImageController()
-        fullScreen.imageSources = imageSources
-        fullScreen.position = position
-        present(fullScreen, animated: true, completion: nil)
-    }
-    
-    func didTapImageGallery(post: Post, index: Int) {
-        var height = 8 + 8 + 50 + 40 + view.frame.width
-        let title = post.title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
-        height += titleEstimatedHeight
-        
-        let redditCommentsController = RedditCommentsController()
-        redditCommentsController.hidesBottomBarWhenPushed = true
-        redditCommentsController.commentsLink = post.commentsLink
-        redditCommentsController.archived = post.archived
-        redditCommentsController.post = post
-        redditCommentsController.index = index
-        redditCommentsController.postView.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: height)
-        redditCommentsController.delegate = self
-        navigationController?.pushViewController(redditCommentsController, animated: true)
-        print(post)
-    }
-    
-    func didTapOptions(post: Post) {
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
-            
-            if !RedditClient.sharedInstance.isUserAuthenticated() {
-                DispatchQueue.main.async {
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
-                    }
-                }
-                return
-            }
-            
-            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-            reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
-                
-                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                if let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") {
-                    for rule in subredditRules {
-                        subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
-                            if let reason = action.title {
-                                print(reason)
-                                self.reportPost(postId: post.id, reason: reason)
-                            }
-                        }))
-                    }
-                }
-                subredditRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                self.present(subredditRulesController, animated: true, completion: nil)
-            }))
-                        
-            reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
-                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules")  {
-                    for rule in siteRules {
-                        siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
-                            if let reason = action.title {
-                                print(reason)
-                                self.reportPost(postId: post.id, reason: reason)
-                            }
-                        }))
-                    }
-                }
-                siteRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                self.present(siteRulesController, animated: true, completion: nil)
-            }))
-            
-            reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-            self.present(reportOptionsController, animated: true, completion: nil)
-        }))
-        if let username = RedditClient.sharedInstance.getUsername(), username == post.author {
-            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
-                self.deletePost(postId: post.id)
-            }))
-        }
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        
-        present(alertController, animated: true, completion: nil)
-    }
-    
-    private func reportPost(postId: String, reason: String) {
-        let postId = "t3_\(postId)"
-        RedditClient.sharedInstance.report(id: postId, reason: reason) { (errors, _) in
-            if errors.isEmpty {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
-                    }
-                }
-            } else {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Could not report the post", seconds: 0.5)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func deletePost(postId: String) {
-        let id = "t3_\(postId)"
-        RedditClient.sharedInstance.delete(id: id) { errorOccured in
-            if errorOccured {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Could not delete the post", seconds: 0.5)
-                    }
-                }
-            } else {
-                if let index = self.posts.firstIndex(where: { post -> Bool in post.id == postId}) {
-                    self.posts.remove(at: index)
-                    DispatchQueue.main.async {
-                        generatorImpactOccured()
-                        if let navController = self.navigationController {
-                            showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    private func votePost(postId: String, direction: Int, index: Int) {
-        RedditClient.sharedInstance.votePost(postId: postId, direction: direction) { _ in}
-    }
-    
     private func fetchPosts() {
         print("fetching posts...")
         if let after = after {
@@ -309,68 +108,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     }
     
     private func fetchRules() {
-        print("fetching rules...")
-        RedditClient.fetchRules { rules in
-            let subredditRules = rules.rules.map { subRedditRule in
-                subRedditRule.short_name
-            }
-            let siteRules = rules.site_rules
-            
-            self.defaults?.setValue(subredditRules, forKey: "PokemonGoSnapRules")
-            self.defaults?.setValue(siteRules, forKey: "SiteRules")
-        }
-    }
-    
-    func imageSubmitted(image: UIImage, title: String) {
-        guard let author = RedditClient.sharedInstance.getUsername() else {return}
-
-        if let navController = self.navigationController {
-            let progressView = navController.view.subviews.last as? UIProgressView
-            progressView?.setProgress(0.5, animated: true)
-            
-            ImgurClient.sharedInstance.uploadImageToImgur(image: image) { (imageSource, errorOccured) in
-                if errorOccured {
-                    DispatchQueue.main.async {
-                        progressView?.setProgress(0.0, animated: true)
-                        if let navController = self.navigationController {
-                            showErrorToast(controller: navController, message: "Unable to upload image", seconds: 3.0)
-                        }
-                    }
-                    return
-                } else {
-                    DispatchQueue.main.async {
-                        progressView?.setProgress(0.9, animated: true)
-                    }
-                }
-                guard let imageSource = imageSource else {return}
-                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
-                    DispatchQueue.main.async {
-                        progressView?.setProgress(1.0, animated: true)
-                    }
-                    var message = "Image upload failed"
-                    if let postData = postData, let postId = postData.id {
-                        message = "Image upload success"
-                        let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
-                        let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970
-, liked: true)
-                        self.posts.insert(post, at: 0)
-                        DispatchQueue.main.async {
-                            if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
-                                userProfileController.posts.insert(post, at: 0)
-                            }
-                        }
-                    }
-                    DispatchQueue.main.async {
-                        self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-                        generatorImpactOccured()
-                        if let navController = self.navigationController {
-                            showImageToast(controller: navController, message: message, image: image, seconds: 3.0)
-                        }
-                        progressView?.setProgress(0, animated: true)
-                    }
-                }
-            }
-        }
+        RedditClient.sharedInstance.fetchRules { _ in}
     }
     
     @objc private func refreshPosts() {
@@ -535,6 +273,62 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             present(picker, animated: true, completion: nil)
         }
     }
+}
+
+extension HomeController: ShareDelegate {
+    
+    func imageSubmitted(image: UIImage, title: String) {
+        guard let author = RedditClient.sharedInstance.getUsername() else {return}
+
+        if let navController = self.navigationController {
+            let progressView = navController.view.subviews.last as? UIProgressView
+            progressView?.setProgress(0.5, animated: true)
+            
+            ImgurClient.sharedInstance.uploadImageToImgur(image: image) { (imageSource, errorOccured) in
+                if errorOccured {
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(0.0, animated: true)
+                        if let navController = self.navigationController {
+                            showErrorToast(controller: navController, message: "Unable to upload image", seconds: 3.0)
+                        }
+                    }
+                    return
+                } else {
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(0.9, animated: true)
+                    }
+                }
+                guard let imageSource = imageSource else {return}
+                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(1.0, animated: true)
+                    }
+                    var message = "Image upload failed"
+                    if let postData = postData, let postId = postData.id {
+                        message = "Image upload success"
+                        let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
+                        let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970
+, liked: true)
+                        self.posts.insert(post, at: 0)
+                        DispatchQueue.main.async {
+                            if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
+                                userProfileController.posts.insert(post, at: 0)
+                            }
+                        }
+                    }
+                    DispatchQueue.main.async {
+                        self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+                        generatorImpactOccured()
+                        if let navController = self.navigationController {
+                            showImageToast(controller: navController, message: message, image: image, seconds: 3.0)
+                        }
+                        progressView?.setProgress(0, animated: true)
+                    }
+                }
+            }
+        }
+    }
+    
 }
 
 extension HomeController: UICollectionViewDelegateFlowLayout {

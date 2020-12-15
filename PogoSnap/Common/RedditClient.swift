@@ -26,8 +26,8 @@ struct RedditClient {
     private init() {}
 
     struct Const {
-        static let subredditName = "PokemonGoSnap"
-//        static let subredditName = "PogoSnap"
+//        static let subredditName = "PokemonGoSnap"
+        static let subredditName = "PogoSnap"
 
         static let username = "username"
         static let icon_img = "icon_img"
@@ -349,12 +349,13 @@ struct RedditClient {
             URLSession.shared.dataTask(with: deleteRequest) { data, response, error in
                 if error != nil {
                     completion(true)
-                }
-                if let httpResponse = response as? HTTPURLResponse {
-                    if httpResponse.statusCode == 200 {
-                        completion(false)
-                    } else {
-                        completion(true)
+                } else {
+                    if let httpResponse = response as? HTTPURLResponse {
+                        if httpResponse.statusCode == 200 {
+                            completion(false)
+                        } else {
+                            completion(true)
+                        }
                     }
                 }
             }.resume()
@@ -413,6 +414,20 @@ struct RedditClient {
         }
     }
     
+    public func getSubredditRules() -> [String] {
+        guard let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") else {
+            return [String]()
+        }
+        return subredditRules
+    }
+    
+    public func getSiteRules() -> [String] {
+        guard let subredditRules = self.defaults?.stringArray(forKey: "SiteRules") else {
+            return [String]()
+        }
+        return subredditRules
+    }
+    
     public func deleteCredentials() {
         do {
             try keychain.remove(Const.redditAccessToken)
@@ -432,12 +447,20 @@ struct RedditClient {
     }
     
     typealias RulesHandler = (RedditRulesResponse) -> Void
-    static func fetchRules(completion: @escaping RulesHandler) {
+    public func fetchRules(completion: @escaping RulesHandler) {
         if let url = URL(string: "https://www.reddit.com/r/\(Const.subredditName)/about/rules.json") {
             URLSession.shared.dataTask(with: url) { data, response, error in
                 if let data = data {
                     do {
                         let rulesResponse = try JSONDecoder().decode(RedditRulesResponse.self, from: data)
+                        let subredditRules = rulesResponse.rules.map { subRedditRule in
+                            subRedditRule.short_name
+                        }
+                        let siteRules = rulesResponse.site_rules
+                        
+                        self.defaults?.setValue(subredditRules, forKey: "PokemonGoSnapRules")
+                        self.defaults?.setValue(siteRules, forKey: "SiteRules")
+                        
                         completion(rulesResponse)
                     } catch {
                         print(error)

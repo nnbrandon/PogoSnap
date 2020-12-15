@@ -68,7 +68,7 @@ class SignInController: OAuthViewController {
     }
     
     @objc private func signUp() {
-        let alert = UIAlertController(title: "You will be redirected to the signup page.", message: "Once you are finished, please press the done button and sign in again", preferredStyle: .alert)
+        let alert = UIAlertController(title: "You will be redirected to the sign up page.", message: "Once you are finished, please press the done button and sign in again.", preferredStyle: .alert)
         alert.view.layer.cornerRadius = 15
         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
             guard let url = URL(string: "https://www.reddit.com/register/") else {return}

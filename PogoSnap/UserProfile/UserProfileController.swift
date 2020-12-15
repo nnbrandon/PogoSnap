@@ -7,7 +7,7 @@
 
 import UIKit
 
-class UserProfileController: UICollectionViewController, PostViewDelegate, ProfileImageDelegate {
+class UserProfileController: PostCollectionController {
 
     struct Const {
         static let cellId = "cellId"
@@ -23,16 +23,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
             }
         }
     }
-    var posts = [Post]() {
-        didSet {
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
-        }
-    }
     var after: String? = ""
-    let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
-
     
     let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
@@ -197,181 +188,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
         view.addSubview(signInVC.view)
         signInVC.didMove(toParent: self)
     }
-    
-    func didTapImageGallery(post: Post, index: Int) {
-        var height = 8 + 8 + 50 + 40 + view.frame.width
-        let title = post.title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
-        height += titleEstimatedHeight
-        
-        let redditCommentsController = RedditCommentsController()
-        redditCommentsController.hidesBottomBarWhenPushed = true
-        redditCommentsController.commentsLink = post.commentsLink
-        redditCommentsController.archived = post.archived
-        redditCommentsController.post = post
-        redditCommentsController.index = index
-        redditCommentsController.postView.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: height)
-        redditCommentsController.delegate = self
-        navigationController?.pushViewController(redditCommentsController, animated: true)
-        print(post)
-    }
-    
-    func didTapComment(post: Post, index: Int) {}
-    
-    func didTapUsername(username: String) {
-        let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
-        userProfileController.usernameProp = username
-        navigationController?.pushViewController(userProfileController, animated: true)
-        print(username)
-    }
-    
-    func didTapImage(imageSources: [ImageSource], position: Int) {
-        let fullScreen = FullScreenImageController()
-        fullScreen.imageSources = imageSources
-        fullScreen.position = position
-        present(fullScreen, animated: true, completion: nil)
-    }
-    
-    func didTapOptions(post: Post) {
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
-            
-            if !RedditClient.sharedInstance.isUserAuthenticated() {
-                DispatchQueue.main.async {
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
-                    }
-                }
-                return
-            }
-            
-            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-            reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
-                
-                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                if let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") {
-                    for rule in subredditRules {
-                        subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
-                            if let reason = action.title {
-                                print(reason)
-                                self.reportPost(postId: post.id, reason: reason)
-                            }
-                        }))
-                    }
-                }
-                subredditRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                self.present(subredditRulesController, animated: true, completion: nil)
-            }))
-                        
-            reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
-                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules")  {
-                    for rule in siteRules {
-                        siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
-                            if let reason = action.title {
-                                print(reason)
-                                self.reportPost(postId: post.id, reason: reason)
-                            }
-                        }))
-                    }
-                }
-                siteRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                self.present(siteRulesController, animated: true, completion: nil)
-            }))
-            
-            reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-            self.present(reportOptionsController, animated: true, completion: nil)
-        }))
-        if let username = RedditClient.sharedInstance.getUsername(), username == post.author {
-            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
-                self.deletePost(postId: post.id)
-            }))
-        }
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        
-        present(alertController, animated: true, completion: nil)
-    }
-    
-    func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool) {
-        if !authenticated {
-            DispatchQueue.main.async {
-                if let navController = self.navigationController {
-                    showErrorToast(controller: navController, message: "You need to be signed in to like", seconds: 1.0)
-                }
-            }
-        } else if archived {
-            DispatchQueue.main.async {
-                if let navController = self.navigationController {
-                    showErrorToast(controller: navController, message: "This post has been archived", seconds: 1.0)
-                }
-            }
-        } else {
-            if direction == 0 {
-                posts[index].liked = nil
-                posts[index].score -= 1
-            } else if direction == 1 {
-                posts[index].liked = true
-                posts[index].score += 1
-            } else {
-                posts[index].liked = false
-                posts[index].score -= 1
-            }
-            votePost(postId: post.id, direction: direction, index: index)
-        }
-    }
-    
-    private func reportPost(postId: String, reason: String) {
-        let postId = "t3_\(postId)"
-        RedditClient.sharedInstance.report(id: postId, reason: reason) { (errors, _) in
-            if errors.isEmpty {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
-                    }
-                }
-            } else {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showSuccessToast(controller: navController, message: "Could not report", seconds: 0.5)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func deletePost(postId: String) {
-        let id = "t3_\(postId)"
-        RedditClient.sharedInstance.delete(id: id) { errorOccured in
-            if errorOccured {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Could not delete the post", seconds: 0.5)
-                    }
-                }
-            } else {
-                if let index = self.posts.firstIndex(where: { post -> Bool in post.id == postId}) {
-                    self.posts.remove(at: index)
-                    DispatchQueue.main.async {
-                        generatorImpactOccured()
-                        if let navController = self.navigationController {
-                            showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    private func votePost(postId: String, direction: Int, index: Int) {
-        RedditClient.sharedInstance.votePost(postId: postId, direction: direction) { success in
-            if !success {
-                self.posts[index].liked = direction == 1 ? nil : true
-            }
-        }
-    }
+
 }
 
 extension UserProfileController: UICollectionViewDelegateFlowLayout {
