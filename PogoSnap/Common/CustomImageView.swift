@@ -9,7 +9,7 @@ import UIKit
 import Kingfisher
 
 class CustomImageView: UIImageView {
-        
+    
     func loadImage(urlString: String) {
         guard let url = URL(string: urlString) else { return }
         kf.indicatorType = .activity

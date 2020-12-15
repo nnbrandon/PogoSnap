@@ -181,10 +181,13 @@ struct RedditClient {
     }
         
     typealias PostsHandler = ([Post], String?, Bool) -> Void
-    public func fetchPosts(after: String, sort: String, completion: @escaping PostsHandler) {
+    public func fetchPosts(after: String, sort: String, topOption: String?, completion: @escaping PostsHandler) {
         if let _ = defaults?.string(forKey: "username") {
             print("fetching posts with acesstoken")
-            let url = "\(Const.oauthEndpoint)/r/\(Const.subredditName)/\(sort).json?after=" + after
+            var url = "\(Const.oauthEndpoint)/r/\(Const.subredditName)/\(sort).json?after=" + after
+            if let topOption = topOption {
+                url += "&t=\(topOption)"
+            }
             getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")

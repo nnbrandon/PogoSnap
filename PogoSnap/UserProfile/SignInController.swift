@@ -7,6 +7,7 @@
 
 import UIKit
 import OAuthSwift
+import SafariServices
 
 class SignInController: OAuthViewController {
     
@@ -18,6 +19,14 @@ class SignInController: OAuthViewController {
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         btn.setImage(UIImage(named: "reddit-30")?.withRenderingMode(.alwaysOriginal), for: .normal)
         btn.addTarget(self, action: #selector(signIn), for: .touchDown)
+        return btn
+    }()
+    
+    let signUpButton: UIButton = {
+        let btn = UIButton()
+        btn.setTitle("Create a Reddit account", for: .normal)
+        btn.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        btn.addTarget(self, action: #selector(signUp), for: .touchDown)
         return btn
     }()
 
@@ -42,10 +51,31 @@ class SignInController: OAuthViewController {
         } else {
             signInButton.setTitleColor(.white, for: .normal)
         }
+        
+        view.addSubview(signUpButton)
+        signUpButton.translatesAutoresizingMaskIntoConstraints = false
+        signUpButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        signUpButton.topAnchor.constraint(equalTo: signInButton.bottomAnchor, constant: 16).isActive = true
+        if traitCollection.userInterfaceStyle == .light {
+            signUpButton.setTitleColor(.black, for: .normal)
+        } else {
+            signUpButton.setTitleColor(.white, for: .normal)
+        }
     }
     
-    @objc fileprivate func signIn() {
+    @objc private func signIn() {
         doAuthService()
+    }
+    
+    @objc private func signUp() {
+        let alert = UIAlertController(title: "You will be redirected to the signup page.", message: "Once you are finished, please press the done button and sign in again", preferredStyle: .alert)
+        alert.view.layer.cornerRadius = 15
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
+            guard let url = URL(string: "https://www.reddit.com/register/") else {return}
+            let signupView = SFSafariViewController(url: url)
+            self.present(signupView, animated: true, completion: nil)
+        }))
+        present(alert, animated: true, completion: nil)
     }
     
     func doAuthService() {
@@ -89,6 +119,7 @@ class SignInController: OAuthViewController {
         if internalWebViewController.parent == nil {
             addChild(internalWebViewController)
         }
+
         return internalWebViewController
     }
 }

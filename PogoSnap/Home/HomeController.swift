@@ -19,6 +19,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     }
     var after: String? = ""
     var sort = SortOptions.best
+    var topOption: String?
     var listLayoutOption = ListLayoutOptions.card
     var userSignFlag: String?
 
@@ -160,7 +161,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     func didTapImageGallery(post: Post, index: Int) {
         var height = 8 + 8 + 50 + 40 + view.frame.width
         let title = post.title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
         height += titleEstimatedHeight
         
         let redditCommentsController = RedditCommentsController()
@@ -287,7 +288,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
     private func fetchPosts() {
         print("fetching posts...")
         if let after = after {
-            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue) { posts, nextAfter, errorOccured in
+            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { posts, nextAfter, errorOccured in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
                     self.footerView.stopAnimating()
@@ -377,7 +378,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
         if posts.isEmpty {
             activityIndicatorView.startAnimating()
         }
-        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue) { posts, nextAfter, errorOccured in
+        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue, topOption: topOption) { posts, nextAfter, errorOccured in
             DispatchQueue.main.async {
                 self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
@@ -401,6 +402,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             self.sort = SortOptions.best
             self.posts = []
             self.after = ""
+            self.topOption = nil
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
             }
@@ -410,6 +412,7 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             self.sort = SortOptions.hot
             self.posts = []
             self.after = ""
+            self.topOption = nil
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
             }
@@ -419,10 +422,68 @@ class HomeController: UICollectionViewController, PostViewDelegate, ShareDelegat
             self.sort = SortOptions.new
             self.posts = []
             self.after = ""
+            self.topOption = nil
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
             }
             self.fetchPosts()
+        }))
+        alertController.addAction(UIAlertAction(title: "Rising", style: .default, handler: { _ in
+            self.sort = SortOptions.rising
+            self.posts = []
+            self.after = ""
+            self.topOption = nil
+            DispatchQueue.main.async {
+                self.activityIndicatorView.startAnimating()
+            }
+            self.fetchPosts()
+        }))
+        alertController.addAction(UIAlertAction(title: "Top", style: .default, handler: { _ in
+            let topAlertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            for option in TopOptions.allCases {
+                var title = ""
+                switch option {
+                case .hour:
+                    title = "Now"
+                case .day:
+                    title = "Today"
+                case .week:
+                    title = "This Week"
+                case .month:
+                    title = "This Month"
+                case .year:
+                    title = "This Year"
+                case .all:
+                    title = "All Time"
+                }
+                topAlertController.addAction(UIAlertAction(title: title, style: .default, handler: { action in
+                    guard let action = action.title else {return}
+                    var topOption = ""
+                    if action == "Now" {
+                        topOption = "hour"
+                    } else if action == "Today" {
+                        topOption = "day"
+                    } else if action == "This Week" {
+                        topOption = "week"
+                    } else if action == "This Month" {
+                        topOption = "month"
+                    } else if action == "This Year" {
+                        topOption = "year"
+                    } else if action == "All Time" {
+                        topOption = "all"
+                    }
+                    self.sort = SortOptions.top
+                    self.posts = []
+                    self.after = ""
+                    self.topOption = topOption
+                    DispatchQueue.main.async {
+                        self.activityIndicatorView.startAnimating()
+                    }
+                    self.fetchPosts()
+                }))
+            }
+            topAlertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            self.present(topAlertController, animated: true, completion: nil)
         }))
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         
@@ -482,6 +543,9 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
         if kind == UICollectionView.elementKindSectionHeader {
             let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as! HomeHeader
             header.sortOption = sort
+            if let topOption = topOption {
+                header.topOption = TopOptions(rawValue: topOption)
+            }
             header.changeSort = changeSort
             header.listLayoutOption = listLayoutOption
             header.changeLayout = changeLayout

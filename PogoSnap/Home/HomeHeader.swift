@@ -11,6 +11,17 @@ enum SortOptions: String {
     case new
     case best
     case hot
+    case rising
+    case top
+}
+
+enum TopOptions: String, CaseIterable {
+    case hour
+    case day
+    case week
+    case month
+    case year
+    case all
 }
 
 enum ListLayoutOptions: String {
@@ -33,6 +44,33 @@ class HomeHeader: UICollectionViewCell {
                 case .hot:
                     sortButton.setTitle(" Hot Posts", for: .normal)
                     sortButton.setImage(UIImage(named: "hot-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
+                case .rising:
+                    sortButton.setTitle(" Rising Posts", for: .normal)
+                    sortButton.setImage(UIImage(named: "rising-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
+                case .top:
+                    sortButton.setTitle(" Top Posts", for: .normal)
+                    sortButton.setImage(UIImage(named: "top-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
+                }
+            }
+        }
+    }
+    var topOption: TopOptions? {
+        didSet {
+            if let topOption = topOption {
+                let topTitle = " Top Posts "
+                switch topOption {
+                case .hour:
+                    sortButton.setTitle("\(topTitle) Now", for: .normal)
+                case .day:
+                    sortButton.setTitle("\(topTitle) Today", for: .normal)
+                case .week:
+                    sortButton.setTitle("\(topTitle) This Week", for: .normal)
+                case .month:
+                    sortButton.setTitle("\(topTitle) This Month", for: .normal)
+                case .year:
+                    sortButton.setTitle("\(topTitle) This Year", for: .normal)
+                case .all:
+                    sortButton.setTitle("\(topTitle) All Time", for: .normal)
                 }
             }
         }

@@ -337,4 +337,5 @@ extension PostView: UIScrollViewDelegate {
         let pageNumber = round(photoImageSlideshow.contentOffset.x / photoImageSlideshow.frame.size.width)
         dots.currentPage = Int(pageNumber)
     }
+    
 }

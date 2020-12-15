@@ -201,7 +201,7 @@ class UserProfileController: UICollectionViewController, PostViewDelegate, Profi
     func didTapImageGallery(post: Post, index: Int) {
         var height = 8 + 8 + 50 + 40 + view.frame.width
         let title = post.title
-        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+        let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
         height += titleEstimatedHeight
         
         let redditCommentsController = RedditCommentsController()
