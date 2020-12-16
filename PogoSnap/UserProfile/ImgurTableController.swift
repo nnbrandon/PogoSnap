@@ -38,7 +38,7 @@ class ImgurTableController: UITableViewController {
     
     func deleteImgurPhoto(imgurDelete: ImageUrlDelete, index: Int) {
         
-        let alertController = UIAlertController(title: "Delete the upload from Imgur?", message: nil, preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: "Delete the upload from Imgur?", message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
             ImgurClient.sharedInstance.deleteImgurPhoto(imageUrlDelete: imgurDelete, imageUrlDeletes: self.imgurDeletes) { errorOccured in
                 if errorOccured {

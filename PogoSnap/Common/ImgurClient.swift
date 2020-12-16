@@ -112,6 +112,8 @@ struct ImgurClient {
                     } catch {
                         completion(nil, true)
                     }
+                } else {
+                    completion(nil, true)
                 }
             }.resume()
         }

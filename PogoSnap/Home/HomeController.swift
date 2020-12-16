@@ -31,7 +31,7 @@ class HomeController: PostCollectionController {
         let activityView = UIActivityIndicatorView()
         return activityView
     }()
-    let footerView = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.medium)
+    let footerView = UIActivityIndicatorView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -134,7 +134,7 @@ class HomeController: PostCollectionController {
     }
     
     private func changeSort() {
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
 //        alertController.addAction(UIAlertAction(title: "Best", style: .default, handler: { _ in
 //            self.sort = SortOptions.best
 //            self.posts = []
@@ -176,7 +176,7 @@ class HomeController: PostCollectionController {
 //            self.fetchPosts()
 //        }))
         alertController.addAction(UIAlertAction(title: "Top", style: .default, handler: { _ in
-            let topAlertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            let topAlertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
             for option in TopOptions.allCases {
                 var title = ""
                 switch option {
@@ -228,7 +228,7 @@ class HomeController: PostCollectionController {
     }
     
     private func changeLayout() {
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Card", style: .default, handler: { _ in
             self.listLayoutOption = .card
             DispatchQueue.main.async {
@@ -375,7 +375,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
         case .card:
             return 10
         case .gallery:
-            return 1
+            return getSpacingForCells()
         }
     }
     
@@ -384,7 +384,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
         case .card:
             return 10
         case .gallery:
-            return 1
+            return getSpacingForCells()
         }
     }
 

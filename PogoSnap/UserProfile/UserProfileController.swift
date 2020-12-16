@@ -136,7 +136,7 @@ class UserProfileController: PostCollectionController {
     }
     
     @objc private func handleOptions() {
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Manage Imgur uploads", style: .default, handler: { (_) in
             let viewController = ImgurTableController()
             viewController.hidesBottomBarWhenPushed = true
@@ -194,11 +194,11 @@ class UserProfileController: PostCollectionController {
 extension UserProfileController: UICollectionViewDelegateFlowLayout {
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        return 1
+        return getSpacingForCells()
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        return 1
+        return getSpacingForCells()
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {

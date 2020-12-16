@@ -57,7 +57,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         return btn
     }()
     let activityIndicatorView: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .medium)
+        let spinner = UIActivityIndicatorView()
         spinner.startAnimating()
         return spinner
     }()
@@ -238,7 +238,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     
     func didTapOptions(commentId: String, author: String) {
         generatorImpactOccured()
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
@@ -248,10 +248,10 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                 return
             }
             
-            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
             reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
                 
-                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
                 if let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") {
                     for rule in subredditRules {
                         subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
@@ -266,7 +266,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             }))
                         
             reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
-                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
                 if let siteRules = self.defaults?.stringArray(forKey: "SiteRules") {
                     for rule in siteRules {
                         siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
@@ -281,6 +281,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             }))
             
             reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            
             self.present(reportOptionsController, animated: true, completion: nil)
         }))
         if let username = RedditClient.sharedInstance.getUsername(), username == author {

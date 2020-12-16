@@ -104,7 +104,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
     }
     
     func didTapOptions(post: Post) {
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
@@ -116,10 +116,10 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
                 return
             }
             
-            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
             reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
                 
-                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
                 let subredditRules = RedditClient.sharedInstance.getSubredditRules()
                 for rule in subredditRules {
                     subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
@@ -134,7 +134,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
             }))
                         
             reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
-                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
                 let siteRules = RedditClient.sharedInstance.getSiteRules()
                 for rule in siteRules {
                     siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in

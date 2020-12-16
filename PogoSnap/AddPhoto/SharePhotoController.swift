@@ -36,6 +36,7 @@ class SharePhotoController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
             textField.textColor = .black
@@ -52,6 +53,10 @@ class SharePhotoController: UIViewController {
         setupImageAndTextViews()
     }
     
+    override var prefersStatusBarHidden: Bool {
+        return true
+    }
+    
     fileprivate func setupImageAndTextViews() {
         let containerView = UIView()
         if traitCollection.userInterfaceStyle == .light {
@@ -62,7 +67,7 @@ class SharePhotoController: UIViewController {
         view.addSubview(containerView)
         
         containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
+        containerView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
         containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
         containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         containerView.heightAnchor.constraint(equalToConstant: 100).isActive = true
