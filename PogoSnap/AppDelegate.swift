@@ -8,27 +8,6 @@
 import UIKit
 import OAuthSwift
 
-//class Application {
-//    static var shared: UIApplication {
-//        let sharedSelector = NSSelectorFromString("sharedApplication")
-//        guard UIApplication.responds(to: sharedSelector) else {
-//            fatalError("[Extensions cannot access Application]")
-//        }
-//
-//        let shared = UIApplication.perform(sharedSelector)
-//        return shared?.takeUnretainedValue() as! UIApplication
-//    }
-//
-//    func applicationHandle(url: URL) {
-//        if (url.host == "response") {
-//            OAuthSwift.handle(url: url)
-//        } else {
-//            // Google provider is the only one with your.bundle.id url schema.
-//            OAuthSwift.handle(url: url)
-//        }
-//    }
-//}
-
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
@@ -36,7 +15,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return UIApplication.shared.delegate as! AppDelegate
     }
     
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey:Any] = [:]) -> Bool {
         if url.host == "response" {
             OAuthSwift.handle(url: url)
         }
@@ -67,7 +46,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 extension AppDelegate {
     
     func applicationHandle(url: URL) {
-        if (url.host == "response") {
+        if url.host == "response" {
             OAuthSwift.handle(url: url)
         } else {
             // Google provider is the only one with your.bundle.id url schema.
@@ -75,4 +54,3 @@ extension AppDelegate {
         }
     }
 }
-

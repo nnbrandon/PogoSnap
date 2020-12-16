@@ -28,10 +28,9 @@ class UploadImageViewController: UIViewController {
         return imageView
     }()
     
-    let textField: UITextField = {
-        let tf = UITextField()
+    let textField: UITextView = {
+        let tf = UITextView()
         tf.font = UIFont.systemFont(ofSize: 18)
-        tf.placeholder = "Enter title"
         return tf
     }()
     
@@ -70,8 +69,12 @@ class UploadImageViewController: UIViewController {
         super.viewDidLoad()
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
+            textField.textColor = .black
+            textField.backgroundColor = .white
         } else {
             view.backgroundColor = .black
+            textField.textColor = .white
+            textField.backgroundColor = .black
         }
         
         view.addSubview(progressView)
@@ -101,7 +104,6 @@ class UploadImageViewController: UIViewController {
         activityIndicatorView.topAnchor.constraint(equalTo: progressView.bottomAnchor, constant: 12).isActive = true
         activityIndicatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24).isActive = true
         
-        textField.delegate = self
         textField.becomeFirstResponder()
         setupImageAndTextViews()
     }
@@ -135,9 +137,10 @@ class UploadImageViewController: UIViewController {
         
         containerView.addSubview(textField)
         textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8).isActive = true
+        textField.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
         textField.leadingAnchor.constraint(equalTo: photoImageView.trailingAnchor, constant: 8).isActive = true
         textField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: 4).isActive = true
+        textField.heightAnchor.constraint(equalToConstant: 80).isActive = true
     }
     
     @objc func handleClose() {
@@ -177,7 +180,7 @@ class UploadImageViewController: UIViewController {
                             }
                         }
                         guard let imageSource = imageSource else {return}
-                        RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
+                        RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (_, postData) in
                             if postData != nil {
                                 DispatchQueue.main.async {
                                     self.progressView.setProgress(1, animated: true)
@@ -202,14 +205,3 @@ class UploadImageViewController: UIViewController {
     }
 
 }
-
-extension UploadImageViewController: UITextFieldDelegate {
-    override var canBecomeFirstResponder: Bool {
-        return true
-    }
-
-    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        return true
-    }
-}
-

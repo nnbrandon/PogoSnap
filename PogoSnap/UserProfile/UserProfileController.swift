@@ -81,14 +81,14 @@ class UserProfileController: PostCollectionController {
     override func viewDidAppear(_ animated: Bool) {
         if RedditClient.sharedInstance.getUsername() == nil, RedditClient.sharedInstance.isUserAuthenticated() {
             // Fetch username and me information
-            if children.count > 0 {
-                let viewControllers:[UIViewController] = children
+            if !children.isEmpty {
+                let viewControllers: [UIViewController] = children
                 viewControllers.last?.willMove(toParent: nil)
                 viewControllers.last?.removeFromParent()
                 viewControllers.last?.view.removeFromSuperview()
                 collectionView.isHidden = false
             }
-            RedditClient.sharedInstance.fetchMe { (username, icon_img) in
+            RedditClient.sharedInstance.fetchMe { (username, _) in
                 DispatchQueue.main.async {
                     self.collectionView.reloadData()
                     self.activityIndicatorView.startAnimating()
@@ -211,7 +211,9 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Const.cellId, for: indexPath) as! UserProfileCell
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Const.cellId, for: indexPath) as? UserProfileCell else {
+            return UICollectionViewCell()
+        }
         
         cell.photoImageView.image = UIImage()
         let post = posts[indexPath.row]
@@ -223,7 +225,9 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: Const.headerId, for: indexPath) as! UserProfileHeader
+        guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: Const.headerId, for: indexPath) as? UserProfileHeader else {
+            return UICollectionReusableView()
+        }
         if traitCollection.userInterfaceStyle == .dark {
             header.darkMode = true
         } else {

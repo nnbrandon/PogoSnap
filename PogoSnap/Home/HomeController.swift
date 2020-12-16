@@ -11,7 +11,7 @@ import YPImagePicker
 class HomeController: PostCollectionController {
 
     var after: String? = ""
-    var sort = SortOptions.best
+    var sort = SortOptions.hot
     var topOption: String?
     var listLayoutOption = ListLayoutOptions.card
     var userSignFlag: String?
@@ -59,7 +59,6 @@ class HomeController: PostCollectionController {
         activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
 
-        
         userSignFlag = RedditClient.sharedInstance.getUsername()
     }
     
@@ -136,16 +135,16 @@ class HomeController: PostCollectionController {
     
     private func changeSort() {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        alertController.addAction(UIAlertAction(title: "Best", style: .default, handler: { _ in
-            self.sort = SortOptions.best
-            self.posts = []
-            self.after = ""
-            self.topOption = nil
-            DispatchQueue.main.async {
-                self.activityIndicatorView.startAnimating()
-            }
-            self.fetchPosts()
-        }))
+//        alertController.addAction(UIAlertAction(title: "Best", style: .default, handler: { _ in
+//            self.sort = SortOptions.best
+//            self.posts = []
+//            self.after = ""
+//            self.topOption = nil
+//            DispatchQueue.main.async {
+//                self.activityIndicatorView.startAnimating()
+//            }
+//            self.fetchPosts()
+//        }))
         alertController.addAction(UIAlertAction(title: "Hot", style: .default, handler: { _ in
             self.sort = SortOptions.hot
             self.posts = []
@@ -166,16 +165,16 @@ class HomeController: PostCollectionController {
             }
             self.fetchPosts()
         }))
-        alertController.addAction(UIAlertAction(title: "Rising", style: .default, handler: { _ in
-            self.sort = SortOptions.rising
-            self.posts = []
-            self.after = ""
-            self.topOption = nil
-            DispatchQueue.main.async {
-                self.activityIndicatorView.startAnimating()
-            }
-            self.fetchPosts()
-        }))
+//        alertController.addAction(UIAlertAction(title: "Rising", style: .default, handler: { _ in
+//            self.sort = SortOptions.rising
+//            self.posts = []
+//            self.after = ""
+//            self.topOption = nil
+//            DispatchQueue.main.async {
+//                self.activityIndicatorView.startAnimating()
+//            }
+//            self.fetchPosts()
+//        }))
         alertController.addAction(UIAlertAction(title: "Top", style: .default, handler: { _ in
             let topAlertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
             for option in TopOptions.allCases {
@@ -303,16 +302,19 @@ extension HomeController: ShareDelegate {
                     DispatchQueue.main.async {
                         progressView?.setProgress(1.0, animated: true)
                     }
-                    var message = "Image upload failed"
-                    if let postData = postData, let postId = postData.id {
-                        message = "Image upload success"
-                        let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
-                        let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970
-, liked: true)
-                        self.posts.insert(post, at: 0)
-                        DispatchQueue.main.async {
-                            if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
-                                userProfileController.posts.insert(post, at: 0)
+                    var message = ""
+                    if !errors.isEmpty {
+                        message = "Image upload failed"
+                    } else {
+                        if let postData = postData, let postId = postData.id {
+                            message = "Image upload success"
+                            let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
+                            let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true)
+                            self.posts.insert(post, at: 0)
+                            DispatchQueue.main.async {
+                                if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
+                                    userProfileController.posts.insert(post, at: 0)
+                                }
                             }
                         }
                     }
@@ -335,7 +337,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
     
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         if kind == UICollectionView.elementKindSectionHeader {
-            let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as! HomeHeader
+            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? HomeHeader else {return UICollectionReusableView()}
             header.sortOption = sort
             if let topOption = topOption {
                 header.topOption = TopOptions(rawValue: topOption)
@@ -393,10 +395,14 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         switch listLayoutOption {
         case .card:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as! HomePostCell
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as? HomePostCell
+            else {
+                return UICollectionViewCell()
+            }
             for index in 0..<cell.postView.photoImageSlideshow.subviews.count {
-                let imageView = cell.postView.photoImageSlideshow.subviews[index] as! CustomImageView
-                imageView.image = UIImage()
+                if let imageView = cell.postView.photoImageSlideshow.subviews[index] as? CustomImageView {
+                    imageView.image = UIImage()
+                }
             }
             cell.post = posts[indexPath.row]
             cell.index = indexPath.row
@@ -404,7 +410,10 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
             
             return cell
         case .gallery:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as! UserProfileCell
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as? UserProfileCell
+            else {
+                return UICollectionViewCell()
+            }
             cell.photoImageView.image = UIImage()
             let post = posts[indexPath.row]
             cell.post = post

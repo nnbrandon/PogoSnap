@@ -95,10 +95,12 @@ struct ImgurClient {
                     completion(nil, true)
                     return
                 }
-                if let mimeType = response.mimeType, mimeType == "application/json", let data = data, let _ = String(data: data, encoding: .utf8) {
-                    let parsedResult: [String: AnyObject]
+                if let mimeType = response.mimeType, mimeType == "application/json", let data = data {
                     do {
-                        parsedResult = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as! [String: AnyObject]
+                        guard let parsedResult = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: AnyObject] else {
+                            completion(nil, true)
+                            return
+                        }
                         if let dataJson = parsedResult["data"] as? [String: Any] {
                             if let link = dataJson["link"] as? String, let deleteHash = dataJson["deletehash"] as? String, let width = dataJson["width"] as? Int, let height = dataJson["height"] as? Int {
                                 let imageSource = ImageSource(url: link, width: width, height: height)
@@ -132,9 +134,11 @@ struct ImgurClient {
             }
             
             if let data = data {
-                let parsedResult: [String: AnyObject]
                 do {
-                    parsedResult = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as! [String: AnyObject]
+                    guard let parsedResult = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: AnyObject] else {
+                        completion(true)
+                        return
+                    }
                     if let success = parsedResult["success"] as? Bool, success {
                         deleteImageFromDefaults(imageUrlDelete: imageUrlDelete, imageUrlDeletes: imageUrlDeletes)
                         completion(false)

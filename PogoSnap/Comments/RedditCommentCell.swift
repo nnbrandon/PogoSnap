@@ -7,7 +7,7 @@
 
 import UIKit
 
-protocol CommentDelegate {
+protocol CommentDelegate: class {
     func didTapUsername(username: String)
     func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int)
     func didTapOptions(commentId: String, author: String)
@@ -148,7 +148,7 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         }
     }
     
-    var delegate: CommentDelegate?
+    weak var delegate: CommentDelegate?
 
     let controlView = UIView()
     
@@ -230,7 +230,6 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     }
     private var contentHeightConstraint: NSLayoutConstraint?
     private var controlBarHeightConstraint: NSLayoutConstraint?
-
     
     private func setLayout() {
         
@@ -267,7 +266,6 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         replyButton.bottomAnchor.constraint(equalTo: controlView.bottomAnchor).isActive = true
         replyButton.topAnchor.constraint(equalTo: controlView.topAnchor).isActive = true
     }
-    
 
     private func setupControlView() {
         let topSeparatorView = UIView()

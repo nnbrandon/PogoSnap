@@ -70,7 +70,9 @@ extension ImgurTableController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellId) as! ImgurCell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: cellId) as? ImgurCell else {
+            return UITableViewCell()
+        }
         let imgurDelete = imgurDeletes[indexPath.row]
         
         cell.imageUrlDelete = imgurDelete

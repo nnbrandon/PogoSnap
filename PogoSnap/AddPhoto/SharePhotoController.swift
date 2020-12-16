@@ -7,7 +7,7 @@
 
 import UIKit
 
-protocol ShareDelegate {
+protocol ShareDelegate: class {
     func imageSubmitted(image: UIImage, title: String)
 }
 
@@ -19,7 +19,7 @@ class SharePhotoController: UIViewController {
         }
     }
     
-    var delegate: ShareDelegate?
+    weak var delegate: ShareDelegate?
 
     let photoImageView: UIImageView = {
         let imageView = UIImageView()
@@ -28,10 +28,9 @@ class SharePhotoController: UIViewController {
         return imageView
     }()
     
-    let textField: UITextField = {
-        let tf = UITextField()
+    let textField: UITextView = {
+        let tf = UITextView()
         tf.font = UIFont.systemFont(ofSize: 18)
-        tf.placeholder = "Enter title"
         return tf
     }()
     
@@ -39,13 +38,16 @@ class SharePhotoController: UIViewController {
         super.viewDidLoad()
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
+            textField.textColor = .black
+            textField.backgroundColor = .white
         } else {
             view.backgroundColor = .black
+            textField.textColor = .white
+            textField.backgroundColor = .black
         }
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Share", style: .plain, target: self, action: #selector(handleShare))
                 
-        textField.delegate = self
         textField.becomeFirstResponder()
         setupImageAndTextViews()
     }
@@ -74,9 +76,10 @@ class SharePhotoController: UIViewController {
         
         containerView.addSubview(textField)
         textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8).isActive = true
+        textField.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
         textField.leadingAnchor.constraint(equalTo: photoImageView.trailingAnchor, constant: 8).isActive = true
         textField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: 4).isActive = true
+        textField.heightAnchor.constraint(equalToConstant: 80).isActive = true
     }
     
     @objc func handleShare() {
@@ -91,15 +94,5 @@ class SharePhotoController: UIViewController {
                 dismiss(animated: true, completion: nil)
             }
         }
-    }
-}
-
-extension SharePhotoController: UITextFieldDelegate {
-    override var canBecomeFirstResponder: Bool {
-        return true
-    }
-
-    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        return true
     }
 }

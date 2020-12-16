@@ -57,7 +57,6 @@ class UserProfileHeader: UICollectionViewCell {
         button.tintColor = UIColor(white: 0, alpha: 0.2)
         return button
     }()
-
     
     let usernameLabel: UILabel = {
         let label = UILabel()

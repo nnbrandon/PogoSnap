@@ -7,7 +7,7 @@
 
 import UIKit
 
-protocol ProfileImageDelegate {
+protocol ProfileImageDelegate: class {
     func didTapImageGallery(post: Post, index: Int)
 }
 
@@ -22,7 +22,7 @@ class UserProfileCell: UICollectionViewCell {
             }
         }
     }
-    var delegate: ProfileImageDelegate?
+    weak var delegate: ProfileImageDelegate?
     var index: Int?
     
     lazy var photoImageView: CustomImageView = {

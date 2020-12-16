@@ -12,15 +12,15 @@ import Foundation
 open class CommentsController: UITableViewController {
 
     /// The list of comments correctly displayed in the tableView (in linearized form)
-    var _currentlyDisplayed: [Comment] = []
+    var linearizedComments: [Comment] = []
     var currentlyDisplayed: [Comment] {
         get {
-            return _currentlyDisplayed
+            return linearizedComments
         } set(value) {
             if fullyExpanded {
-                linearizeComments(comments: value, linearizedComments: &_currentlyDisplayed)
+                linearizeComments(comments: value, linearizedComments: &linearizedComments)
             } else {
-                _currentlyDisplayed = value
+                linearizedComments = value
             }
         }
     }
@@ -36,9 +36,6 @@ open class CommentsController: UITableViewController {
         }
     }
         
-    deinit {
-        //print("CommentsVC deinited!")
-    }
     override open func viewDidLoad() {
         super.viewDidLoad()
         
@@ -64,42 +61,36 @@ open class CommentsController: UITableViewController {
          - sort: a function that is applied recursively on each sub-list of comments
      */
     func linearizeComments(comments: [Comment], linearizedComments: inout [Comment]) {
-        for c in comments {
+        for comm in comments {
             let containsComment = linearizedComments.contains { (comment) -> Bool in
-                if comment == c {
+                if comment == comm {
                     return true
                 } else {
                     return false
                 }
             }
             if !containsComment {
-                linearizedComments.append(c)
+                linearizedComments.append(comm)
             }
-            linearizeComments(comments: c.replies, linearizedComments: &linearizedComments)
+            linearizeComments(comments: comm.replies, linearizedComments: &linearizedComments)
         }
     }
     
     func addReply(reply: Comment, parentCommentId: String) {
         var index = 0
-        for (idx, comment) in _currentlyDisplayed.enumerated() {
-            if comment.id == parentCommentId {
-                index = idx + 1
-            }
+        for (idx, comment) in linearizedComments.enumerated() where comment.id == parentCommentId {
+            index = idx + 1
         }
-        _currentlyDisplayed.insert(reply, at: index)
+        linearizedComments.insert(reply, at: index)
         DispatchQueue.main.async {
             self.tableView.reloadData()
         }
     }
     
     func removeComment(commentId: String) {
-        if let index = _currentlyDisplayed.firstIndex(where: { comment -> Bool in comment.id == commentId}) {
-//            if _currentlyDisplayed[index].replies.isEmpty {
-//                _currentlyDisplayed.remove(at: index)
-//            } else {
-            _currentlyDisplayed[index].author = "[deleted]"
-            _currentlyDisplayed[index].body = "[deleted]"
-//            }
+        if let index = linearizedComments.firstIndex(where: { comment -> Bool in comment.id == commentId}) {
+            linearizedComments[index].author = "[deleted]"
+            linearizedComments[index].body = "[deleted]"
             DispatchQueue.main.async {
                 self.tableView.reloadData()
             }
@@ -109,8 +100,8 @@ open class CommentsController: UITableViewController {
     /// Linearize the comments in _currentlyDisplayed.
     public func linearizeCurrentlyDisplayedComs() {
         var linearizedComs: [Comment] = []
-        linearizeComments(comments: _currentlyDisplayed, linearizedComments: &linearizedComs)
-        _currentlyDisplayed = linearizedComs
+        linearizeComments(comments: linearizedComments, linearizedComments: &linearizedComs)
+        linearizedComments = linearizedComs
     }
     
     override open func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -125,21 +116,21 @@ open class CommentsController: UITableViewController {
     }
     
     override open func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let selectedCom: Comment = _currentlyDisplayed[indexPath.row]
+        let selectedCom: Comment = linearizedComments[indexPath.row]
         let selectedIndex = indexPath.row
         
-        if selectedCom.replies.count > 0 { // if expandable
+        if !selectedCom.replies.isEmpty { // if expandable
             if isCellExpanded(indexPath: indexPath) {
                 // collapse
                 var nCellsToDelete = 0
                 repeat {
                     nCellsToDelete += 1
-                } while (_currentlyDisplayed.count > selectedIndex+nCellsToDelete+1 && _currentlyDisplayed[selectedIndex+nCellsToDelete+1].depth > selectedCom.depth)
+                } while (linearizedComments.count > selectedIndex+nCellsToDelete+1 && linearizedComments[selectedIndex+nCellsToDelete+1].depth > selectedCom.depth)
                 
-                _currentlyDisplayed.removeSubrange(Range(uncheckedBounds: (lower: selectedIndex+1 , upper: selectedIndex+nCellsToDelete+1)))
+                linearizedComments.removeSubrange(Range(uncheckedBounds: (lower: selectedIndex+1, upper: selectedIndex+nCellsToDelete+1)))
                 var indexPaths: [IndexPath] = []
-                for i in 0..<nCellsToDelete {
-                    indexPaths.append(IndexPath(row: selectedIndex+i+1, section: indexPath.section))
+                for index in 0..<nCellsToDelete {
+                    indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
                 }
                 tableView.deleteRows(at: indexPaths, with: .bottom)
             } else {
@@ -150,10 +141,10 @@ open class CommentsController: UITableViewController {
                 } else {
                     toShow = selectedCom.replies
                 }
-                _currentlyDisplayed.insert(contentsOf: toShow, at: selectedIndex+1)
+                linearizedComments.insert(contentsOf: toShow, at: selectedIndex+1)
                 var indexPaths: [IndexPath] = []
-                for i in 0..<toShow.count {
-                    indexPaths.append(IndexPath(row: selectedIndex+i+1, section: indexPath.section))
+                for index in 0..<toShow.count {
+                    indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
                 }
                 tableView.insertRows(at: indexPaths, with: .bottom)
                 
@@ -175,8 +166,8 @@ open class CommentsController: UITableViewController {
     }
     
     open func isCellExpanded(indexPath: IndexPath) -> Bool {
-        let com: Comment = _currentlyDisplayed[indexPath.row]
-        return _currentlyDisplayed.count > indexPath.row+1 &&  // if not last cell
-            _currentlyDisplayed[indexPath.row+1].depth > com.depth // if replies are displayed
+        let com: Comment = linearizedComments[indexPath.row]
+        return linearizedComments.count > indexPath.row+1 &&  // if not last cell
+            linearizedComments[indexPath.row+1].depth > com.depth // if replies are displayed
     }
 }

@@ -80,17 +80,17 @@ class SignInController: OAuthViewController {
     
     func doAuthService() {
         let oauthSwift = OAuth2Swift(
-            consumerKey:    RedditClient.Const.redditClientId,
+            consumerKey: RedditClient.Const.redditClientId,
             consumerSecret: RedditClient.Const.redditClientSecret,
-            authorizeUrl:   RedditClient.Const.redditAuthorizeUrl,
+            authorizeUrl: RedditClient.Const.redditAuthorizeUrl,
             accessTokenUrl: RedditClient.Const.redditAccessTokenUrl,
-            responseType:   RedditClient.Const.responseType
+            responseType: RedditClient.Const.responseType
         )
         
         oauthSwift.accessTokenBasicAuthentification = true
         self.oauthSwift = oauthSwift
         oauthSwift.authorizeURLHandler = getURLHandler()
-        let _ = oauthSwift.authorize(
+        _ = oauthSwift.authorize(
             withCallbackURL: URL(string: RedditClient.Const.redditCallbackURL)!,
             scope: RedditClient.Const.scope,
             state: generateState(withLength: 20),

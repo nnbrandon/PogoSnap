@@ -53,9 +53,9 @@ class RedditCommentTextController: UIViewController {
         return button
     }()
     
-    let commentTextField: UITextField = {
-        let textField = UITextField()
-        textField.placeholder = "Enter Comment"
+    let commentTextField: UITextView = {
+        let textField = UITextView()
+        textField.font = UIFont.systemFont(ofSize: 18)
         return textField
     }()
     
@@ -85,10 +85,13 @@ class RedditCommentTextController: UIViewController {
         super.viewDidLoad()
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = .white
+            commentTextField.textColor = .black
+            commentTextField.backgroundColor = .white
         } else {
             view.backgroundColor = .black
+            commentTextField.textColor = .white
+            commentTextField.backgroundColor = .black
         }
-        commentTextField.delegate = self
         commentTextField.becomeFirstResponder()
                 
         view.addSubview(closeButton)
@@ -116,6 +119,7 @@ class RedditCommentTextController: UIViewController {
         commentTextField.topAnchor.constraint(equalTo: submitButton.topAnchor, constant: 90).isActive = true
         commentTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8).isActive = true
         commentTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        commentTextField.heightAnchor.constraint(equalToConstant: 160).isActive = true
         
         view.addSubview(usernameLabel)
         usernameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -174,15 +178,5 @@ class RedditCommentTextController: UIViewController {
                 }
             }
         }
-    }
-}
-
-extension RedditCommentTextController: UITextFieldDelegate {
-    override var canBecomeFirstResponder: Bool {
-        return true
-    }
-
-    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        return true
     }
 }

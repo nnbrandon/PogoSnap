@@ -15,7 +15,7 @@ class ShareViewController: UIViewController {
             if let attachments = item.attachments {
                 for itemProvider in attachments {
                     if itemProvider.hasItemConformingToTypeIdentifier(kUTTypeJPEG as String) {
-                        itemProvider.loadItem(forTypeIdentifier: kUTTypeJPEG as String) { [unowned self] (imageData, error) in
+                        itemProvider.loadItem(forTypeIdentifier: kUTTypeJPEG as String) { [unowned self] (imageData, _) in
                             if let url = imageData as? URL, let item = try? Data(contentsOf: url) {
                                 let image = UIImage(data: item)
                                 DispatchQueue.main.async {
@@ -35,7 +35,7 @@ class ShareViewController: UIViewController {
                             }
                         }
                     } else if itemProvider.hasItemConformingToTypeIdentifier("public.image") {
-                        itemProvider.loadItem(forTypeIdentifier: "public.image", options: nil, completionHandler: { (data, error) -> Void in
+                        itemProvider.loadItem(forTypeIdentifier: "public.image", options: nil, completionHandler: { (data, _) -> Void in
                             if let image = data as? UIImage {
                                 DispatchQueue.main.async {
                                     let sharePhotoController = UploadImageViewController()

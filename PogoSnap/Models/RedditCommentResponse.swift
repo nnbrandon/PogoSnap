@@ -40,12 +40,12 @@ enum Reply: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        if let x = try? container.decode(String.self) {
-            self = .string(x)
+        if let stringValue = try? container.decode(String.self) {
+            self = .string(stringValue)
             return
         }
-        if let x = try? container.decode(RedditCommentResponse.self) {
-            self = .redditCommentResponse(x)
+        if let commentValue = try? container.decode(RedditCommentResponse.self) {
+            self = .redditCommentResponse(commentValue)
             return
         }
         throw DecodingError.typeMismatch(Reply.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for Reply"))

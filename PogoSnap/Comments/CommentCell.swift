@@ -48,7 +48,7 @@ open class CommentCell: UITableViewCell {
         }
     }
     /// Color of the space above an indented comment
-    open var indentationColor: UIColor! {//= DefaultValues.identationColor {
+    open var indentationColor: UIColor! {
         get {
             return backgroundColor
         } set(value) {
@@ -95,8 +95,6 @@ open class CommentCell: UITableViewCell {
         }
     }
     
-    
-    
     override public init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         selectionStyle = .none
@@ -107,8 +105,6 @@ open class CommentCell: UITableViewCell {
     required public init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    
     
     private func setupView() {
         updateIndentationIndicators()
@@ -125,28 +121,26 @@ open class CommentCell: UITableViewCell {
         commentView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor).isActive = true
     }
     
-    
     private let commentView = UIView()
-    
     
     /// This is the key element of the class. It's the actual view of a comment.
     var commentViewContent: RedditCommentView? {
         get {
-            if commentView.subviews.count > 0 {
+            if !commentView.subviews.isEmpty {
                 return commentView.subviews[0] as? RedditCommentView
             }
             return nil
-        } set(v) {
+        } set(view) {
             commentView.subviews.forEach { subview in
                 subview.removeFromSuperview()
             }
-            if let v = v {
-                commentView.addSubview(v)
-                v.translatesAutoresizingMaskIntoConstraints = false
-                v.trailingAnchor.constraint(equalTo: commentView.trailingAnchor).isActive = true
-                v.leadingAnchor.constraint(equalTo: commentView.leadingAnchor).isActive = true
-                v.topAnchor.constraint(equalTo: commentView.topAnchor).isActive = true
-                v.bottomAnchor.constraint(equalTo: commentView.bottomAnchor).isActive = true
+            if let view = view {
+                commentView.addSubview(view)
+                view.translatesAutoresizingMaskIntoConstraints = false
+                view.trailingAnchor.constraint(equalTo: commentView.trailingAnchor).isActive = true
+                view.leadingAnchor.constraint(equalTo: commentView.leadingAnchor).isActive = true
+                view.topAnchor.constraint(equalTo: commentView.topAnchor).isActive = true
+                view.bottomAnchor.constraint(equalTo: commentView.bottomAnchor).isActive = true
             }
         }
     }
@@ -162,18 +156,18 @@ open class CommentCell: UITableViewCell {
             body.removeFromSuperview()
         })
         if depth > 0 { // No indicators for root comments
-            let n = isIndentationIndicatorsExtended! ? depth : 1 // number of indicators to draw
-            for i in 1...n {
+            let numIndicators = isIndentationIndicatorsExtended! ? depth : 1 // number of indicators to draw
+            for index in 1...numIndicators {
                 let sep = UIView()
                 vSeparators.append(sep)
                 contentView.addSubview(sep)
                 sep.translatesAutoresizingMaskIntoConstraints = false
-                sep.topAnchor.constraint(equalTo: contentView.topAnchor, constant:commentMargin).isActive = true
+                sep.topAnchor.constraint(equalTo: contentView.topAnchor, constant: commentMargin).isActive = true
                 sep.bottomAnchor.constraint(equalTo: contentView.bottomAnchor).isActive = true
                 sep.widthAnchor.constraint(equalToConstant: indentationIndicatorThickness).isActive = true
                 sep.leadingAnchor.constraint(
                     equalTo: contentView.leadingAnchor,
-                    constant: CGFloat((depth-i+1)*indentationUnit)).isActive = true
+                    constant: CGFloat((depth-index+1)*indentationUnit)).isActive = true
                 sep.backgroundColor = indentationIndicatorColor
             }
         }

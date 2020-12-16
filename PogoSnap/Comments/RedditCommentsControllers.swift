@@ -41,7 +41,6 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
 
-    
     private let commentCellId = "redditCommentCellId"
     var comments: [Comment] = [] {
         didSet {
@@ -91,7 +90,9 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     override open func commentsView(_ tableView: UITableView, commentCellForModel commentModel: Comment, atIndexPath indexPath: IndexPath) -> CommentCell {
-        let commentCell = tableView.dequeueReusableCell(withIdentifier: commentCellId, for: indexPath) as! RedditCommentCell
+        guard let commentCell = tableView.dequeueReusableCell(withIdentifier: commentCellId, for: indexPath) as? RedditCommentCell else {
+            return CommentCell()
+        }
         let comment = currentlyDisplayed[indexPath.row]
         commentCell.depth = comment.depth
         commentCell.commentDepth = comment.depth
@@ -129,7 +130,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         var replies = [Comment]()
 
         switch commentReplies {
-        case .string( _):
+        case .string:
             break
         case .redditCommentResponse(let commentResponse):
             let children = commentResponse.data.children
@@ -138,13 +139,13 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                 let author = redditComment.author ?? ""
                 let body = redditComment.body ?? ""
                 let depth = redditComment.depth ?? 0
-                let id = redditComment.id ?? ""
+                let commentId = redditComment.id ?? ""
 
                 var cReplies = [Comment]()
                 if let commentReplies = redditComment.replies {
                     cReplies = extractReplies(commentReplies: commentReplies)
                 }
-                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: id, isAuthorPost: false, created_utc: redditComment.created_utc)
+                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: commentId, isAuthorPost: false, created_utc: redditComment.created_utc)
                 replies.append(comment)
             }
         }
@@ -166,14 +167,14 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                         let author = redditComment.author ?? ""
                         let body = redditComment.body ?? ""
                         let depth = redditComment.depth ?? 0
-                        let id = redditComment.id ?? ""
+                        let commentId = redditComment.id ?? ""
 
                         var replies = [Comment]()
                         if let commentReplies = redditComment.replies {
                             replies = extractReplies(commentReplies: commentReplies)
                         }
 
-                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: id, isAuthorPost: false, created_utc: redditComment.created_utc)
+                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: commentId, isAuthorPost: false, created_utc: redditComment.created_utc)
                         print(comment)
                         comments.append(comment)
                     }
@@ -186,7 +187,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     private func fetchComments() {
         activityIndicatorView.startAnimating()
         if let commentsLink = commentsLink, let url = URL(string: commentsLink) {
-            URLSession.shared.dataTask(with: url) { data, response, error in
+            URLSession.shared.dataTask(with: url) { data, response, _ in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
                 }
@@ -235,7 +236,6 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         }
     }
     
-    
     func didTapOptions(commentId: String, author: String) {
         generatorImpactOccured()
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
@@ -267,7 +267,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                         
             reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
                 let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules")  {
+                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules") {
                     for rule in siteRules {
                         siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
                             if let reason = action.title {
@@ -294,8 +294,8 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     private func deleteComment(commentId: String) {
-        let id = "t1_\(commentId)"
-        RedditClient.sharedInstance.delete(id: id) { errorOccured in
+        let cid = "t1_\(commentId)"
+        RedditClient.sharedInstance.delete(id: cid) { errorOccured in
             if errorOccured {
                 DispatchQueue.main.async {
                     generatorImpactOccured()
@@ -332,8 +332,8 @@ class RedditCommentsController: CommentsController, CommentDelegate {
 extension RedditCommentsController {
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if !archived {
-            let bottomEdge = scrollView.contentOffset.y + scrollView.frame.size.height;
-            if (bottomEdge >= scrollView.contentSize.height && _currentlyDisplayed.count > 2) {
+            let bottomEdge = scrollView.contentOffset.y + scrollView.frame.size.height
+            if bottomEdge >= scrollView.contentSize.height && linearizedComments.count > 2 {
                 addButton.isHidden = true
             } else {
                 addButton.isHidden = false

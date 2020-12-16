@@ -14,11 +14,11 @@ struct RedditClient {
     
     static var sharedInstance = RedditClient()
     let oauthSwift = OAuth2Swift(
-        consumerKey:    Const.redditClientId,
+        consumerKey: Const.redditClientId,
         consumerSecret: Const.redditClientSecret,
-        authorizeUrl:   Const.redditAuthorizeUrl,
+        authorizeUrl: Const.redditAuthorizeUrl,
         accessTokenUrl: Const.redditAccessTokenUrl,
-        responseType:   Const.responseType
+        responseType: Const.responseType
     )
     let keychain = Keychain(service: "com.PogoSnap", accessGroup: "group.com.PogoSnap")
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
@@ -90,7 +90,7 @@ struct RedditClient {
             var meRequest = URLRequest(url: URL(string: Const.meEndpoint)!)
             meRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             meRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
-            URLSession.shared.dataTask(with: meRequest) { data, response, error in
+            URLSession.shared.dataTask(with: meRequest) { data, _, error in
                 if let data = data {
                     do {
                         let meResponse = try JSONDecoder().decode(RedditMeResponse.self, from: data)
@@ -128,7 +128,7 @@ struct RedditClient {
             meRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             meRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
             meRequest.httpMethod = "POST"
-            URLSession.shared.dataTask(with: meRequest) { data, response, error in
+            URLSession.shared.dataTask(with: meRequest) { data, _, error in
                 if let data = data {
                     do {
                         let reportResponse = try JSONDecoder().decode(RedditAPIPostResponse.self, from: data)
@@ -182,7 +182,7 @@ struct RedditClient {
         
     typealias PostsHandler = ([Post], String?, Bool) -> Void
     public func fetchPosts(after: String, sort: String, topOption: String?, completion: @escaping PostsHandler) {
-        if let _ = defaults?.string(forKey: "username") {
+        if defaults?.string(forKey: "username") != nil {
             print("fetching posts with acesstoken")
             var url = "\(Const.oauthEndpoint)/r/\(Const.subredditName)/\(sort).json?after=" + after
             if let topOption = topOption {
@@ -282,19 +282,15 @@ struct RedditClient {
                 for child in decoded.data.children {
                     let redditPost = child.data
                     var imageSources = [ImageSource]()
-                    if let preview = redditPost.preview {
-                        if preview.images.count != 0 {
-                            imageSources = preview.images.map { image in
-                                let url = image.source.url.replacingOccurrences(of: "amp;", with: "")
-                                return ImageSource(url: url, width: image.source.width, height: image.source.height)
-                            }
+                    if let preview = redditPost.preview, !preview.images.isEmpty {
+                        imageSources = preview.images.map { image in
+                            let url = image.source.url.replacingOccurrences(of: "amp;", with: "")
+                            return ImageSource(url: url, width: image.source.width, height: image.source.height)
                         }
-                    } else if let mediaData = redditPost.media_metadata {
-                        if mediaData.mediaImages.count != 0 {
-                            imageSources = mediaData.mediaImages.map { image in
-                                let url = image.url.replacingOccurrences(of: "amp;", with: "")
-                                return ImageSource(url: url, width: image.width, height: image.height)
-                            }
+                    } else if let mediaData = redditPost.media_metadata, !mediaData.mediaImages.isEmpty {
+                        imageSources = mediaData.mediaImages.map { image in
+                            let url = image.url.replacingOccurrences(of: "amp;", with: "")
+                            return ImageSource(url: url, width: image.width, height: image.height)
                         }
                     } else {
                         // If it does not contain images at all, do not append
@@ -323,7 +319,7 @@ struct RedditClient {
             meRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             meRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
             meRequest.httpMethod = "POST"
-            URLSession.shared.dataTask(with: meRequest) { data, response, error in
+            URLSession.shared.dataTask(with: meRequest) { _, response, error in
                 if error != nil {
                     completion(false)
                 }
@@ -346,7 +342,7 @@ struct RedditClient {
             deleteRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             deleteRequest.setValue(Const.userAgent, forHTTPHeaderField: "User-Agent")
             deleteRequest.httpMethod = "POST"
-            URLSession.shared.dataTask(with: deleteRequest) { data, response, error in
+            URLSession.shared.dataTask(with: deleteRequest) { _, response, error in
                 if error != nil {
                     completion(true)
                 } else {
@@ -407,7 +403,7 @@ struct RedditClient {
     }
     
     public func isUserAuthenticated() -> Bool {
-        if let _ = keychain[Const.redditAccessToken] {
+        if keychain[Const.redditAccessToken] != nil {
             return true
         } else {
             return false
@@ -449,7 +445,7 @@ struct RedditClient {
     typealias RulesHandler = (RedditRulesResponse) -> Void
     public func fetchRules(completion: @escaping RulesHandler) {
         if let url = URL(string: "https://www.reddit.com/r/\(Const.subredditName)/about/rules.json") {
-            URLSession.shared.dataTask(with: url) { data, response, error in
+            URLSession.shared.dataTask(with: url) { data, _, error in
                 if let data = data {
                     do {
                         let rulesResponse = try JSONDecoder().decode(RedditRulesResponse.self, from: data)
@@ -472,7 +468,7 @@ struct RedditClient {
     
     static func fetchUserAbout(username: String, completion: @escaping MeHandler) {
         if let url = URL(string: "https://www.reddit.com/user/\(username)/about.json") {
-            URLSession.shared.dataTask(with: url) { data, response, error in
+            URLSession.shared.dataTask(with: url) { data, _, error in
                 if let data = data {
                     do {
                         let aboutResponse = try JSONDecoder().decode(RedditAboutResponse.self, from: data)

@@ -61,7 +61,7 @@ extension MainTabBarController: UITabBarControllerDelegate {
                 if homeController.isViewLoaded && (homeController.view.window != nil) && homeController.children.isEmpty {
                     let visibleIndexes = homeController.collectionView.indexPathsForVisibleItems
                     if !visibleIndexes.isEmpty {
-                        homeController.collectionView.scrollToItem(at: IndexPath (item: 0, section: 0), at: .bottom, animated: true)
+                        homeController.collectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .bottom, animated: true)
                     }
                 }
             }
@@ -71,7 +71,7 @@ extension MainTabBarController: UITabBarControllerDelegate {
                 if profileController.isViewLoaded && (profileController.view.window != nil) && profileController.children.isEmpty {
                     let visibleIndexes = profileController.collectionView.indexPathsForVisibleItems
                     if !visibleIndexes.isEmpty {
-                        profileController.collectionView.scrollToItem(at: IndexPath (item: 0, section: 0), at: .bottom, animated: true)
+                        profileController.collectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .bottom, animated: true)
                     }
                 }
             }

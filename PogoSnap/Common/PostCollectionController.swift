@@ -7,7 +7,6 @@
 
 import UIKit
 
-
 class PostCollectionController: UICollectionViewController {
     
     var posts = [Post]() {

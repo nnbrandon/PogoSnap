@@ -7,7 +7,7 @@
 
 import UIKit
 
-protocol PostViewDelegate {
+protocol PostViewDelegate: class {
     func didTapComment(post: Post, index: Int)
     func didTapUsername(username: String)
     func didTapImage(imageSources: [ImageSource], position: Int)
@@ -50,7 +50,7 @@ class PostView: UIView {
             }
         }
     }
-    var delegate: PostViewDelegate?
+    weak var delegate: PostViewDelegate?
     var index: Int?
     var liked: Bool? {
         didSet {

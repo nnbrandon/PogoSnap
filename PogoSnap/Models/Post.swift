@@ -19,9 +19,7 @@ struct Post: Equatable {
     let created_utc: TimeInterval
     var liked: Bool?
     
-    
-    static func ==(lhs: Post, rhs: Post) -> Bool {
+    static func == (lhs: Post, rhs: Post) -> Bool {
         return lhs.author == rhs.author && lhs.title == rhs.title && lhs.score != rhs.score && lhs.numComments != rhs.numComments
     }
 }
-
