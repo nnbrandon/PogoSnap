@@ -4,20 +4,16 @@
 target 'PogoSnap' do
   # Comment the next line if you don't want to use dynamic frameworks
   use_frameworks!
-  platform :ios, '10.0'
+  platform :ios, '12.0'
 
   # Pods for PogoSnap
   pod 'YPImagePicker'
   pod 'OAuthSwift', '~> 2.0.0'
   pod 'KeychainAccess'
   pod 'Kingfisher', '~> 5.0'
-  pod 'Toast-Swift', '~> 5.0.1'
   
   target 'PogoSnapShareExtension' do
     inherit! :search_paths
-#    pod 'OAuthSwift', '~> 2.0.0'
-#    pod 'KeychainAccess'
-#    pod 'Toast-Swift', '~> 5.0.1'
   end
 
   target 'PogoSnapTests' do

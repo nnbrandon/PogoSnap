@@ -98,6 +98,7 @@ class RedditCommentCell: CommentCell {
             rootCommentMarginColor = RedditConstants.rootCommentMarginColor
             indentationIndicatorColor = RedditConstants.identationColor
         } else {
+            backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
             commentMarginColor = .darkGray
             rootCommentMarginColor = .black
             indentationIndicatorColor = .darkGray

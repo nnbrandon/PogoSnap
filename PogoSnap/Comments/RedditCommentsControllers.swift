@@ -69,6 +69,8 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         tableView.register(RedditCommentCell.self, forCellReuseIdentifier: commentCellId)
         if traitCollection.userInterfaceStyle == .light {
             tableView.backgroundColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
+        } else {
+            tableView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
         }
         tableView.alwaysBounceVertical = true
         tableView.tableHeaderView = postView

@@ -40,6 +40,9 @@ class UserProfileController: PostCollectionController {
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = .white
             collectionView.backgroundColor = .white
+        } else {
+            view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            collectionView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
         }
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)

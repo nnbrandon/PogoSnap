@@ -56,6 +56,9 @@ class RedditCommentTextController: UIViewController {
     let commentTextField: UITextView = {
         let textField = UITextView()
         textField.font = UIFont.systemFont(ofSize: 18)
+        textField.text = "Write Comment"
+        textField.textColor = .lightGray
+        textField.selectedRange = NSRange(location: 0, length: 0)
         return textField
     }()
     
@@ -85,13 +88,12 @@ class RedditCommentTextController: UIViewController {
         super.viewDidLoad()
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = .white
-            commentTextField.textColor = .black
             commentTextField.backgroundColor = .white
         } else {
-            view.backgroundColor = .black
-            commentTextField.textColor = .white
-            commentTextField.backgroundColor = .black
+            view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            commentTextField.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
         }
+        commentTextField.delegate = self
         commentTextField.becomeFirstResponder()
                 
         view.addSubview(closeButton)
@@ -143,6 +145,10 @@ class RedditCommentTextController: UIViewController {
             DispatchQueue.main.async {
                 showErrorToast(controller: self, message: "You need to be signed in to comment", seconds: 1.0)
             }
+        } else if commentTextField.text == "Write Comment" {
+            DispatchQueue.main.async {
+                showErrorToast(controller: self, message: "Enter a comment", seconds: 1.0)
+            }
         } else {
             if let username = RedditClient.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
                 let postId = post.id
@@ -177,5 +183,28 @@ class RedditCommentTextController: UIViewController {
                 }
             }
         }
+    }
+}
+
+extension RedditCommentTextController: UITextViewDelegate {
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        if text.isEmpty {
+            let updatedText = (textView.text as NSString).replacingCharacters(in: range, with: text)
+            if updatedText.isEmpty {
+                textView.text = "Write Comment"
+                textView.textColor = .lightGray
+                textView.selectedRange = NSRange(location: 0, length: 0)
+            }
+        } else {
+            if textView.text == "Write Comment" {
+                textView.text = ""
+            }
+            if traitCollection.userInterfaceStyle == .light {
+                textView.textColor = .black
+            } else {
+                textView.textColor = .white
+            }
+        }
+        return true
     }
 }

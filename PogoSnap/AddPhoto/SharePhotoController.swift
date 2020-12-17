@@ -31,6 +31,9 @@ class SharePhotoController: UIViewController {
     let textField: UITextView = {
         let tf = UITextView()
         tf.font = UIFont.systemFont(ofSize: 18)
+        tf.text = "Write Title"
+        tf.textColor = .lightGray
+        tf.selectedRange = NSRange(location: 0, length: 0)
         return tf
     }()
     
@@ -39,16 +42,15 @@ class SharePhotoController: UIViewController {
         
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
-            textField.textColor = .black
             textField.backgroundColor = .white
         } else {
-            view.backgroundColor = .black
-            textField.textColor = .white
-            textField.backgroundColor = .black
+            view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            textField.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
         }
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Share", style: .plain, target: self, action: #selector(handleShare))
                 
+        textField.delegate = self
         textField.becomeFirstResponder()
         setupImageAndTextViews()
     }
@@ -62,7 +64,7 @@ class SharePhotoController: UIViewController {
         if traitCollection.userInterfaceStyle == .light {
             containerView.backgroundColor = .white
         } else {
-            containerView.backgroundColor = .black
+            containerView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
         }
         view.addSubview(containerView)
         
@@ -88,7 +90,7 @@ class SharePhotoController: UIViewController {
     }
     
     @objc func handleShare() {
-        if let title = textField.text, title.isEmpty {
+        if let title = textField.text, title.isEmpty || title == "Write Title" {
             DispatchQueue.main.async {
                 showErrorToast(controller: self, message: "Enter a title", seconds: 0.5)
             }
@@ -106,5 +108,28 @@ class SharePhotoController: UIViewController {
                 }
             }
         }
+    }
+}
+
+extension SharePhotoController: UITextViewDelegate {
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        if text.isEmpty {
+            let updatedText = (textView.text as NSString).replacingCharacters(in: range, with: text)
+            if updatedText.isEmpty {
+                textView.text = "Write Title"
+                textView.textColor = .lightGray
+                textView.selectedRange = NSRange(location: 0, length: 0)
+            }
+        } else {
+            if textView.text == "Write Title" {
+                textView.text = ""
+            }
+            if traitCollection.userInterfaceStyle == .light {
+                textView.textColor = .black
+            } else {
+                textView.textColor = .white
+            }
+        }
+        return true
     }
 }

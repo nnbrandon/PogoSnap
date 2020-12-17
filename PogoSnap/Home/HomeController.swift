@@ -42,6 +42,7 @@ class HomeController: PostCollectionController {
             barButton.tintColor = .darkGray
             navigationItem.rightBarButtonItem = barButton
         } else {
+            collectionView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
             let barButton = UIBarButtonItem(image: UIImage(named: "add-image-30")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
             barButton.tintColor = .white
             navigationItem.rightBarButtonItem = barButton
@@ -235,6 +236,10 @@ class HomeController: PostCollectionController {
             config.screens = [.library]
             config.shouldSaveNewPicturesToAlbum = false
             let picker = YPImagePicker(configuration: config)
+            if traitCollection.userInterfaceStyle == .dark {
+                picker.navigationBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+                picker.view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            }
             picker.didFinishPicking { [unowned picker] items, cancelled in
                 if cancelled {
                     picker.dismiss(animated: true, completion: nil)

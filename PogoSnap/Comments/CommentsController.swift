@@ -9,7 +9,7 @@ import UIKit
 import Foundation
 
 /// ViewController displaying expandable comments.
-open class CommentsController: UITableViewController {
+open class CommentsController: UITableViewController, UIGestureRecognizerDelegate {
 
     /// The list of comments correctly displayed in the tableView (in linearized form)
     var linearizedComments: [Comment] = []
@@ -49,6 +49,56 @@ open class CommentsController: UITableViewController {
         } else {
             tableView.rowHeight = UITableView.automaticDimension
             tableView.estimatedRowHeight = 400.0
+        }
+        
+        let longPressGesture: UILongPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(self.handleLongPress))
+        longPressGesture.minimumPressDuration = 0.2
+        longPressGesture.delegate = self
+        tableView.addGestureRecognizer(longPressGesture)
+    }
+    
+    @objc func handleLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
+        if gestureRecognizer.state == .began {
+            let touchPoint = gestureRecognizer.location(in: tableView)
+            if let indexPath = tableView.indexPathForRow(at: touchPoint) {
+                let selectedCom: Comment = linearizedComments[indexPath.row]
+                let selectedIndex = indexPath.row
+                
+                if !selectedCom.replies.isEmpty { // if expandable
+                    if isCellExpanded(indexPath: indexPath) {
+                        // collapse
+                        var nCellsToDelete = 0
+                        repeat {
+                            nCellsToDelete += 1
+                        } while (linearizedComments.count > selectedIndex+nCellsToDelete+1 && linearizedComments[selectedIndex+nCellsToDelete+1].depth > selectedCom.depth)
+                        
+                        linearizedComments.removeSubrange(Range(uncheckedBounds: (lower: selectedIndex+1, upper: selectedIndex+nCellsToDelete+1)))
+                        var indexPaths: [IndexPath] = []
+                        for index in 0..<nCellsToDelete {
+                            indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
+                        }
+                        tableView.deleteRows(at: indexPaths, with: .bottom)
+                    } else {
+                        // expand
+                        var toShow: [Comment] = []
+                        if fullyExpanded {
+                            linearizeComments(comments: selectedCom.replies, linearizedComments: &toShow)
+                        } else {
+                            toShow = selectedCom.replies
+                        }
+                        linearizedComments.insert(contentsOf: toShow, at: selectedIndex+1)
+                        var indexPaths: [IndexPath] = []
+                        for index in 0..<toShow.count {
+                            indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
+                        }
+                        tableView.insertRows(at: indexPaths, with: .bottom)
+                        
+                        if makeExpandedCellsVisible {
+                            tableView.scrollToRow(at: IndexPath(row: selectedIndex+1, section: indexPath.section), at: UITableView.ScrollPosition.middle, animated: false)
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -118,22 +168,9 @@ open class CommentsController: UITableViewController {
     override open func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let selectedCom: Comment = linearizedComments[indexPath.row]
         let selectedIndex = indexPath.row
-        
+
         if !selectedCom.replies.isEmpty { // if expandable
-            if isCellExpanded(indexPath: indexPath) {
-                // collapse
-                var nCellsToDelete = 0
-                repeat {
-                    nCellsToDelete += 1
-                } while (linearizedComments.count > selectedIndex+nCellsToDelete+1 && linearizedComments[selectedIndex+nCellsToDelete+1].depth > selectedCom.depth)
-                
-                linearizedComments.removeSubrange(Range(uncheckedBounds: (lower: selectedIndex+1, upper: selectedIndex+nCellsToDelete+1)))
-                var indexPaths: [IndexPath] = []
-                for index in 0..<nCellsToDelete {
-                    indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
-                }
-                tableView.deleteRows(at: indexPaths, with: .bottom)
-            } else {
+            if !isCellExpanded(indexPath: indexPath) {
                 // expand
                 var toShow: [Comment] = []
                 if fullyExpanded {
@@ -147,7 +184,7 @@ open class CommentsController: UITableViewController {
                     indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
                 }
                 tableView.insertRows(at: indexPaths, with: .bottom)
-                
+
                 if makeExpandedCellsVisible {
                     tableView.scrollToRow(at: IndexPath(row: selectedIndex+1, section: indexPath.section), at: UITableView.ScrollPosition.middle, animated: false)
                 }

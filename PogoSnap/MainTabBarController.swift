@@ -20,7 +20,7 @@ class MainTabBarController: UITabBarController {
             tabBar.tintColor = .black
             tabBar.isTranslucent = false
         } else {
-            tabBar.barTintColor = .black
+            tabBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
             tabBar.tintColor = .white
             tabBar.isTranslucent = false
         }
@@ -35,19 +35,19 @@ class MainTabBarController: UITabBarController {
         let homeNavController = UINavigationController(rootViewController: homeController)
         homeNavController.tabBarItem.image = UIImage(named: "home_unselected")
         homeNavController.tabBarItem.selectedImage = UIImage(named: "home_selected")
-        
-//        // search icon
-//        let searchController = SearchController(collectionViewLayout: UICollectionViewFlowLayout())
-//        let searchNavController = UINavigationController(rootViewController: searchController)
-//        let searchTabBarItem = UITabBarItem(tabBarSystemItem: .search, tag: 1)
-//        searchTabBarItem.imageInsets = UIEdgeInsets(top:6,left:0,bottom:-6,right:0)
-//        searchTabBarItem.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: 300*20)
-//        searchNavController.tabBarItem = searchTabBarItem
 
         let profileVC = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
         let profileNavController = UINavigationController(rootViewController: profileVC)
         profileNavController.tabBarItem.image = UIImage(named: "profile_unselected")
         profileNavController.tabBarItem.selectedImage = UIImage(named: "profile_selected")
+        
+        if traitCollection.userInterfaceStyle == .dark {
+            homeNavController.navigationBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            homeNavController.navigationBar.tintColor = .white
+
+            profileNavController.navigationBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            profileNavController.navigationBar.tintColor = .white
+        }
 
         viewControllers = [homeNavController, profileNavController]
     }
