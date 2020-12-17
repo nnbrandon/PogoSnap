@@ -97,14 +97,12 @@ class SignInController: OAuthViewController {
             parameters: ["duration": RedditClient.Const.duration]) { result in
                 switch result {
                 case .success(let (credential, _, _)):
-                    print("accessToken = \(credential.oauthToken)")
-                    print("refreshToken = \(credential.oauthRefreshToken)")
                     if let expireDate = credential.oauthTokenExpiresAt {
                         RedditClient.sharedInstance.registerCredentials(accessToken: credential.oauthToken, refreshToken: credential.oauthRefreshToken, expireDate: expireDate)
                         self.internalWebViewController.dismissWebViewController()
                     }
-                case .failure(let error):
-                    print(error.description)
+                case .failure:
+                    break
                 }
         }
     }

@@ -68,7 +68,6 @@ class HomeController: PostCollectionController {
         let previousUserSignFlag = userSignFlag
         userSignFlag = RedditClient.sharedInstance.getUsername()
         if previousUserSignFlag != userSignFlag {
-            print("user sign state changed, resetting posts and fetching new posts")
             posts = [Post]()
             after = ""
         }
@@ -84,7 +83,6 @@ class HomeController: PostCollectionController {
     }
     
     private func fetchPosts() {
-        print("fetching posts...")
         if let after = after {
             RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { posts, nextAfter, errorOccured in
                 DispatchQueue.main.async {
@@ -111,7 +109,6 @@ class HomeController: PostCollectionController {
     }
     
     @objc private func refreshPosts() {
-        print("refreshing posts")
         if posts.isEmpty {
             activityIndicatorView.startAnimating()
         }
@@ -135,16 +132,6 @@ class HomeController: PostCollectionController {
     
     private func changeSort() {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
-//        alertController.addAction(UIAlertAction(title: "Best", style: .default, handler: { _ in
-//            self.sort = SortOptions.best
-//            self.posts = []
-//            self.after = ""
-//            self.topOption = nil
-//            DispatchQueue.main.async {
-//                self.activityIndicatorView.startAnimating()
-//            }
-//            self.fetchPosts()
-//        }))
         alertController.addAction(UIAlertAction(title: "Hot", style: .default, handler: { _ in
             self.sort = SortOptions.hot
             self.posts = []
@@ -165,16 +152,6 @@ class HomeController: PostCollectionController {
             }
             self.fetchPosts()
         }))
-//        alertController.addAction(UIAlertAction(title: "Rising", style: .default, handler: { _ in
-//            self.sort = SortOptions.rising
-//            self.posts = []
-//            self.after = ""
-//            self.topOption = nil
-//            DispatchQueue.main.async {
-//                self.activityIndicatorView.startAnimating()
-//            }
-//            self.fetchPosts()
-//        }))
         alertController.addAction(UIAlertAction(title: "Top", style: .default, handler: { _ in
             let topAlertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
             for option in TopOptions.allCases {
@@ -307,6 +284,7 @@ extension HomeController: ShareDelegate {
                         message = "Image upload failed"
                     } else {
                         if let postData = postData, let postId = postData.id {
+                            ImgurClient.sharedInstance.incrementUploadCount()
                             message = "Image upload success"
                             let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
                             let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true)

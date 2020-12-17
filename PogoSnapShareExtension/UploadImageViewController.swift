@@ -150,9 +150,14 @@ class UploadImageViewController: UIViewController {
     }
     
     @objc func handleShare() {
-        print("Sharing photo")
         if let title = textField.text, title.isEmpty {
             showErrorToast(controller: self, message: "Enter a title", seconds: 0.5)
+        } else if !ImgurClient.sharedInstance.canUpload() {
+            DispatchQueue.main.async {
+                self.submitButton.isHidden = false
+                showErrorToast(controller: self, message: "You've reached the maximum number of uploads for today (3)", seconds: 3.0)
+            }
+            return
         } else {
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
@@ -182,6 +187,7 @@ class UploadImageViewController: UIViewController {
                         guard let imageSource = imageSource else {return}
                         RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (_, postData) in
                             if postData != nil {
+                                ImgurClient.sharedInstance.incrementUploadCount()
                                 DispatchQueue.main.async {
                                     self.progressView.setProgress(1, animated: true)
                                     generatorImpactOccured()

@@ -175,12 +175,11 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                         }
 
                         let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: commentId, isAuthorPost: false, created_utc: redditComment.created_utc)
-                        print(comment)
                         comments.append(comment)
                     }
                 }
             }
-        } catch {print(error)}
+        } catch {}
         return comments
     }
 
@@ -220,7 +219,6 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
         userProfileController.usernameProp = username
         navigationController?.pushViewController(userProfileController, animated: true)
-        print(username)
     }
     
     func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int) {

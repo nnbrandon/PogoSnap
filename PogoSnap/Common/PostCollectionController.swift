@@ -124,7 +124,6 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
                 for rule in subredditRules {
                     subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
                         if let reason = action.title {
-                            print(reason)
                             self.reportPost(id: post.id, reason: reason)
                         }
                     }))
@@ -139,7 +138,6 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
                 for rule in siteRules {
                     siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
                         if let reason = action.title {
-                            print(reason)
                             self.reportPost(id: post.id, reason: reason)
                         }
                     }))

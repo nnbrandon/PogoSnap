@@ -6,7 +6,9 @@
 //
 
 import Foundation
+
 import UIKit
+import KeychainAccess
 
 struct ImgurClient {
     
@@ -15,8 +17,10 @@ struct ImgurClient {
         static let imgurClientId = "6b4d7944e52e28f"
         static let imgurClientSecret = "bacb98c85b5e7561bb107f17181c1ae579cfa75c"
         static let imgurList = "imgurList"
+        static let maxUploadCount = 3
     }
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
+    let keychain = Keychain(service: "com.PogoSnap", accessGroup: "group.com.PogoSnap")
 
     private init() {}
 
@@ -57,19 +61,55 @@ struct ImgurClient {
 //       "status":200
 //    }
     
-    typealias Base64Handler = (String) -> Void
-    typealias ImageUploadHandler = (ImageSource?, Bool) -> Void
-    public func uploadImageToImgur(image: UIImage, completion: @escaping ImageUploadHandler) {
-        
-        func getBase64Image(image: UIImage, completion: @escaping Base64Handler) {
-            DispatchQueue.main.async {
-                let imageData = image.pngData()
-                if let base64Image = imageData?.base64EncodedString(options: .lineLength64Characters) {
-                    completion(base64Image)
-                }
+    private func getBase64Image(image: UIImage, completion: @escaping Base64Handler) {
+        DispatchQueue.main.async {
+            let imageData = image.pngData()
+            if let base64Image = imageData?.base64EncodedString(options: .lineLength64Characters) {
+                completion(base64Image)
             }
         }
-        
+    }
+    
+    public func getImageUploadCount() -> Int {
+        if let imageUploadCountString = keychain["imageUploadCount"], let imageUploadCount = Int(imageUploadCountString) {
+            return imageUploadCount
+        }
+        return 0
+    }
+    
+    public func incrementUploadCount() {
+        let imageUploadCount = getImageUploadCount() + 1
+        keychain["imageUploadCount"] = String(imageUploadCount)
+    }
+    
+    public func canUpload() -> Bool {
+        let currentDate = Date()
+        let cal = Calendar(identifier: .gregorian)
+        let nextPossibleDate = cal.startOfDay(for: currentDate).timeIntervalSince1970
+
+        if let previousTimeString = keychain["imageUploadTime"] {
+            let imageUploadCount = getImageUploadCount()
+            let previousDate = TimeInterval(previousTimeString)
+            
+            if previousDate == nextPossibleDate && imageUploadCount < Const.maxUploadCount {
+                return true
+            } else if previousDate != nextPossibleDate {
+                keychain["imageUploadTime"] = String(nextPossibleDate)
+                keychain["imageUploadCount"] = String(0)
+                return true
+            } else {
+                // cannot upload
+                return false
+            }
+        }
+
+        // keychain values are not set and return true for first timers
+        return true
+    }
+    
+    typealias Base64Handler = (String) -> Void
+    typealias ImageUploadHandler = (ImageSource?, Bool) -> Void // image, errorOccured, maxedOut
+    public func uploadImageToImgur(image: UIImage, completion: @escaping ImageUploadHandler) {
         getBase64Image(image: image) { base64Image in
             let boundary = "Boundary-\(UUID().uuidString)"
             var request = URLRequest(url: URL(string: "https://api.imgur.com/3/image")!)

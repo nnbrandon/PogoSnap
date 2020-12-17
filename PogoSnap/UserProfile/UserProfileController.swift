@@ -65,7 +65,6 @@ class UserProfileController: PostCollectionController {
         if let usernameProp = usernameProp {
             // Check if we are looking at someone else's profile
             if posts.isEmpty {
-                print("fetching user posts... from usernameProp")
                 activityIndicatorView.startAnimating()
                 RedditClient.fetchUserAbout(username: usernameProp) { (_, icon_img) in
                     self.icon_imgProp = icon_img
@@ -93,12 +92,10 @@ class UserProfileController: PostCollectionController {
                     self.collectionView.reloadData()
                     self.activityIndicatorView.startAnimating()
                 }
-                print("fetching user posts after signing in...")
                 self.fetchUserPosts(username: username)
             }
         } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
             if posts.isEmpty || posts.count == 1 {
-                print("fetching user posts...")
                 activityIndicatorView.startAnimating()
                 RedditClient.sharedInstance.fetchMe { (_, _) in}
                 fetchUserPosts(username: username)

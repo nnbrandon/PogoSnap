@@ -138,7 +138,6 @@ class RedditCommentTextController: UIViewController {
     }
     
     @objc func handleSubmit() {
-        print("handle submit: ", commentTextField.text ?? "")
         let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
         if !authenticated {
             DispatchQueue.main.async {

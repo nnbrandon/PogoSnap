@@ -61,24 +61,21 @@ struct RedditClient {
     
     typealias TokenHandler = (String) -> Void
     private func getAccessToken(completion: @escaping TokenHandler) {
-        if let accessToken = keychain[Const.redditAccessToken], let refreshToken = keychain[Const.redditRefreshToken], let expireDate = defaults?.object(forKey: Const.redditExpireDate) as? Date {
+        if let accessToken = defaults?.string(forKey: Const.redditAccessToken), let refreshToken = keychain[Const.redditRefreshToken], let expireDate = defaults?.object(forKey: Const.redditExpireDate) as? Date {
             if isTokenExpired(expireDate: expireDate) {
                 oauthSwift.accessTokenBasicAuthentification = true
                 oauthSwift.renewAccessToken(withRefreshToken: refreshToken) { result in
                     switch result {
                     case .success(let (credential, _, _)):
-                        keychain[Const.redditAccessToken] = credential.oauthToken
+                        defaults?.set(credential.oauthToken, forKey: Const.redditAccessToken)
                         if let expireDate = credential.oauthTokenExpiresAt {
                             defaults?.set(expireDate, forKey: Const.redditExpireDate)
                         }
-                        print("fetched new access token on refresh, accessToken = \(accessToken)")
                         completion(credential.oauthToken)
-                    case .failure(let error):
-                        print(error.description)
+                    case .failure: break
                     }
                 }
             } else {
-                print("did not need to refresh token, accessToken = \(accessToken)")
                 completion(accessToken)
             }
         }
@@ -108,7 +105,6 @@ struct RedditClient {
                         }
                         completion(meResponse.name, filteredIconImg)
                     } catch {
-                        print(error)
                     }
 
                 }
@@ -138,9 +134,8 @@ struct RedditClient {
                             completion([String](), nil)
                         }
                     } catch {
-                        print(error)
+                        completion(["failed"], nil)
                     }
-                    
                 }
             }.resume()
         }
@@ -203,7 +198,6 @@ struct RedditClient {
                 }.resume()
             }
         } else {
-            print("fetching posts without acesstoken")
             let url = "https://www.reddit.com/r/\(Const.subredditName)/\(sort).json?after=" + after
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
                 if error != nil {
@@ -298,12 +292,11 @@ struct RedditClient {
                     }
                     let commentsLink = "https://www.reddit.com/r/\(Const.subredditName)/comments/" + redditPost.id + ".json"
                     let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes)
-                    print(post)
                     posts.append(post)
                 }
                 return (posts, nextAfter)
             } catch {
-                print(error)
+                return ([Post](), nil)
             }
         }
         return ([Post](), nil)
@@ -384,7 +377,7 @@ struct RedditClient {
                                 completion(["failed"], nil)
                             }
                         } catch {
-                            print(error)
+                            completion(["failed"], nil)
                         }
                     } else {
                         completion(["failed"], nil)
@@ -403,7 +396,7 @@ struct RedditClient {
     }
     
     public func isUserAuthenticated() -> Bool {
-        if keychain[Const.redditAccessToken] != nil {
+        if defaults?.string(forKey: Const.redditAccessToken) != nil {
             return true
         } else {
             return false
@@ -426,18 +419,16 @@ struct RedditClient {
     
     public func deleteCredentials() {
         do {
-            try keychain.remove(Const.redditAccessToken)
+            defaults?.removeObject(forKey: Const.redditAccessToken)
             try keychain.remove(Const.redditRefreshToken)
             defaults?.removeObject(forKey: Const.username)
             defaults?.removeObject(forKey: Const.icon_img)
             defaults?.removeObject(forKey: Const.redditExpireDate)
-        } catch _ {
-            print("unable to delete credentials")
-        }
+        } catch _ {}
     }
     
     public func registerCredentials(accessToken: String, refreshToken: String, expireDate: Date) {
-        keychain[Const.redditAccessToken] = accessToken
+        defaults?.set(accessToken, forKey: Const.redditAccessToken)
         keychain[Const.redditRefreshToken] = refreshToken
         defaults?.set(expireDate, forKey: Const.redditExpireDate)
     }
@@ -458,9 +449,7 @@ struct RedditClient {
                         self.defaults?.setValue(siteRules, forKey: "SiteRules")
                         
                         completion(rulesResponse)
-                    } catch {
-                        print(error)
-                    }
+                    } catch {}
                 }
             }.resume()
         }
@@ -474,9 +463,7 @@ struct RedditClient {
                         let aboutResponse = try JSONDecoder().decode(RedditAboutResponse.self, from: data)
                         let filteredIconImg = aboutResponse.data.icon_img.replacingOccurrences(of: "amp;", with: "")
                         completion(aboutResponse.data.name, filteredIconImg)
-                    } catch {
-                        print(error)
-                    }
+                    } catch {}
                 }
             }.resume()
         }
