@@ -47,6 +47,9 @@ class MainTabBarController: UITabBarController {
 
             profileNavController.navigationBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
             profileNavController.navigationBar.tintColor = .white
+        } else {
+            homeNavController.navigationBar.tintColor = .black
+            profileNavController.navigationBar.tintColor = .black
         }
 
         viewControllers = [homeNavController, profileNavController]
