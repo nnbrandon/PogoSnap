@@ -94,7 +94,7 @@ class HomeHeader: UICollectionViewCell {
         let button = UIButton(type: .system)
         button.setTitle(" Hot Posts", for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-        button.setTitleColor(RedditConstants.controlsColor, for: .normal)
+        button.setTitleColor(RedditConsts.controlsColor, for: .normal)
         button.setImage(UIImage(named: "hot-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
         button.tintColor = .gray
         button.addTarget(self, action: #selector(handleSort), for: .touchUpInside)

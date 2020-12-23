@@ -27,15 +27,9 @@ class PostCollectionController: UICollectionViewController {
     
     private func deletePost(id: String) {
         let postId = "t3_\(id)"
-        RedditClient.sharedInstance.delete(id: postId) { errorOccured in
-            if errorOccured {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Could not delete the post", seconds: 0.5)
-                    }
-                }
-            } else {
+        RedditClient.sharedInstance.delete(id: postId) { result in
+            switch result {
+            case .success:
                 if let index = self.posts.firstIndex(where: { post -> Bool in post.id == id}) {
                     self.posts.remove(at: index)
                     DispatchQueue.main.async {
@@ -45,21 +39,29 @@ class PostCollectionController: UICollectionViewController {
                         }
                     }
                 }
+            case .error:
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not delete the post", seconds: 0.5)
+                    }
+                }
             }
         }
     }
     
     private func reportPost(id: String, reason: String) {
         let postId = "t3_\(id)"
-        RedditClient.sharedInstance.report(id: postId, reason: reason) { (errors, _) in
-            if errors.isEmpty {
+        RedditClient.sharedInstance.report(id: postId, reason: reason) { result in
+            switch result {
+            case .success:
                 DispatchQueue.main.async {
                     generatorImpactOccured()
                     if let navController = self.navigationController {
                         showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
                     }
                 }
-            } else {
+            case .error:
                 DispatchQueue.main.async {
                     generatorImpactOccured()
                     if let navController = self.navigationController {

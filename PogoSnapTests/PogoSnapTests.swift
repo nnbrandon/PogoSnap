@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import PogoTrade
+@testable import PogoSnap
 
 class PogoSnapTests: XCTestCase {
 

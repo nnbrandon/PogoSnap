@@ -44,8 +44,8 @@ class SharePhotoController: UIViewController {
             view.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1)
             textField.backgroundColor = .white
         } else {
-            view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
-            textField.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            view.backgroundColor = RedditConsts.redditDarkMode
+            textField.backgroundColor = RedditConsts.redditDarkMode
         }
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Share", style: .plain, target: self, action: #selector(handleShare))
@@ -64,7 +64,7 @@ class SharePhotoController: UIViewController {
         if traitCollection.userInterfaceStyle == .light {
             containerView.backgroundColor = .white
         } else {
-            containerView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            containerView.backgroundColor = RedditConsts.redditDarkMode
         }
         view.addSubview(containerView)
         

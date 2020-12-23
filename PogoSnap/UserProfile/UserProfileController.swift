@@ -41,8 +41,8 @@ class UserProfileController: PostCollectionController {
             view.backgroundColor = .white
             collectionView.backgroundColor = .white
         } else {
-            view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
-            collectionView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            view.backgroundColor = RedditConsts.redditDarkMode
+            collectionView.backgroundColor = RedditConsts.redditDarkMode
         }
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)
@@ -69,8 +69,15 @@ class UserProfileController: PostCollectionController {
             // Check if we are looking at someone else's profile
             if posts.isEmpty {
                 activityIndicatorView.startAnimating()
-                RedditClient.fetchUserAbout(username: usernameProp) { (_, icon_img) in
-                    self.icon_imgProp = icon_img
+                RedditClient.sharedInstance.fetchUserAbout(username: usernameProp) { result in
+                    switch result {
+                    case .success( _, let icon_img):
+                        self.icon_imgProp = icon_img
+                    case .error(let error):
+                        DispatchQueue.main.async {
+                            showErrorToast(controller: self, message: error, seconds: 1.0)
+                        }
+                    }
                 }
                 fetchUserPosts(username: usernameProp)
             }
@@ -90,17 +97,24 @@ class UserProfileController: PostCollectionController {
                 viewControllers.last?.view.removeFromSuperview()
                 collectionView.isHidden = false
             }
-            RedditClient.sharedInstance.fetchMe { (username, _) in
-                DispatchQueue.main.async {
-                    self.collectionView.reloadData()
-                    self.activityIndicatorView.startAnimating()
+            RedditClient.sharedInstance.fetchMe { result in
+                switch result {
+                case .success(let username, _):
+                    DispatchQueue.main.async {
+                        self.collectionView.reloadData()
+                        self.activityIndicatorView.startAnimating()
+                    }
+                    self.fetchUserPosts(username: username)
+                case .error(let error):
+                    DispatchQueue.main.async {
+                        showErrorToast(controller: self, message: error, seconds: 1.0)
+                    }
                 }
-                self.fetchUserPosts(username: username)
             }
         } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
             if posts.isEmpty || posts.count == 1 {
                 activityIndicatorView.startAnimating()
-                RedditClient.sharedInstance.fetchMe { (_, _) in}
+                RedditClient.sharedInstance.fetchMe { _ in}
                 fetchUserPosts(username: username)
             }
         }
@@ -108,13 +122,9 @@ class UserProfileController: PostCollectionController {
     
     private func fetchUserPosts(username: String) {
         if let after = after {
-            RedditClient.sharedInstance.fetchUserPosts(username: username, after: after) { posts, nextAfter, errorOccured in
-                if errorOccured {
-                    DispatchQueue.main.async {
-                        showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 1.0)
-                        self.activityIndicatorView.stopAnimating()
-                    }
-                } else {
+            RedditClient.sharedInstance.fetchUserPosts(username: username, after: after) { result in
+                switch result {
+                case .success(let posts, let nextAfter):
                     DispatchQueue.main.async {
                         self.activityIndicatorView.stopAnimating()
                     }
@@ -128,6 +138,11 @@ class UserProfileController: PostCollectionController {
                         self.posts = nextPosts
                     }
                     self.after = nextAfter
+                case .error(_):
+                    DispatchQueue.main.async {
+                        showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 1.0)
+                        self.activityIndicatorView.stopAnimating()
+                    }
                 }
             }
         } else {
@@ -163,20 +178,21 @@ class UserProfileController: PostCollectionController {
             username = signedInUser
         }
         
-        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "") { posts, nextAfter, errorOccured in
+        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "") { result in
             DispatchQueue.main.async {
                 self.activityIndicatorView.stopAnimating()
                 self.refreshControl.endRefreshing()
             }
-            if errorOccured {
+            switch result {
+            case .success(let posts, let nextAfter):
+                self.posts = posts
+                self.after = nextAfter
+            case .error:
                 DispatchQueue.main.async {
                     if let navController = self.navigationController {
                         showErrorToast(controller: navController, message: "Failed to retrieve user's posts", seconds: 1.0)
                     }
                 }
-            } else {
-                self.posts = posts
-                self.after = nextAfter
             }
         }
     }

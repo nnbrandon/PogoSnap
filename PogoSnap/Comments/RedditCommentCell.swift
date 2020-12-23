@@ -13,18 +13,6 @@ protocol CommentDelegate: class {
     func didTapOptions(commentId: String, author: String)
 }
 
-struct RedditConstants {
-    static let sepColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
-    static let darkSepColor = UIColor.darkGray
-    static let backgroundColor = #colorLiteral(red: 0.9961144328, green: 1, blue: 0.9999337792, alpha: 1)
-    static let commentMarginColor = RedditConstants.backgroundColor
-    static let rootCommentMarginColor = #colorLiteral(red: 0.9332661033, green: 0.9416968226, blue: 0.9327681065, alpha: 1)
-    static let identationColor = #colorLiteral(red: 0.929128468, green: 0.9298127294, blue: 0.9208832383, alpha: 1)
-    static let metadataFont = UIFont.boldSystemFont(ofSize: 14)
-    static let textFont = UIFont.systemFont(ofSize: 14, weight: .medium)
-    static let controlsColor = #colorLiteral(red: 0.7295756936, green: 0.733242631, blue: 0.7375010848, alpha: 1)
-}
-
 class RedditCommentCell: CommentCell {
     
     private var content: RedditCommentView {
@@ -93,12 +81,12 @@ class RedditCommentCell: CommentCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         commentViewContent = RedditCommentView()
         if traitCollection.userInterfaceStyle == .light {
-            backgroundColor = RedditConstants.backgroundColor
-            commentMarginColor = RedditConstants.commentMarginColor
-            rootCommentMarginColor = RedditConstants.rootCommentMarginColor
-            indentationIndicatorColor = RedditConstants.identationColor
+            backgroundColor = RedditConsts.backgroundColor
+            commentMarginColor = RedditConsts.commentMarginColor
+            rootCommentMarginColor = RedditConsts.rootCommentMarginColor
+            indentationIndicatorColor = RedditConsts.identationColor
         } else {
-            backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            backgroundColor = RedditConsts.redditDarkMode
             commentMarginColor = .darkGray
             rootCommentMarginColor = .black
             indentationIndicatorColor = .darkGray
@@ -156,7 +144,7 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     let contentLabel: UILabel = {
         let lbl = UILabel()
         lbl.lineBreakMode = .byWordWrapping
-        lbl.font = RedditConstants.textFont
+        lbl.font = RedditConsts.textFont
         lbl.numberOfLines = 0
         lbl.textAlignment = .left
         return lbl
@@ -164,7 +152,7 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     
     lazy var usernameLabel: UILabel = {
         let lbl = UILabel()
-        lbl.font = RedditConstants.metadataFont
+        lbl.font = RedditConsts.metadataFont
         lbl.textAlignment = .left
         lbl.textColor = .gray
         
@@ -188,10 +176,10 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         let btn = UIButton()
         btn.setTitle(" Reply", for: .normal)
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-        btn.setTitleColor(RedditConstants.controlsColor, for: .normal)
+        btn.setTitleColor(RedditConsts.controlsColor, for: .normal)
         btn.setImage(UIImage(named: "exprt")?.withRenderingMode(.alwaysTemplate), for: .normal)
         btn.addTarget(self, action: #selector(handleReply), for: .touchUpInside)
-        btn.tintColor = RedditConstants.controlsColor
+        btn.tintColor = RedditConsts.controlsColor
         return btn
     }()
     
@@ -272,8 +260,8 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         let topSeparatorView = UIView()
         let bottomSeparatorView = UIView()
         if traitCollection.userInterfaceStyle == .light {
-            topSeparatorView.backgroundColor = RedditConstants.sepColor
-            bottomSeparatorView.backgroundColor = RedditConstants.sepColor
+            topSeparatorView.backgroundColor = RedditConsts.sepColor
+            bottomSeparatorView.backgroundColor = RedditConsts.sepColor
         }
         
         controlView.addSubview(topSeparatorView)

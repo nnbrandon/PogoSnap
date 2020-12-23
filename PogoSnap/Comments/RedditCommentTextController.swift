@@ -65,7 +65,7 @@ class RedditCommentTextController: UIViewController {
     let usernameLabel: UILabel = {
         let lbl = UILabel()
         lbl.textColor = .gray
-        lbl.font = RedditConstants.metadataFont
+        lbl.font = RedditConsts.metadataFont
         lbl.textAlignment = .left
         return lbl
     }()
@@ -73,7 +73,7 @@ class RedditCommentTextController: UIViewController {
     let parentContentLabel: UILabel = {
         let lbl = UILabel()
         lbl.lineBreakMode = .byWordWrapping
-        lbl.font = RedditConstants.textFont
+        lbl.font = RedditConsts.textFont
         lbl.numberOfLines = 0
         lbl.textAlignment = .left
         return lbl
@@ -90,8 +90,8 @@ class RedditCommentTextController: UIViewController {
             view.backgroundColor = .white
             commentTextField.backgroundColor = .white
         } else {
-            view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
-            commentTextField.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            view.backgroundColor = RedditConsts.redditDarkMode
+            commentTextField.backgroundColor = RedditConsts.redditDarkMode
         }
         commentTextField.delegate = self
         commentTextField.becomeFirstResponder()
@@ -160,19 +160,20 @@ class RedditCommentTextController: UIViewController {
                 if let parentCommentId = parentCommentId {
                     parentId = "t1_\(parentCommentId)"
                 }
-                RedditClient.sharedInstance.postComment(parentId: parentId, text: body) { (errorOccured, commentId) in
-                    if !errorOccured {
+                RedditClient.sharedInstance.postComment(parentId: parentId, text: body) { result in
+                    switch result {
+                    case .success(let commentId):
                         var depth = 0
                         if let parentDepth = self.parentDepth {
                             depth = parentDepth + 1
                         }
-                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId ?? "", isAuthorPost: false, created_utc: Date().timeIntervalSince1970)
+                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId, isAuthorPost: false, created_utc: Date().timeIntervalSince1970)
                         self.updateComments?(comment, self.parentCommentId)
                         generatorImpactOccured()
                         DispatchQueue.main.async {
                             self.dismiss(animated: true, completion: nil)
                         }
-                    } else {
+                    case .error:
                         generatorImpactOccured()
                         DispatchQueue.main.async {
                             self.activityIndicatorView.stopAnimating()

@@ -55,14 +55,14 @@ class PostView: UIView {
     var liked: Bool? {
         didSet {
             if liked == nil {
-                upvoteButton.tintColor = RedditConstants.controlsColor
-                downvoteButton.tintColor = RedditConstants.controlsColor
+                upvoteButton.tintColor = RedditConsts.controlsColor
+                downvoteButton.tintColor = RedditConsts.controlsColor
             } else if let liked = liked {
                 if liked {
                     upvoteButton.tintColor = UIColor.red
-                    downvoteButton.tintColor = RedditConstants.controlsColor
+                    downvoteButton.tintColor = RedditConsts.controlsColor
                 } else {
-                    upvoteButton.tintColor = RedditConstants.controlsColor
+                    upvoteButton.tintColor = RedditConsts.controlsColor
                     downvoteButton.tintColor = UIColor.red
                 }
             }
@@ -111,7 +111,7 @@ class PostView: UIView {
     lazy var upvoteButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(named: "upvte")?.withRenderingMode(.alwaysTemplate), for: .normal)
-        button.tintColor = RedditConstants.controlsColor
+        button.tintColor = RedditConsts.controlsColor
         button.addTarget(self, action: #selector(handleUpvote), for: .touchUpInside)
         button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
         return button
@@ -120,7 +120,7 @@ class PostView: UIView {
     lazy var downvoteButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(named: "downvte")?.withRenderingMode(.alwaysTemplate), for: .normal)
-        button.tintColor = RedditConstants.controlsColor
+        button.tintColor = RedditConsts.controlsColor
         button.addTarget(self, action: #selector(handleDownvote), for: .touchUpInside)
         button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
         return button

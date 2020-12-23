@@ -14,6 +14,7 @@ class ImageSlideshow: UIScrollView {
             if let imageSources = imageSources {
                 for (index, imageSource) in imageSources.enumerated() {
                     let xPosition = UIScreen.main.bounds.width * CGFloat(index)
+                    print(frame.height)
                     let imageView = CustomImageView(frame: CGRect(x: xPosition, y: 0, width: frame.width, height: frame.height))
                     if fitImage {
                         imageView.contentMode = .scaleAspectFit

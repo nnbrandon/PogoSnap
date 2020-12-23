@@ -25,7 +25,7 @@ class ImgurTableController: UITableViewController {
         if traitCollection.userInterfaceStyle == .light {
             view.backgroundColor = .white
         } else {
-            view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            view.backgroundColor = RedditConsts.redditDarkMode
         }
         title = "Imgur Uploads"
         tableView.register(ImgurCell.self, forCellReuseIdentifier: cellId)

@@ -42,7 +42,7 @@ class HomeController: PostCollectionController {
             barButton.tintColor = .darkGray
             navigationItem.rightBarButtonItem = barButton
         } else {
-            collectionView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            collectionView.backgroundColor = RedditConsts.redditDarkMode
             let barButton = UIBarButtonItem(image: UIImage(named: "add-image-30")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
             barButton.tintColor = .white
             navigationItem.rightBarButtonItem = barButton
@@ -85,18 +85,19 @@ class HomeController: PostCollectionController {
     
     private func fetchPosts() {
         if let after = after {
-            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { posts, nextAfter, errorOccured in
+            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { result in
                 DispatchQueue.main.async {
                     self.activityIndicatorView.stopAnimating()
                     self.footerView.stopAnimating()
                 }
-                if errorOccured {
+                switch result {
+                case .success(let posts, let nextAfter):
+                    self.posts.append(contentsOf: posts)
+                    self.after = nextAfter
+                case .error:
                     DispatchQueue.main.async {
                         showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
                     }
-                } else {
-                    self.posts.append(contentsOf: posts)
-                    self.after = nextAfter
                 }
             }
         } else {
@@ -113,19 +114,20 @@ class HomeController: PostCollectionController {
         if posts.isEmpty {
             activityIndicatorView.startAnimating()
         }
-        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue, topOption: topOption) { posts, nextAfter, errorOccured in
+        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue, topOption: topOption) { result in
             DispatchQueue.main.async {
                 self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
             }
-            if errorOccured {
-                DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
-                }
-            } else {
+            switch result {
+            case .success(let posts, let nextAfter):
                 if self.posts != posts {
                     self.posts = posts
                     self.after = nextAfter
+                }
+            case .error:
+                DispatchQueue.main.async {
+                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
                 }
             }
         }
@@ -237,8 +239,8 @@ class HomeController: PostCollectionController {
             config.shouldSaveNewPicturesToAlbum = false
             let picker = YPImagePicker(configuration: config)
             if traitCollection.userInterfaceStyle == .dark {
-                picker.navigationBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
-                picker.view.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+                picker.navigationBar.barTintColor = RedditConsts.redditDarkMode
+                picker.view.backgroundColor = RedditConsts.redditDarkMode
             }
             picker.didFinishPicking { [unowned picker] items, cancelled in
                 if cancelled {
@@ -280,18 +282,17 @@ extension HomeController: ShareDelegate {
                     }
                 }
                 guard let imageSource = imageSource else {return}
-                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { (errors, postData) in
+                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
                     DispatchQueue.main.async {
                         progressView?.setProgress(1.0, animated: true)
                     }
                     var message = ""
-                    if !errors.isEmpty {
-                        message = "Image upload failed"
-                    } else {
+                    switch result {
+                    case .success(let postData):
                         if let postData = postData, let postId = postData.id {
                             ImgurClient.sharedInstance.incrementUploadCount()
                             message = "Image upload success"
-                            let commentsLink = "https://www.reddit.com/r/\(RedditClient.Const.subredditName)/comments/" + postId + ".json"
+                            let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
                             let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true)
                             self.posts.insert(post, at: 0)
                             DispatchQueue.main.async {
@@ -300,6 +301,8 @@ extension HomeController: ShareDelegate {
                                 }
                             }
                         }
+                    case .error:
+                        message = "Image upload failed"
                     }
                     DispatchQueue.main.async {
                         self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)

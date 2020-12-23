@@ -11,8 +11,8 @@ import SafariServices
 
 class SignInController: OAuthViewController {
     
-    var oauthSwift: OAuthSwift?
-    
+    let redditOAuth = RedditOAuth()
+
     let signInButton: UIButton = {
         let btn = UIButton()
         btn.setTitle("   Sign in with Reddit", for: .normal)
@@ -79,31 +79,15 @@ class SignInController: OAuthViewController {
     }
     
     func doAuthService() {
-        let oauthSwift = OAuth2Swift(
-            consumerKey: RedditClient.Const.redditClientId,
-            consumerSecret: RedditClient.Const.redditClientSecret,
-            authorizeUrl: RedditClient.Const.redditAuthorizeUrl,
-            accessTokenUrl: RedditClient.Const.redditAccessTokenUrl,
-            responseType: RedditClient.Const.responseType
-        )
-        
-        oauthSwift.accessTokenBasicAuthentification = true
-        self.oauthSwift = oauthSwift
-        oauthSwift.authorizeURLHandler = getURLHandler()
-        _ = oauthSwift.authorize(
-            withCallbackURL: URL(string: RedditClient.Const.redditCallbackURL)!,
-            scope: RedditClient.Const.scope,
-            state: generateState(withLength: 20),
-            parameters: ["duration": RedditClient.Const.duration]) { result in
-                switch result {
-                case .success(let (credential, _, _)):
-                    if let expireDate = credential.oauthTokenExpiresAt {
-                        RedditClient.sharedInstance.registerCredentials(accessToken: credential.oauthToken, refreshToken: credential.oauthRefreshToken, expireDate: expireDate)
-                        self.internalWebViewController.dismissWebViewController()
-                    }
-                case .failure:
-                    break
+        redditOAuth.doAuth(urlHandlerType: getURLHandler()) { result in
+            switch result {
+            case .success:
+                self.internalWebViewController.dismissWebViewController()
+            case .error:
+                DispatchQueue.main.async {
+                    showErrorToast(controller: self, message: "Unable to sign in", seconds: 2.0)
                 }
+            }
         }
     }
     
@@ -139,7 +123,7 @@ extension SignInController: OAuthWebViewControllerDelegate {
     }
     
     func oauthWebViewControllerDidDisappear() {
-        oauthSwift?.cancel()
+        redditOAuth.oauthSwift.cancel()
     }
     
 }

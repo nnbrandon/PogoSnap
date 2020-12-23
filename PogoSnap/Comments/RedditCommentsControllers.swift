@@ -70,7 +70,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         if traitCollection.userInterfaceStyle == .light {
             tableView.backgroundColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
         } else {
-            tableView.backgroundColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            tableView.backgroundColor = RedditConsts.redditDarkMode
         }
         tableView.alwaysBounceVertical = true
         tableView.tableHeaderView = postView
@@ -197,7 +197,9 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                     self.comments = comments
                 } else {
                     DispatchQueue.main.async {
-                        showErrorToast(controller: self, message: "Unable to retrieve comments", seconds: 1.0)
+                        if let navController = self.navigationController {
+                            showErrorToast(controller: navController, message: "Unable to retrieve comments", seconds: 1.0)
+                        }
                     }
                 }
             }.resume()
@@ -243,7 +245,9 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             
             if !RedditClient.sharedInstance.isUserAuthenticated() {
                 DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "You need to be signed in to report", seconds: 1.0)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
+                    }
                 }
                 return
             }
@@ -296,17 +300,22 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     
     private func deleteComment(commentId: String) {
         let cid = "t1_\(commentId)"
-        RedditClient.sharedInstance.delete(id: cid) { errorOccured in
-            if errorOccured {
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    showErrorToast(controller: self, message: "Could not delete the comment", seconds: 0.5)
-                }
-            } else {
+        RedditClient.sharedInstance.delete(id: cid) { result in
+            switch result {
+            case .success:
                 self.removeComment(commentId: commentId)
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    showSuccessToast(controller: self, message: "Deleted", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
+                    }
+                }
+            case .error:
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not delete the comment", seconds: 0.5)
+                    }
                 }
             }
         }
@@ -314,16 +323,21 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     
     private func reportComment(commentId: String, reason: String) {
         let commentId = "t1_\(commentId)"
-        RedditClient.sharedInstance.report(id: commentId, reason: reason) { (errors, _) in
-            if errors.isEmpty {
+        RedditClient.sharedInstance.report(id: commentId, reason: reason) { result in
+            switch result {
+            case .success:
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    showSuccessToast(controller: self, message: "Reported", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
+                    }
                 }
-            } else {
+            case .error:
                 DispatchQueue.main.async {
                     generatorImpactOccured()
-                    showErrorToast(controller: self, message: "Could not report the post", seconds: 0.5)
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not report the post", seconds: 0.5)
+                    }
                 }
             }
         }

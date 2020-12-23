@@ -20,7 +20,7 @@ class MainTabBarController: UITabBarController {
             tabBar.tintColor = .black
             tabBar.isTranslucent = false
         } else {
-            tabBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            tabBar.barTintColor = RedditConsts.redditDarkMode
             tabBar.tintColor = .white
             tabBar.isTranslucent = false
         }
@@ -42,10 +42,10 @@ class MainTabBarController: UITabBarController {
         profileNavController.tabBarItem.selectedImage = UIImage(named: "profile_selected")
         
         if traitCollection.userInterfaceStyle == .dark {
-            homeNavController.navigationBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            homeNavController.navigationBar.barTintColor = RedditConsts.redditDarkMode
             homeNavController.navigationBar.tintColor = .white
 
-            profileNavController.navigationBar.barTintColor = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
+            profileNavController.navigationBar.barTintColor = RedditConsts.redditDarkMode
             profileNavController.navigationBar.tintColor = .white
         } else {
             homeNavController.navigationBar.tintColor = .black
