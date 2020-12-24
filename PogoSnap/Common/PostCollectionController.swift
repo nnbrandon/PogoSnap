@@ -89,7 +89,11 @@ class PostCollectionController: UIViewController {
 extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
 
     func didTapComment(post: Post, index: Int) {
-        var height = 8 + 8 + 50 + 40 + view.frame.width
+        var imageFrameHeight = view.frame.width
+        if !post.aspectFit {
+            imageFrameHeight += view.frame.width/2
+        }
+        var height = 8 + 8 + 50 + 40 + imageFrameHeight
         let title = posts[index].title
         let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
         height += titleEstimatedHeight
@@ -210,7 +214,11 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
     }
     
     func didTapImageGallery(post: Post, index: Int) {
-        var height = 8 + 8 + 50 + 40 + view.frame.width
+        var imageFrameHeight = view.frame.width
+        if !post.aspectFit {
+            imageFrameHeight += view.frame.width/2
+        }
+        var height = 8 + 8 + 50 + 40 + imageFrameHeight
         let title = post.title
         let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
         height += titleEstimatedHeight

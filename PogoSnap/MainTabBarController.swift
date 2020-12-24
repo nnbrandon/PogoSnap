@@ -62,9 +62,10 @@ extension MainTabBarController: UITabBarControllerDelegate {
         if index == 0 {
             if let nav = viewController as? UINavigationController, let homeController = nav.viewControllers[0] as? HomeController {
                 if homeController.isViewLoaded && (homeController.view.window != nil) && homeController.children.isEmpty {
+                    nav.setNavigationBarHidden(false, animated: true)
                     let visibleIndexes = homeController.collectionView.indexPathsForVisibleItems
                     if !visibleIndexes.isEmpty {
-                        homeController.collectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .bottom, animated: true)
+                        homeController.collectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .top, animated: true)
                     }
                 }
             }

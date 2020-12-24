@@ -32,8 +32,6 @@ class PostView: UIView {
                 commentLabel.text = String(post.numComments)
                 
                 if post.aspectFit {
-                    photoImageSlideshow.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width)
-                    slideShowHeightConstraint?.isActive = true
                     slideShowBottomConstraint?.isActive = false
                     voteTopConstraint?.isActive = true
                 }
@@ -247,15 +245,20 @@ class PostView: UIView {
         delegate?.didTapVote(post: post, direction: direction, index: index, authenticated: authenticated, archived: post.archived)
     }
     
-    private var slideShowHeightConstraint: NSLayoutConstraint?
     private var slideShowBottomConstraint: NSLayoutConstraint?
     private var voteTopConstraint: NSLayoutConstraint?
     
     public func resetView() {
+        for index in 0..<photoImageSlideshow.subviews.count {
+            if let imageView = photoImageSlideshow.subviews[index] as? CustomImageView {
+                imageView.image = nil
+            }
+        }
         photoImageSlideshow.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width + UIScreen.main.bounds.width/2)
-        slideShowHeightConstraint?.isActive = false
         slideShowBottomConstraint?.isActive = true
         voteTopConstraint?.isActive = false
+        
+        dots.currentPage = 0
     }
 
     override init(frame: CGRect) {
@@ -297,7 +300,6 @@ class PostView: UIView {
         photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         
-        slideShowHeightConstraint = photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1)
         slideShowBottomConstraint = photoImageSlideshow.bottomAnchor.constraint(equalTo: voteView.topAnchor)
         
         upvoteButton.translatesAutoresizingMaskIntoConstraints = false

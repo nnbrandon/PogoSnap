@@ -84,10 +84,6 @@ class HomeController: PostCollectionController {
         }
     }
     
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        collectionView.collectionViewLayout.invalidateLayout()
-    }
-    
     private func fetchPosts() {
         if let after = after {
             RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { result in
@@ -393,11 +389,6 @@ extension HomeController: UICollectionViewDataSource, UICollectionViewDelegateFl
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as? HomePostCell
             else {
                 return UICollectionViewCell()
-            }
-            for index in 0..<cell.postView.photoImageSlideshow.subviews.count {
-                if let imageView = cell.postView.photoImageSlideshow.subviews[index] as? CustomImageView {
-                    imageView.image = UIImage()
-                }
             }
             cell.post = posts[indexPath.row]
             cell.index = indexPath.row
