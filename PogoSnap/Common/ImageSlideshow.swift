@@ -30,7 +30,7 @@ class ImageSlideshow: UIScrollView {
                     imageView.loadImage(urlString: imageSource.url)
                     addSubview(imageView)
                 }
-                contentSize.width = frame.width * CGFloat(imageSources.count + 1)
+                contentSize.width = frame.width * CGFloat(imageSources.count)
             }
         }
     }

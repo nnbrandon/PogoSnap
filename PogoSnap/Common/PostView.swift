@@ -338,7 +338,7 @@ class PostView: UIView {
         
         addSubview(dots)
         dots.translatesAutoresizingMaskIntoConstraints = false
-        dots.bottomAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor, constant: -8).isActive = true
+        dots.bottomAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor, constant: -16).isActive = true
         dots.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
         
         if traitCollection.userInterfaceStyle == .light {
