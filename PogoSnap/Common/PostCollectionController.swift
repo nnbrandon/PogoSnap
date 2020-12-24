@@ -7,7 +7,9 @@
 
 import UIKit
 
-class PostCollectionController: UICollectionViewController {
+class PostCollectionController: UIViewController {
+    
+    var collectionView: UICollectionView!
     
     var posts = [Post]() {
         didSet {
@@ -19,6 +21,17 @@ class PostCollectionController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        let layout = UICollectionViewFlowLayout()
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        view.addSubview(collectionView)
+    }
+    
+    public func pinCollectionView(to superView: UIView) {
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.topAnchor.constraint(equalTo: superView.topAnchor).isActive = true
+        collectionView.leadingAnchor.constraint(equalTo: superView.leadingAnchor).isActive = true
+        collectionView.trailingAnchor.constraint(equalTo: superView.trailingAnchor).isActive = true
+        collectionView.bottomAnchor.constraint(equalTo: superView.bottomAnchor).isActive = true
     }
 
     private func votePost(id: String, direction: Int, index: Int) {
@@ -93,7 +106,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
     }
     
     func didTapUsername(username: String) {
-        let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
+        let userProfileController = UserProfileController()
         userProfileController.usernameProp = username
         navigationController?.pushViewController(userProfileController, animated: true)
     }

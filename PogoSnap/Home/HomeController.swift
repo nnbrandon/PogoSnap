@@ -47,6 +47,11 @@ class HomeController: PostCollectionController {
             barButton.tintColor = .white
             navigationItem.rightBarButtonItem = barButton
         }
+        
+        pinCollectionView(to: view)
+        collectionView.delegate = self
+        collectionView.dataSource = self
+
         collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cardCellId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: galleryCellId)
         collectionView.refreshControl = refreshControl
@@ -293,7 +298,7 @@ extension HomeController: ShareDelegate {
                             ImgurClient.sharedInstance.incrementUploadCount()
                             message = "Image upload success"
                             let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
-                            let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true)
+                            let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: false)
                             self.posts.insert(post, at: 0)
                             DispatchQueue.main.async {
                                 if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
@@ -316,12 +321,11 @@ extension HomeController: ShareDelegate {
             }
         }
     }
-    
 }
 
-extension HomeController: UICollectionViewDelegateFlowLayout {
+extension HomeController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     
-    override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         if kind == UICollectionView.elementKindSectionHeader {
             guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? HomeHeader else {return UICollectionReusableView()}
             header.sortOption = sort
@@ -345,7 +349,12 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         switch listLayoutOption {
         case .card:
-            var height = 8 + 8 + 50 + 40 + view.frame.width
+            let post = posts[indexPath.row]
+            var imageFrameHeight = view.frame.width
+            if !post.aspectFit {
+                imageFrameHeight += view.frame.width/2
+            }
+            var height = 8 + 8 + 50 + 40 + imageFrameHeight
             let title = posts[indexPath.row].title
             let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
             height += titleEstimatedHeight
@@ -374,11 +383,11 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
         }
     }
 
-    override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return posts.count
     }
     
-    override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         switch listLayoutOption {
         case .card:
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as? HomePostCell
@@ -393,7 +402,7 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
             cell.post = posts[indexPath.row]
             cell.index = indexPath.row
             cell.delegate = self
-            
+
             return cell
         case .gallery:
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as? UserProfileCell
@@ -405,12 +414,12 @@ extension HomeController: UICollectionViewDelegateFlowLayout {
             cell.post = post
             cell.index = indexPath.row
             cell.delegate = self
-        
+
             return cell
         }
     }
     
-    override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         if indexPath.row == posts.count - 8, after != nil {
             footerView.startAnimating()
             fetchPosts()

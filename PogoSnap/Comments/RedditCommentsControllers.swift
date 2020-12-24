@@ -220,7 +220,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     func didTapUsername(username: String) {
-        let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
+        let userProfileController = UserProfileController()
         userProfileController.usernameProp = username
         navigationController?.pushViewController(userProfileController, animated: true)
     }

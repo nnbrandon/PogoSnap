@@ -31,6 +31,13 @@ class PostView: UIView {
                 
                 commentLabel.text = String(post.numComments)
                 
+                if post.aspectFit {
+                    photoImageSlideshow.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width)
+                    slideShowHeightConstraint?.isActive = true
+                    slideShowBottomConstraint?.isActive = false
+                    voteTopConstraint?.isActive = true
+                }
+                
                 if post.imageSources.count > 1 {
                     dots.isHidden = false
                     dots.numberOfPages = post.imageSources.count
@@ -90,7 +97,7 @@ class PostView: UIView {
     }()
         
     lazy var photoImageSlideshow: ImageSlideshow = {
-        let slideShow = ImageSlideshow(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width))
+        let slideShow = ImageSlideshow(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width + UIScreen.main.bounds.width/2))
         slideShow.isUserInteractionEnabled = true
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleImage))
         slideShow.addGestureRecognizer(guestureRecognizer)
@@ -107,6 +114,8 @@ class PostView: UIView {
         label.addGestureRecognizer(guestureRecognizer)
         return label
     }()
+    
+    let voteView = UIView()
     
     lazy var upvoteButton: UIButton = {
         let button = UIButton(type: .system)
@@ -238,6 +247,17 @@ class PostView: UIView {
         delegate?.didTapVote(post: post, direction: direction, index: index, authenticated: authenticated, archived: post.archived)
     }
     
+    private var slideShowHeightConstraint: NSLayoutConstraint?
+    private var slideShowBottomConstraint: NSLayoutConstraint?
+    private var voteTopConstraint: NSLayoutConstraint?
+    
+    public func resetView() {
+        photoImageSlideshow.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width + UIScreen.main.bounds.width/2)
+        slideShowHeightConstraint?.isActive = false
+        slideShowBottomConstraint?.isActive = true
+        voteTopConstraint?.isActive = false
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         
@@ -259,6 +279,16 @@ class PostView: UIView {
         titleLabel.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor).isActive = true
         titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
+                
+        addSubview(voteView)
+        voteView.translatesAutoresizingMaskIntoConstraints = false
+        voteView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        voteTopConstraint = voteView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor)
+        voteView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 72).isActive = true
+        voteView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
+        voteView.addSubview(upvoteButton)
+        voteView.addSubview(likeLabel)
+        voteView.addSubview(downvoteButton)
         
         photoImageSlideshow.delegate = self
         addSubview(photoImageSlideshow)
@@ -266,18 +296,9 @@ class PostView: UIView {
         photoImageSlideshow.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8).isActive = true
         photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-        photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
-                
-        let voteView = UIView()
-        addSubview(voteView)
-        voteView.translatesAutoresizingMaskIntoConstraints = false
-        voteView.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        voteView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 72).isActive = true
-        voteView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
-        voteView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
-        voteView.addSubview(upvoteButton)
-        voteView.addSubview(likeLabel)
-        voteView.addSubview(downvoteButton)
+        
+        slideShowHeightConstraint = photoImageSlideshow.heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1)
+        slideShowBottomConstraint = photoImageSlideshow.bottomAnchor.constraint(equalTo: voteView.topAnchor)
         
         upvoteButton.translatesAutoresizingMaskIntoConstraints = false
         upvoteButton.topAnchor.constraint(equalTo: voteView.topAnchor).isActive = true

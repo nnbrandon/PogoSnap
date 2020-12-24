@@ -7,7 +7,7 @@
 
 import UIKit
 
-class UserProfileController: PostCollectionController {
+class UserProfileController: PostCollectionController, UICollectionViewDataSource {
 
     struct Const {
         static let cellId = "cellId"
@@ -44,6 +44,12 @@ class UserProfileController: PostCollectionController {
             view.backgroundColor = RedditConsts.redditDarkMode
             collectionView.backgroundColor = RedditConsts.redditDarkMode
         }
+        
+        pinCollectionView(to: view)
+        
+        collectionView.delegate = self
+        collectionView.dataSource = self
+        
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)
         collectionView.refreshControl = refreshControl
@@ -138,7 +144,7 @@ class UserProfileController: PostCollectionController {
                         self.posts = nextPosts
                     }
                     self.after = nextAfter
-                case .error(_):
+                case .error:
                     DispatchQueue.main.async {
                         showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 1.0)
                         self.activityIndicatorView.stopAnimating()
@@ -222,11 +228,11 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
         return CGSize(width: width, height: width)
     }
     
-    override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return posts.count
     }
     
-    override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    internal func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Const.cellId, for: indexPath) as? UserProfileCell else {
             return UICollectionViewCell()
         }
@@ -240,7 +246,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
         return cell
     }
     
-    override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: Const.headerId, for: indexPath) as? UserProfileHeader else {
             return UICollectionReusableView()
         }
@@ -265,7 +271,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
         return CGSize(width: view.frame.width, height: 200)
     }
     
-    override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         if indexPath.row == posts.count - 3 {
             if let usernameProp = usernameProp {
                 fetchUserPosts(username: usernameProp)

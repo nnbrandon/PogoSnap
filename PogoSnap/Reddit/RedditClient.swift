@@ -176,17 +176,26 @@ struct RedditClient {
                 if let responseAfter = decoded.data.after, responseAfter != after {
                     nextAfter = responseAfter
                 }
+                
                 for child in decoded.data.children {
+                    var aspectFit = false
+
                     let redditPost = child.data
                     var imageSources = [ImageSource]()
                     if let preview = redditPost.preview, !preview.images.isEmpty {
                         imageSources = preview.images.map { image in
                             let url = image.source.url.replacingOccurrences(of: "amp;", with: "")
+                            if image.source.width > image.source.height {
+                                aspectFit = true
+                            }
                             return ImageSource(url: url, width: image.source.width, height: image.source.height)
                         }
                     } else if let mediaData = redditPost.media_metadata, !mediaData.mediaImages.isEmpty {
                         imageSources = mediaData.mediaImages.map { image in
                             let url = image.url.replacingOccurrences(of: "amp;", with: "")
+                            if image.width > image.height {
+                                aspectFit = true
+                            }
                             return ImageSource(url: url, width: image.width, height: image.height)
                         }
                     } else {
@@ -194,7 +203,7 @@ struct RedditClient {
                         continue
                     }
                     let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + redditPost.id + ".json"
-                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes)
+                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes, aspectFit: aspectFit)
                     posts.append(post)
                 }
                 return (posts, nextAfter)

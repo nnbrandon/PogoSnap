@@ -30,13 +30,13 @@ class MainTabBarController: UITabBarController {
     
     private func setupViewControllers() {
         // home icon
-        let homeController = HomeController(collectionViewLayout: UICollectionViewFlowLayout())
+        let homeController = HomeController()
         homeController.view.backgroundColor = .white
         let homeNavController = UINavigationController(rootViewController: homeController)
         homeNavController.tabBarItem.image = UIImage(named: "home_unselected")
         homeNavController.tabBarItem.selectedImage = UIImage(named: "home_selected")
 
-        let profileVC = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
+        let profileVC = UserProfileController()
         let profileNavController = UINavigationController(rootViewController: profileVC)
         profileNavController.tabBarItem.image = UIImage(named: "profile_unselected")
         profileNavController.tabBarItem.selectedImage = UIImage(named: "profile_selected")

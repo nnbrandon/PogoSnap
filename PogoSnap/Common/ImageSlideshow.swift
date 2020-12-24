@@ -14,22 +14,23 @@ class ImageSlideshow: UIScrollView {
             if let imageSources = imageSources {
                 for (index, imageSource) in imageSources.enumerated() {
                     let xPosition = UIScreen.main.bounds.width * CGFloat(index)
-                    print(frame.height)
                     let imageView = CustomImageView(frame: CGRect(x: xPosition, y: 0, width: frame.width, height: frame.height))
                     if fitImage {
                         imageView.contentMode = .scaleAspectFit
                     } else {
                         if imageSource.width > imageSource.height {
                             imageView.contentMode = .scaleAspectFit
+                            imageView.frame =  CGRect(x: xPosition, y: 0, width: frame.width, height: frame.width)
                         } else {
                             imageView.contentMode = .scaleAspectFill
                         }
                     }
+                
                     imageView.clipsToBounds = true
                     imageView.loadImage(urlString: imageSource.url)
-                    contentSize.width = frame.width * CGFloat(index + 1)
                     addSubview(imageView)
                 }
+                contentSize.width = frame.width * CGFloat(imageSources.count + 1)
             }
         }
     }
@@ -41,6 +42,7 @@ class ImageSlideshow: UIScrollView {
         isPagingEnabled = true
         showsVerticalScrollIndicator = false
         showsHorizontalScrollIndicator = false
+        contentInset = UIEdgeInsets.zero
     }
 
     required init?(coder: NSCoder) {
