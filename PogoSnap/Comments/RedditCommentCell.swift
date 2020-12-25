@@ -176,10 +176,15 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         let btn = UIButton()
         btn.setTitle(" Reply", for: .normal)
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-        btn.setTitleColor(RedditConsts.controlsColor, for: .normal)
+        if traitCollection.userInterfaceStyle == .light {
+            btn.setTitleColor(RedditConsts.lightControlsColor, for: .normal)
+            btn.tintColor = RedditConsts.lightControlsColor
+        } else {
+            btn.setTitleColor(RedditConsts.darkControlsColor, for: .normal)
+            btn.tintColor = RedditConsts.darkControlsColor
+        }
         btn.setImage(UIImage(named: "exprt")?.withRenderingMode(.alwaysTemplate), for: .normal)
         btn.addTarget(self, action: #selector(handleReply), for: .touchUpInside)
-        btn.tintColor = RedditConsts.controlsColor
         return btn
     }()
     

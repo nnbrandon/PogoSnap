@@ -18,7 +18,7 @@ class ImageSlideshow: UIScrollView {
                     if fitImage {
                         imageView.contentMode = .scaleAspectFit
                     } else {
-                        if imageSource.width > imageSource.height {
+                        if imageSource.width >= imageSource.height {
                             imageView.contentMode = .scaleAspectFit
                             imageView.frame =  CGRect(x: xPosition, y: 0, width: frame.width, height: frame.width)
                         } else {

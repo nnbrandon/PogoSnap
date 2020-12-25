@@ -9,7 +9,7 @@ import UIKit
 
 class PostCollectionController: UIViewController {
     
-    var collectionView: UICollectionView!
+    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     
     var posts = [Post]() {
         didSet {
@@ -21,8 +21,6 @@ class PostCollectionController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let layout = UICollectionViewFlowLayout()
-        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         view.addSubview(collectionView)
     }
     

@@ -185,7 +185,7 @@ struct RedditClient {
                     if let preview = redditPost.preview, !preview.images.isEmpty {
                         imageSources = preview.images.map { image in
                             let url = image.source.url.replacingOccurrences(of: "amp;", with: "")
-                            if image.source.width > image.source.height {
+                            if image.source.width >= image.source.height {
                                 aspectFit = true
                             }
                             return ImageSource(url: url, width: image.source.width, height: image.source.height)
@@ -193,7 +193,7 @@ struct RedditClient {
                     } else if let mediaData = redditPost.media_metadata, !mediaData.mediaImages.isEmpty {
                         imageSources = mediaData.mediaImages.map { image in
                             let url = image.url.replacingOccurrences(of: "amp;", with: "")
-                            if image.width > image.height {
+                            if image.width >= image.height {
                                 aspectFit = true
                             }
                             return ImageSource(url: url, width: image.width, height: image.height)

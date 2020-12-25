@@ -9,8 +9,8 @@ import Foundation
 import UIKit
 
 struct RedditConsts {
-    static let subredditName = "PokemonGoSnap"
-//    static let subredditName = "PogoSnap"
+//    static let subredditName = "PokemonGoSnap"
+    static let subredditName = "PogoSnap"
 
     static let username = "username"
     static let icon_img = "icon_img"
@@ -45,7 +45,8 @@ struct RedditConsts {
     static let identationColor = #colorLiteral(red: 0.929128468, green: 0.9298127294, blue: 0.9208832383, alpha: 1)
     static let metadataFont = UIFont.boldSystemFont(ofSize: 14)
     static let textFont = UIFont.systemFont(ofSize: 14, weight: .medium)
-    static let controlsColor = #colorLiteral(red: 0.7295756936, green: 0.733242631, blue: 0.7375010848, alpha: 1)
+    static let darkControlsColor = #colorLiteral(red: 0.7295756936, green: 0.733242631, blue: 0.7375010848, alpha: 1)
+    static let lightControlsColor = UIColor.darkGray
     
     static let redditDarkMode = UIColor(red: 26/255, green: 26/255, blue: 27/255, alpha: 1)
 }

@@ -95,18 +95,18 @@ class SharePhotoController: UIViewController {
                 showErrorToast(controller: self, message: "Enter a title", seconds: 0.5)
             }
         } else {
-            if !ImgurClient.sharedInstance.canUpload() {
-                DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "You've reached the maximum number of uploads for today (3)", seconds: 2.0)
-                }
-                return
-            } else {
+//            if !ImgurClient.sharedInstance.canUpload() {
+//                DispatchQueue.main.async {
+//                    showErrorToast(controller: self, message: "You've reached the maximum number of uploads for today (3)", seconds: 2.0)
+//                }
+//                return
+//            } else {
                 navigationItem.rightBarButtonItem?.isEnabled = false
                 if let image = photoImageView.image, let title = textField.text {
                     delegate?.imageSubmitted(image: image, title: title)
                     dismiss(animated: true, completion: nil)
                 }
-            }
+//            }
         }
     }
 }

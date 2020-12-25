@@ -294,7 +294,8 @@ extension HomeController: ShareDelegate {
                             ImgurClient.sharedInstance.incrementUploadCount()
                             message = "Image upload success"
                             let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
-                            let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: false)
+                            let aspectFit = imageSource.width >= imageSource.height
+                            let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit)
                             self.posts.insert(post, at: 0)
                             DispatchQueue.main.async {
                                 if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
