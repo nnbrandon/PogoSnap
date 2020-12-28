@@ -63,9 +63,8 @@ extension MainTabBarController: UITabBarControllerDelegate {
             if let nav = viewController as? UINavigationController, let homeController = nav.viewControllers[0] as? HomeController {
                 if homeController.isViewLoaded && (homeController.view.window != nil) && homeController.children.isEmpty {
                     nav.setNavigationBarHidden(false, animated: true)
-                    let visibleIndexes = homeController.collectionView.indexPathsForVisibleItems
-                    if !visibleIndexes.isEmpty {
-                        homeController.collectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .top, animated: true)
+                    if let attributes = homeController.collectionView.collectionViewLayout.layoutAttributesForSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader, at: IndexPath(item: 0, section: 0)) {
+                        homeController.collectionView.setContentOffset(CGPoint(x: 0, y: attributes.frame.origin.y - homeController.collectionView.contentInset.top), animated: true)
                     }
                 }
             }

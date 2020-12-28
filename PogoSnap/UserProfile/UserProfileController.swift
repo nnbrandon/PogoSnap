@@ -9,21 +9,21 @@ import UIKit
 
 class UserProfileController: PostCollectionController, UICollectionViewDataSource {
 
-    struct Const {
-        static let cellId = "cellId"
-        static let headerId = "headerId"
-        static let username = "username"
-    }
-
     var usernameProp: String?
     var icon_imgProp: String? {
         didSet {
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
+            if icon_imgProp != nil {
+                DispatchQueue.main.async {
+                    self.collectionView.reloadData()
+                }
             }
         }
     }
     var after: String? = ""
+    
+    let cellId = "cellId"
+    let headerId = "headerId"
+    let username = "username"
     
     let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
@@ -50,8 +50,8 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
         collectionView.delegate = self
         collectionView.dataSource = self
         
-        collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: Const.headerId)
-        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: Const.cellId)
+        collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerId)
+        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: cellId)
         collectionView.refreshControl = refreshControl
         
         view.addSubview(activityIndicatorView)
@@ -75,17 +75,22 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
             // Check if we are looking at someone else's profile
             if posts.isEmpty {
                 activityIndicatorView.startAnimating()
-                RedditClient.sharedInstance.fetchUserAbout(username: usernameProp) { result in
-                    switch result {
-                    case .success( _, let icon_img):
-                        self.icon_imgProp = icon_img
-                    case .error(let error):
-                        DispatchQueue.main.async {
-                            showErrorToast(controller: self, message: error, seconds: 1.0)
+                if icon_imgProp == nil {
+                    RedditClient.sharedInstance.fetchUserAbout(username: usernameProp) { result in
+                        switch result {
+                        case .success( _, let icon_img):
+                            self.icon_imgProp = icon_img
+                            self.fetchUserPosts(username: usernameProp, user_icon: icon_img)
+                        case .error(let error):
+                            DispatchQueue.main.async {
+                                showErrorToast(controller: self, message: error, seconds: 1.0)
+                            }
+                            self.fetchUserPosts(username: usernameProp, user_icon: self.icon_imgProp)
                         }
                     }
+                } else {
+                    fetchUserPosts(username: usernameProp, user_icon: icon_imgProp)
                 }
-                fetchUserPosts(username: usernameProp)
             }
         } else if RedditClient.sharedInstance.getUsername() == nil {
             // user is not signed in
@@ -106,12 +111,12 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
             }
             RedditClient.sharedInstance.fetchMe { result in
                 switch result {
-                case .success(let username, _):
+                case .success(let username, let icon_img):
                     DispatchQueue.main.async {
                         self.collectionView.reloadData()
                         self.activityIndicatorView.startAnimating()
                     }
-                    self.fetchUserPosts(username: username)
+                    self.fetchUserPosts(username: username, user_icon: icon_img)
                 case .error(let error):
                     DispatchQueue.main.async {
                         showErrorToast(controller: self, message: error, seconds: 1.0)
@@ -122,14 +127,14 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
             if posts.isEmpty || posts.count == 1 {
                 activityIndicatorView.startAnimating()
                 RedditClient.sharedInstance.fetchMe { _ in}
-                fetchUserPosts(username: username)
+                fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
             }
         }
     }
     
-    private func fetchUserPosts(username: String) {
+    private func fetchUserPosts(username: String, user_icon: String?) {
         if let after = after {
-            RedditClient.sharedInstance.fetchUserPosts(username: username, after: after) { result in
+            RedditClient.sharedInstance.fetchUserPosts(username: username, after: after, user_icon: user_icon) { result in
                 switch result {
                 case .success(let posts, let nextAfter):
                     DispatchQueue.main.async {
@@ -185,7 +190,7 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
             username = signedInUser
         }
         
-        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "") { result in
+        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "", user_icon: icon_imgProp) { result in
             DispatchQueue.main.async {
                 self.activityIndicatorView.stopAnimating()
                 self.refreshControl.endRefreshing()
@@ -234,7 +239,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     internal func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Const.cellId, for: indexPath) as? UserProfileCell else {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as? UserProfileCell else {
             return UICollectionViewCell()
         }
         
@@ -248,7 +253,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: Const.headerId, for: indexPath) as? UserProfileHeader else {
+        guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? UserProfileHeader else {
             return UICollectionReusableView()
         }
         if traitCollection.userInterfaceStyle == .dark {
@@ -275,9 +280,9 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         if indexPath.row == posts.count - 3 {
             if let usernameProp = usernameProp {
-                fetchUserPosts(username: usernameProp)
+                fetchUserPosts(username: usernameProp, user_icon: icon_imgProp)
             } else if let username = RedditClient.sharedInstance.getUsername() {
-                fetchUserPosts(username: username)
+                fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
             }
         }
     }

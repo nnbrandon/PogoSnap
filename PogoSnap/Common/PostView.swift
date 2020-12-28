@@ -9,7 +9,7 @@ import UIKit
 
 protocol PostViewDelegate: class {
     func didTapComment(post: Post, index: Int)
-    func didTapUsername(username: String)
+    func didTapUsername(username: String, user_icon: String?)
     func didTapImage(imageSources: [ImageSource], position: Int)
     func didTapOptions(post: Post)
     func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool)
@@ -51,6 +51,10 @@ class PostView: UIView {
                     }
                 } else {
                     liked = nil
+                }
+                
+                if let user_icon = post.user_icon {
+                    usernameIcon.loadImage(urlString: user_icon)
                 }
             }
         }
@@ -113,6 +117,18 @@ class PostView: UIView {
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleImage))
         slideShow.addGestureRecognizer(guestureRecognizer)
         return slideShow
+    }()
+    
+    lazy var usernameIcon: CustomImageView = {
+        let imageView = CustomImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = 30 / 2
+        
+        imageView.isUserInteractionEnabled = true
+        let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleUsername))
+        imageView.addGestureRecognizer(guestureRecognizer)
+        return imageView
     }()
     
     lazy var usernameLabel: UILabel = {
@@ -210,7 +226,7 @@ class PostView: UIView {
     
     @objc private func handleUsername() {
         guard let post = post else {return}
-        delegate?.didTapUsername(username: post.author)
+        delegate?.didTapUsername(username: post.author, user_icon: post.user_icon)
     }
     
     @objc private func handleImage() {
@@ -283,22 +299,29 @@ class PostView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         
+        addSubview(usernameIcon)
+        usernameIcon.translatesAutoresizingMaskIntoConstraints = false
+        usernameIcon.topAnchor.constraint(equalTo: topAnchor).isActive = true
+        usernameIcon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
+        usernameIcon.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        usernameIcon.widthAnchor.constraint(equalToConstant: 30).isActive = true
+
         addSubview(usernameLabel)
         usernameLabel.translatesAutoresizingMaskIntoConstraints = false
         usernameLabel.topAnchor.constraint(equalTo: topAnchor).isActive = true
-        usernameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
-        usernameLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        usernameLabel.leadingAnchor.constraint(equalTo: usernameIcon.trailingAnchor, constant: 8).isActive = true
+        usernameLabel.heightAnchor.constraint(equalToConstant: 30).isActive = true
 
         addSubview(optionsButton)
         optionsButton.translatesAutoresizingMaskIntoConstraints = false
         optionsButton.topAnchor.constraint(equalTo: topAnchor).isActive = true
         optionsButton.leadingAnchor.constraint(equalTo: usernameLabel.trailingAnchor).isActive = true
         optionsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
-        optionsButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        optionsButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
         
         addSubview(titleLabel)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor).isActive = true
+        titleLabel.topAnchor.constraint(equalTo: usernameIcon.bottomAnchor, constant: 8).isActive = true
         titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
                 

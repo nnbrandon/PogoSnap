@@ -26,6 +26,7 @@ class ImgurTableController: UITableViewController {
             view.backgroundColor = .white
         } else {
             view.backgroundColor = RedditConsts.redditDarkMode
+            tableView.backgroundColor = RedditConsts.redditDarkMode
         }
         title = "Imgur Uploads"
         tableView.register(ImgurCell.self, forCellReuseIdentifier: cellId)

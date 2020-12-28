@@ -9,8 +9,8 @@ import Foundation
 import UIKit
 
 struct RedditConsts {
-    static let subredditName = "PokemonGoSnap"
-//    static let subredditName = "PogoSnap"
+//    static let subredditName = "PokemonGoSnap"
+    static let subredditName = "PogoSnap"
 
     static let username = "username"
     static let icon_img = "icon_img"

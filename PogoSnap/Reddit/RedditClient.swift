@@ -7,12 +7,14 @@
 
 import Foundation
 
-struct RedditClient {
+class RedditClient {
     
     static var sharedInstance = RedditClient()
     
     let redditOAuth = RedditOAuth()
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
+    
+    var userIconCache = NSCache<NSString, NSString>()
 
     private init() {}
     
@@ -30,16 +32,16 @@ struct RedditClient {
                 do {
                     let meResponse = try JSONDecoder().decode(RedditMeResponse.self, from: data)
                     let filteredIconImg = meResponse.icon_img.replacingOccurrences(of: "amp;", with: "")
-                    if let username = getUsername(), let icon_img = getIconImg() {
+                    if let username = self.getUsername(), let icon_img = self.getIconImg() {
                         if username != meResponse.name {
-                            defaults?.setValue(meResponse.name, forKey: RedditConsts.username)
+                            self.defaults?.setValue(meResponse.name, forKey: RedditConsts.username)
                         }
                         if icon_img != meResponse.icon_img {
-                            defaults?.setValue(filteredIconImg, forKey: RedditConsts.icon_img)
+                            self.defaults?.setValue(filteredIconImg, forKey: RedditConsts.icon_img)
                         }
                     } else {
-                        defaults?.setValue(meResponse.name, forKey: RedditConsts.username)
-                        defaults?.setValue(filteredIconImg, forKey: RedditConsts.icon_img)
+                        self.defaults?.setValue(meResponse.name, forKey: RedditConsts.username)
+                        self.defaults?.setValue(filteredIconImg, forKey: RedditConsts.icon_img)
                     }
                     completion(RedditMeResult.success(username: meResponse.name, icon_img: filteredIconImg))
                 } catch {}
@@ -121,8 +123,10 @@ struct RedditClient {
                         completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                         return
                     }
-                    let (posts, nextAfter) = extractPosts(after: after, data: data)
-                    completion(RedditPostsResult.success(posts: posts, nextAfter: nextAfter))
+                    let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                    self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
+                        completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
+                    }
                 }.resume()
             }
         } else {
@@ -132,13 +136,15 @@ struct RedditClient {
                     completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                     return
                 }
-                let (posts, nextAfter) = extractPosts(after: after, data: data)
-                completion(RedditPostsResult.success(posts: posts, nextAfter: nextAfter))
+                let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
+                    completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
+                }
             }.resume()
         }
     }
     
-    public func fetchUserPosts(username: String, after: String, completion: @escaping PostsHandler) {
+    public func fetchUserPosts(username: String, after: String, user_icon: String?, completion: @escaping PostsHandler) {
         if getUsername() != nil {
             let url = "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=\(after)"
             redditOAuth.getAccessToken { accessToken in
@@ -150,7 +156,7 @@ struct RedditClient {
                         completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                         return
                     }
-                    let (posts, nextAfter) = extractPosts(after: after, data: data)
+                    let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: user_icon)
                     completion(RedditPostsResult.success(posts: posts, nextAfter: nextAfter))
                 }.resume()
             }
@@ -161,13 +167,13 @@ struct RedditClient {
                     completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                     return
                 }
-                let (posts, nextAfter) = extractPosts(after: after, data: data)
+                let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: user_icon)
                 completion(RedditPostsResult.success(posts: posts, nextAfter: nextAfter))
             }.resume()
         }
     }
     
-    private func extractPosts(after: String, data: Data?) -> ([Post], String?) {
+    private func extractPosts(after: String, data: Data?, user_icon: String?) -> ([Post], String?) {
         if let data = data {
             var nextAfter: String?
             do {
@@ -203,7 +209,7 @@ struct RedditClient {
                         continue
                     }
                     let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + redditPost.id + ".json"
-                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes, aspectFit: aspectFit)
+                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes, aspectFit: aspectFit, user_icon: user_icon)
                     posts.append(post)
                 }
                 return (posts, nextAfter)
@@ -212,6 +218,34 @@ struct RedditClient {
             }
         }
         return ([Post](), nil)
+    }
+    
+    private func assignUserImageIcons(posts: [Post], completion: @escaping ([Post]) -> Void) {
+        let usernames = posts.map { post in post.author }
+        let userAboutGroup = DispatchGroup()
+        
+        for username in usernames where userIconCache.object(forKey: username as NSString) == nil {
+            userAboutGroup.enter()
+            fetchUserAbout(username: username) { result in
+                switch result {
+                case .success(_, let icon_img):
+                    self.userIconCache.setObject(icon_img as NSString, forKey: username as NSString)
+                case .error:
+                    break
+                }
+                userAboutGroup.leave()
+            }
+        }
+        
+        userAboutGroup.notify(queue: .main) {
+            let postsWithIcons = posts.map { post -> Post in
+                var post = post
+                let username = post.author as NSString
+                post.user_icon = self.userIconCache.object(forKey: username) as String?
+                return post
+            }
+            completion(postsWithIcons)
+        }
     }
     
     typealias BoolHandler = (RedditBoolResult) -> Void

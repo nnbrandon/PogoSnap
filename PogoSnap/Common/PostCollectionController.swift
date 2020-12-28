@@ -107,9 +107,10 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
         navigationController?.pushViewController(redditCommentsController, animated: true)
     }
     
-    func didTapUsername(username: String) {
+    func didTapUsername(username: String, user_icon: String?) {
         let userProfileController = UserProfileController()
         userProfileController.usernameProp = username
+        userProfileController.icon_imgProp = user_icon
         navigationController?.pushViewController(userProfileController, animated: true)
     }
     
@@ -216,7 +217,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
         if !post.aspectFit {
             imageFrameHeight += view.frame.width/2
         }
-        var height = 8 + 8 + 50 + 40 + imageFrameHeight
+        var height = 8 + 8 + 30 + 50 + imageFrameHeight
         let title = post.title
         let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
         height += titleEstimatedHeight

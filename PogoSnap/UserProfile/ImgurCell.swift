@@ -35,6 +35,12 @@ class ImgurCell: UITableViewCell {
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
+        if traitCollection.userInterfaceStyle == .light {
+            backgroundColor = .white
+        } else {
+            backgroundColor = RedditConsts.redditDarkMode
+        }
+        
         addSubview(photoImageView)
         photoImageView.translatesAutoresizingMaskIntoConstraints = false
         photoImageView.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
