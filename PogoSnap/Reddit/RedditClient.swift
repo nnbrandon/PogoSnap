@@ -13,7 +13,7 @@ struct RedditClient {
     
     let redditOAuth = RedditOAuth()
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
-    
+
     private init() {}
     
     typealias MeHandler = (RedditMeResult) -> Void
@@ -290,11 +290,7 @@ struct RedditClient {
     }
     
     public func isUserAuthenticated() -> Bool {
-        if defaults?.string(forKey: RedditConsts.redditAccessToken) != nil {
-            return true
-        } else {
-            return false
-        }
+        return redditOAuth.isUserAuthenticated()
     }
     
     public func getSubredditRules() -> [String] {
@@ -312,17 +308,10 @@ struct RedditClient {
     }
     
     public func deleteCredentials() {
-        defaults?.removeObject(forKey: RedditConsts.redditAccessToken)
-        defaults?.removeObject(forKey: RedditConsts.redditRefreshToken)
         defaults?.removeObject(forKey: RedditConsts.username)
         defaults?.removeObject(forKey: RedditConsts.icon_img)
         defaults?.removeObject(forKey: RedditConsts.redditExpireDate)
-    }
-    
-    public func registerCredentials(accessToken: String, refreshToken: String, expireDate: Date) {
-        defaults?.set(accessToken, forKey: RedditConsts.redditAccessToken)
-        defaults?.set(refreshToken, forKey: RedditConsts.redditRefreshToken)
-        defaults?.set(expireDate, forKey: RedditConsts.redditExpireDate)
+        redditOAuth.deleteCredentials()
     }
     
     typealias RulesHandler = (RedditRulesResult) -> Void

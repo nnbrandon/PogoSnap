@@ -94,6 +94,7 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
     }
     
     override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         if RedditClient.sharedInstance.getUsername() == nil, RedditClient.sharedInstance.isUserAuthenticated() {
             // Fetch username and me information
             if !children.isEmpty {
