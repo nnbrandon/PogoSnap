@@ -184,13 +184,16 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
     @objc private func refreshPosts() {
         activityIndicatorView.startAnimating()
         var username = ""
+        var user_icon: String?
         if let usernameProp = usernameProp {
             username = usernameProp
+            user_icon = icon_imgProp
         } else if let signedInUser = RedditClient.sharedInstance.getUsername() {
             username = signedInUser
+            user_icon = RedditClient.sharedInstance.getIconImg()
         }
         
-        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "", user_icon: icon_imgProp) { result in
+        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "", user_icon: user_icon) { result in
             DispatchQueue.main.async {
                 self.activityIndicatorView.stopAnimating()
                 self.refreshControl.endRefreshing()
@@ -265,9 +268,9 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
         if let usernameProp = usernameProp {
             header.username = usernameProp
             header.icon_img = icon_imgProp
-        } else if let username = RedditClient.sharedInstance.getUsername(), let icon_img = RedditClient.sharedInstance.getIconImg() {
+        } else if let username = RedditClient.sharedInstance.getUsername() {
             header.username = username
-            header.icon_img = icon_img
+            header.icon_img = RedditClient.sharedInstance.getIconImg()
         }
         
         return header

@@ -11,9 +11,9 @@ class ImgurCell: UITableViewCell {
     
     var imageUrlDelete: ImageUrlDelete? {
         didSet {
-            if let imageUrlDelete = imageUrlDelete {
-                imgurLabel.text = imageUrlDelete.url
-                photoImageView.loadImage(urlString: imageUrlDelete.url)
+            if let imageUrlDelete = imageUrlDelete, let url = imageUrlDelete.url {
+                imgurLabel.text = url
+                photoImageView.loadImage(urlString: url)
             }
         }
     }

@@ -41,14 +41,9 @@ class ImgurTableController: UITableViewController {
         
         let alertController = UIAlertController(title: "Delete the upload from Imgur?", message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
-            ImgurClient.sharedInstance.deleteImgurPhoto(imageUrlDelete: imgurDelete, imageUrlDeletes: self.imgurDeletes) { errorOccured in
-                if errorOccured {
-                    DispatchQueue.main.async {
-                        if let navController = self.navigationController {
-                            showErrorToast(controller: navController, message: "Failed to delete imgur upload", seconds: 0.5)
-                        }
-                    }
-                } else {
+            ImgurClient.sharedInstance.deleteImgurPhoto(imageUrlDelete: imgurDelete) { result in
+                switch result {
+                case .success:
                     generatorImpactOccured()
                     DispatchQueue.main.async {
                         if let navController = self.navigationController {
@@ -56,6 +51,12 @@ class ImgurTableController: UITableViewController {
                         }
                     }
                     self.imgurDeletes.remove(at: index)
+                case .error:
+                    DispatchQueue.main.async {
+                        if let navController = self.navigationController {
+                            showErrorToast(controller: navController, message: "Failed to delete imgur upload", seconds: 0.5)
+                        }
+                    }
                 }
             }
         }))

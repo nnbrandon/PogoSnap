@@ -268,52 +268,54 @@ extension HomeController: ShareDelegate {
             let progressView = navController.view.subviews.last as? UIProgressView
             progressView?.setProgress(0.5, animated: true)
             
-            ImgurClient.sharedInstance.uploadImageToImgur(image: image) { (imageSource, errorOccured) in
-                if errorOccured {
-                    DispatchQueue.main.async {
-                        progressView?.setProgress(0.0, animated: true)
-                        if let navController = self.navigationController {
-                            showErrorToast(controller: navController, message: "Unable to upload image", seconds: 3.0)
-                        }
-                    }
-                    return
-                } else {
+            ImgurClient.sharedInstance.uploadImageToImgur(image: image) { result in
+                switch result {
+                case .success(let imageSource):
                     DispatchQueue.main.async {
                         progressView?.setProgress(0.9, animated: true)
                     }
-                }
-                guard let imageSource = imageSource else {return}
-                RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
-                    DispatchQueue.main.async {
-                        progressView?.setProgress(1.0, animated: true)
-                    }
-                    var message = ""
-                    switch result {
-                    case .success(let postData):
-                        if let postData = postData, let postId = postData.id {
-                            ImgurClient.sharedInstance.incrementUploadCount()
-                            message = "Image upload success"
-                            let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
-                            let aspectFit = imageSource.width >= imageSource.height
-                            let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditClient.sharedInstance.getIconImg())
-                            self.posts.insert(post, at: 0)
-                            DispatchQueue.main.async {
-                                if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
-                                    userProfileController.posts.insert(post, at: 0)
+                    guard let imageSource = imageSource else {return}
+                    RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
+                        DispatchQueue.main.async {
+                            progressView?.setProgress(1.0, animated: true)
+                        }
+                        var message = ""
+                        switch result {
+                        case .success(let postData):
+                            if let postData = postData, let postId = postData.id {
+                                ImgurClient.sharedInstance.incrementUploadCount()
+                                message = "Image upload success"
+                                let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
+                                let aspectFit = imageSource.width >= imageSource.height
+                                let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditClient.sharedInstance.getIconImg())
+                                self.posts.insert(post, at: 0)
+                                DispatchQueue.main.async {
+                                    if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
+                                        userProfileController.posts.insert(post, at: 0)
+                                    }
                                 }
                             }
+                        case .error:
+                            message = "Image upload failed"
                         }
-                    case .error:
-                        message = "Image upload failed"
+                        DispatchQueue.main.async {
+                            self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+                            generatorImpactOccured()
+                            if let navController = self.navigationController {
+                                showImageToast(controller: navController, message: message, image: image, seconds: 3.0)
+                            }
+                            progressView?.setProgress(0, animated: true)
+                        }
                     }
+                
+                case .error(let error):
                     DispatchQueue.main.async {
-                        self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-                        generatorImpactOccured()
+                        progressView?.setProgress(0.0, animated: true)
                         if let navController = self.navigationController {
-                            showImageToast(controller: navController, message: message, image: image, seconds: 3.0)
+                            showErrorToast(controller: navController, message: error, seconds: 3.0)
                         }
-                        progressView?.setProgress(0, animated: true)
                     }
+                    return
                 }
             }
         }

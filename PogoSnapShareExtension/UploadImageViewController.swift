@@ -172,40 +172,41 @@ class UploadImageViewController: UIViewController {
                 if let image = photoImageView.image, let title = textField.text {
                     activityIndicatorView.startAnimating()
                     progressView.setProgress(0.5, animated: true)
-                    ImgurClient.sharedInstance.uploadImageToImgur(image: image) { (imageSource, errorOccured) in
-                        if errorOccured {
+                    ImgurClient.sharedInstance.uploadImageToImgur(image: image) { result in
+                        switch result {
+                        case .success(let imageSource):
+                            DispatchQueue.main.async {
+                                self.progressView.setProgress(0.7, animated: true)
+                            }
+                            guard let imageSource = imageSource else {return}
+                            RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
+                                switch result {
+                                case .success:
+                                    ImgurClient.sharedInstance.incrementUploadCount()
+                                    DispatchQueue.main.async {
+                                        self.progressView.setProgress(1, animated: true)
+                                        generatorImpactOccured()
+                                        self.activityIndicatorView.stopAnimating()
+                                        showSuccessToastAndDismiss(controller: self, message: "Image upload success", seconds: 0.5)
+                                    }
+                                case .error:
+                                    DispatchQueue.main.async {
+                                        self.progressView.setProgress(0, animated: true)
+                                        generatorImpactOccured()
+                                        self.activityIndicatorView.stopAnimating()
+                                        self.submitButton.isHidden = false
+                                        showErrorToast(controller: self, message: "Image upload failed", seconds: 1.0)
+                                    }
+                                }
+                            }
+                        case .error(let error):
                             DispatchQueue.main.async {
                                 self.progressView.setProgress(0.0, animated: true)
                                 self.submitButton.isHidden = false
                                 self.activityIndicatorView.stopAnimating()
-                                showErrorToast(controller: self, message: "Unable to upload image", seconds: 1.0)
+                                showErrorToast(controller: self, message: error, seconds: 1.0)
                             }
                             return
-                        } else {
-                            DispatchQueue.main.async {
-                                self.progressView.setProgress(0.7, animated: true)
-                            }
-                        }
-                        guard let imageSource = imageSource else {return}
-                        RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
-                            switch result {
-                            case .success:
-                                ImgurClient.sharedInstance.incrementUploadCount()
-                                DispatchQueue.main.async {
-                                    self.progressView.setProgress(1, animated: true)
-                                    generatorImpactOccured()
-                                    self.activityIndicatorView.stopAnimating()
-                                    showSuccessToastAndDismiss(controller: self, message: "Image upload success", seconds: 0.5)
-                                }
-                            case .error:
-                                DispatchQueue.main.async {
-                                    self.progressView.setProgress(0, animated: true)
-                                    generatorImpactOccured()
-                                    self.activityIndicatorView.stopAnimating()
-                                    self.submitButton.isHidden = false
-                                    showErrorToast(controller: self, message: "Image upload failed", seconds: 1.0)
-                                }
-                            }
                         }
                     }
                 }
