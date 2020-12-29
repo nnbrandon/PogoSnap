@@ -19,7 +19,6 @@ class ImgurClient {
         static let imgurList = "imgurList"
         static let maxUploadCount = 3
     }
-    let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
     let keychain = Keychain(service: "com.PogoSnap", accessGroup: "group.com.PogoSnap")
     
     lazy var persistentContainer: NSPersistentContainer = {
@@ -226,9 +225,7 @@ class ImgurClient {
         
         do {
             try context.save()
-        } catch let error as NSError {
-            print("Could not save. \(error), \(error.userInfo)")
-        }
+        } catch {}
     }
     
     public func getImageUrlList() -> [ImageUrlDelete]? {
@@ -238,9 +235,7 @@ class ImgurClient {
         do {
             let fetchedImageUrlDeletes = try context.fetch(imageUrlDeleteFetch)
             return fetchedImageUrlDeletes
-        } catch let error as NSError {
-            print("Could not fetch. \(error), \(error.userInfo)")
-        }
+        } catch {}
 
         return nil
     }
