@@ -9,9 +9,7 @@ import UIKit
 
 enum SortOptions: String {
     case new
-//    case best
     case hot
-//    case rising
     case top
 }
 
@@ -35,18 +33,12 @@ class HomeHeader: UICollectionViewCell {
         didSet {
             if let sortOption = sortOption {
                 switch sortOption {
-//                case .best:
-//                    sortButton.setTitle(" Best Posts", for: .normal)
-//                    sortButton.setImage(UIImage(named: "best-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
                 case .new:
                     sortButton.setTitle(" New Posts", for: .normal)
                     sortButton.setImage(UIImage(named: "new-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
                 case .hot:
                     sortButton.setTitle(" Hot Posts", for: .normal)
                     sortButton.setImage(UIImage(named: "hot-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
-//                case .rising:
-//                    sortButton.setTitle(" Rising Posts", for: .normal)
-//                    sortButton.setImage(UIImage(named: "rising-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
                 case .top:
                     sortButton.setTitle(" Top Posts", for: .normal)
                     sortButton.setImage(UIImage(named: "top-20")?.withRenderingMode(.alwaysTemplate), for: .normal)
