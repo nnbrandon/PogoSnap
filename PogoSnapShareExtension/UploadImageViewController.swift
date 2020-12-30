@@ -156,21 +156,16 @@ class UploadImageViewController: UIViewController {
             showErrorToast(controller: self, message: "Enter a title", seconds: 0.5)
         } else if !ImgurClient.sharedInstance.canUpload() {
             DispatchQueue.main.async {
-                self.submitButton.isHidden = false
                 showErrorToast(controller: self, message: "You've reached the maximum number of uploads for today (3)", seconds: 3.0)
             }
             return
         } else {
-            DispatchQueue.main.async {
-                self.activityIndicatorView.startAnimating()
-                self.submitButton.isHidden = true
-            }
             if RedditClient.sharedInstance.getUsername() == nil {
-                showErrorToast(controller: self, message: "You need to be signed in to upload a photo", seconds: 1.0)
-                submitButton.isHidden = false
+                showErrorToast(controller: self, message: "You need to be signed in to upload a photo", seconds: 3.0)
             } else {
                 if let image = photoImageView.image, let title = textField.text {
                     activityIndicatorView.startAnimating()
+                    self.submitButton.isHidden = true
                     progressView.setProgress(0.5, animated: true)
                     ImgurClient.sharedInstance.uploadImageToImgur(image: image) { result in
                         switch result {

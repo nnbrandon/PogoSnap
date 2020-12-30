@@ -32,6 +32,8 @@ class ShareViewController: UIViewController {
                                     sharePhotoController.onClose = self.onClose
                                     self.present(sharePhotoController, animated: true, completion: nil)
                                 }
+                            } else {
+                                showErrorToastWithCompletionHandler(controller: self, message: "Unable to load the item into PogoSnap", seconds: 3.0, completion: self.onClose)
                             }
                         }
                     } else if itemProvider.hasItemConformingToTypeIdentifier("public.image") {
@@ -53,6 +55,8 @@ class ShareViewController: UIViewController {
                                         self.present(sharePhotoController, animated: true, completion: nil)
                                     }
                                 }
+                            } else {
+                                showErrorToastWithCompletionHandler(controller: self, message: "Unable to load the item into PogoSnap", seconds: 3.0, completion: self.onClose)
                             }
                         })
                     }
@@ -62,7 +66,9 @@ class ShareViewController: UIViewController {
     }
     
     func onClose() {
-        self.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
+        if let extensionContext = extensionContext {
+            extensionContext.completeRequest(returningItems: [], completionHandler: nil)
+        }
     }
 
 }

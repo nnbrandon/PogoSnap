@@ -353,7 +353,7 @@ extension HomeController: UICollectionViewDataSource, UICollectionViewDelegateFl
             if !post.aspectFit {
                 imageFrameHeight += view.frame.width/2
             }
-            var height = 8 + 8 + 30 + 50 + imageFrameHeight
+            var height = 8 + 30 + 50 + imageFrameHeight
             let title = posts[indexPath.row].title
             let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
             height += titleEstimatedHeight

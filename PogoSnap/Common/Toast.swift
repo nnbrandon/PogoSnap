@@ -31,6 +31,15 @@ func showErrorToast(controller: UIViewController, message: String, seconds: Doub
     controller.view.makeToast(message, duration: seconds, position: .top, style: style)
 }
 
+func showErrorToastWithCompletionHandler(controller: UIViewController, message: String, seconds: Double, completion: @escaping () -> Void) {
+    var style = ToastStyle()
+    style.backgroundColor = .systemRed
+    style.messageColor = .white
+    controller.view.makeToast(message, duration: seconds, position: .top, style: style) { _ in
+        completion()
+    }
+}
+
 func showImageToast(controller: UIViewController, message: String, image: UIImage, seconds: Double) {
     var style = ToastStyle()
     style.backgroundColor = .systemBlue
