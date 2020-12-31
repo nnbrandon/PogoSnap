@@ -22,6 +22,7 @@ struct RedditConsts {
     static let redditClientId = "f5M2aPLjT8rUgg"
     static let redditClientSecret = ""
     static let redditAuthorizeUrl = "https://www.reddit.com/api/v1/authorize.compact"
+    static let redditNonCompactAuthorizeUrl = "https://www.reddit.com/api/v1/authorize"
     static let redditAccessTokenUrl = "https://www.reddit.com/api/v1/access_token"
     static let redditCallbackURL = "PogoSnap://response"
 

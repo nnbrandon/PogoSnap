@@ -17,7 +17,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let url = URLContexts.first?.url else {
             return
         }
-        if url.host == "PogoSnap" {
+        if url.host == "response" {
             OAuthSwift.handle(url: url)
         }
     }
@@ -29,7 +29,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
         window = UIWindow(frame: windowScene.coordinateSpace.bounds)
-//        window?.overrideUserInterfaceStyle = .light
         window?.windowScene = windowScene
         window?.rootViewController = MainTabBarController()
         window?.makeKeyAndVisible()

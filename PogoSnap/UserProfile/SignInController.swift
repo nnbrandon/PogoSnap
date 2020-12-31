@@ -12,6 +12,7 @@ import SafariServices
 class SignInController: OAuthViewController {
     
     let redditOAuth = RedditOAuth()
+    var compact: Bool = false
 
     let signInButton: UIButton = {
         let btn = UIButton()
@@ -22,21 +23,26 @@ class SignInController: OAuthViewController {
         return btn
     }()
     
+    lazy var signInAppleGoogle: UIButton = {
+        let btn = UIButton()
+        btn.setTitle("   Sign in with Apple/Google", for: .normal)
+        btn.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        btn.setImage(UIImage(named: "apple-30")?.withRenderingMode(.alwaysTemplate), for: .normal)
+        if traitCollection.userInterfaceStyle == .light {
+            btn.tintColor = .black
+        } else {
+            btn.tintColor = .white
+        }
+        btn.addTarget(self, action: #selector(signInWithAppleGoogle), for: .touchDown)
+        return btn
+    }()
+    
     let signUpButton: UIButton = {
         let btn = UIButton()
         btn.setTitle("Create a Reddit account", for: .normal)
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         btn.addTarget(self, action: #selector(signUp), for: .touchDown)
         return btn
-    }()
-
-    lazy var internalWebViewController: WebViewController = {
-        let controller = WebViewController()
-        controller.view = UIView(frame: UIScreen.main.bounds) // needed if no nib or not loaded from storyboard
-        controller.delegate = self
-        controller.viewDidLoad() // allow WebViewController to use this ViewController as parent to be presented
-        controller.hidesBottomBarWhenPushed = true
-        return controller
     }()
     
     override func viewDidLoad() {
@@ -52,19 +58,74 @@ class SignInController: OAuthViewController {
             signInButton.setTitleColor(.white, for: .normal)
         }
         
+        view.addSubview(signInAppleGoogle)
+        signInAppleGoogle.translatesAutoresizingMaskIntoConstraints = false
+        signInAppleGoogle.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        signInAppleGoogle.topAnchor.constraint(equalTo: signInButton.bottomAnchor, constant: 16).isActive = true
+        if traitCollection.userInterfaceStyle == .light {
+            signInAppleGoogle.setTitleColor(.black, for: .normal)
+        } else {
+            signInAppleGoogle.setTitleColor(.white, for: .normal)
+        }
+        
         view.addSubview(signUpButton)
         signUpButton.translatesAutoresizingMaskIntoConstraints = false
         signUpButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        signUpButton.topAnchor.constraint(equalTo: signInButton.bottomAnchor, constant: 16).isActive = true
+        signUpButton.topAnchor.constraint(equalTo: signInAppleGoogle.bottomAnchor, constant: 16).isActive = true
         if traitCollection.userInterfaceStyle == .light {
             signUpButton.setTitleColor(.black, for: .normal)
         } else {
             signUpButton.setTitleColor(.white, for: .normal)
         }
     }
-    
+        
     @objc private func signIn() {
+        compact = true
+        redditOAuth.changeCompact(compact: true)
         doAuthService()
+    }
+    
+    @objc private func signInWithAppleGoogle() {
+        compact = false
+        redditOAuth.changeCompact(compact: false)
+        let alert = UIAlertController(title: "Sign in with Apple or Google", message: "Just a few couple of steps to sign in with these services! \n\nTap \"Start Sign In\" below then tap the button to sign in with Apple or Google. \n\nAfter signing in, tap the \"Done\" button in the top left of the browser.", preferredStyle: .alert)
+        alert.view.layer.cornerRadius = 15
+        alert.addAction(UIAlertAction(title: "Cancel", style: .destructive, handler: nil))
+        alert.addAction(UIAlertAction(title: "Start Sign In", style: .default, handler: { _ in
+            self.doAuthService()
+        }))
+        present(alert, animated: true, completion: nil)
+    }
+    
+    private func doAuthService() {
+        redditOAuth.doAuth(urlHandlerType: getUrlHandler()) { result in
+            switch result {
+            case .success:
+                break
+            case .error:
+                DispatchQueue.main.async {
+                    showErrorToast(controller: self, message: "Unable to sign in", seconds: 2.0)
+                }
+            }
+        }
+    }
+    
+    private func getUrlHandler() -> OAuthSwiftURLHandlerType {
+        let safari = SafariURLHandler(viewController: self, oauthSwift: redditOAuth.oauthSwift)
+        safari.delegate = self
+        return safari
+    }
+    
+    private func signInCompleteForAppleGoogle() {
+        let alert = UIAlertController(title: "Finished Signing in? Last Step!", message: "Tap \"Finish Sign In\" below and it'll redirect you to a page where you can enable your account for PogoSnap", preferredStyle: .alert)
+        alert.view.layer.cornerRadius = 15
+        alert.addAction(UIAlertAction(title: "Cancel", style: .destructive, handler: nil))
+        alert.addAction(UIAlertAction(title: "Finish Sign In", style: .default, handler: { _ in
+            self.compact = true
+            self.redditOAuth.changeCompact(compact: true)
+            self.doAuthService()
+        }))
+        present(alert, animated: true, completion: nil)
     }
     
     @objc private func signUp() {
@@ -76,33 +137,6 @@ class SignInController: OAuthViewController {
             self.present(signupView, animated: true, completion: nil)
         }))
         present(alert, animated: true, completion: nil)
-    }
-    
-    func doAuthService() {
-        redditOAuth.doAuth(urlHandlerType: getURLHandler()) { result in
-            switch result {
-            case .success:
-                self.internalWebViewController.dismissWebViewController()
-            case .error:
-                DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "Unable to sign in", seconds: 2.0)
-                }
-            }
-        }
-    }
-    
-    func getURLHandler() -> OAuthSwiftURLHandlerType {
-        internalWebViewController = WebViewController()
-        internalWebViewController.view = UIView(frame: UIScreen.main.bounds) // needed if no nib or not loaded from storyboard
-        internalWebViewController.delegate = self
-        internalWebViewController.viewDidLoad() // allow WebViewController to use this ViewController as parent to be presented
-        internalWebViewController.hidesBottomBarWhenPushed = true
-
-        if internalWebViewController.parent == nil {
-            addChild(internalWebViewController)
-        }
-
-        return internalWebViewController
     }
 }
 
@@ -126,4 +160,12 @@ extension SignInController: OAuthWebViewControllerDelegate {
         redditOAuth.oauthSwift.cancel()
     }
     
+}
+
+extension SignInController: SFSafariViewControllerDelegate {
+    func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+        if !compact {
+            signInCompleteForAppleGoogle()
+        }
+    }
 }

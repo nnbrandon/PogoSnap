@@ -9,8 +9,8 @@ import Foundation
 import OAuthSwift
 import KeychainAccess
 
-struct RedditOAuth {
-    let oauthSwift = OAuth2Swift(
+class RedditOAuth {
+    var oauthSwift = OAuth2Swift(
         consumerKey: RedditConsts.redditClientId,
         consumerSecret: RedditConsts.redditClientSecret,
         authorizeUrl: RedditConsts.redditAuthorizeUrl,
@@ -32,9 +32,9 @@ struct RedditOAuth {
                 oauthSwift.renewAccessToken(withRefreshToken: refreshToken) { result in
                     switch result {
                     case .success(let (credential, _, _)):
-                        keychain[RedditConsts.redditAccessToken] = credential.oauthToken
+                        self.keychain[RedditConsts.redditAccessToken] = credential.oauthToken
                         if let expireDate = credential.oauthTokenExpiresAt {
-                            defaults?.set(expireDate, forKey: RedditConsts.redditExpireDate)
+                            self.defaults?.set(expireDate, forKey: RedditConsts.redditExpireDate)
                         }
                         completion(credential.oauthToken)
                     case .failure: break
@@ -58,12 +58,32 @@ struct RedditOAuth {
                 switch result {
                 case .success(let (credential, _, _)):
                     if let expireDate = credential.oauthTokenExpiresAt {
-                        registerCredentials(accessToken: credential.oauthToken, refreshToken: credential.oauthRefreshToken, expireDate: expireDate)
+                        self.registerCredentials(accessToken: credential.oauthToken, refreshToken: credential.oauthRefreshToken, expireDate: expireDate)
                         completion(RedditAuthResult.success)
                     }
                 case .failure:
                     completion(RedditAuthResult.success)
                 }
+        }
+    }
+    
+    public func changeCompact(compact: Bool) {
+        if compact {
+            self.oauthSwift = OAuth2Swift(
+                consumerKey: RedditConsts.redditClientId,
+                consumerSecret: RedditConsts.redditClientSecret,
+                authorizeUrl: RedditConsts.redditAuthorizeUrl,
+                accessTokenUrl: RedditConsts.redditAccessTokenUrl,
+                responseType: RedditConsts.responseType
+            )
+        } else {
+            self.oauthSwift = OAuth2Swift(
+                consumerKey: RedditConsts.redditClientId,
+                consumerSecret: RedditConsts.redditClientSecret,
+                authorizeUrl: RedditConsts.redditNonCompactAuthorizeUrl,
+                accessTokenUrl: RedditConsts.redditAccessTokenUrl,
+                responseType: RedditConsts.responseType
+            )
         }
     }
     

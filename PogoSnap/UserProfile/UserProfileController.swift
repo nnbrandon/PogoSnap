@@ -217,6 +217,11 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
         let signInVC = SignInController()
         addChild(signInVC)
         view.addSubview(signInVC.view)
+        signInVC.view.translatesAutoresizingMaskIntoConstraints = false
+        signInVC.view.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        signInVC.view.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        signInVC.view.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        signInVC.view.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         signInVC.didMove(toParent: self)
     }
 
