@@ -45,15 +45,13 @@ class ShareViewController: UIViewController {
                                     sharePhotoController.onClose = self.onClose
                                     self.present(sharePhotoController, animated: true, completion: nil)
                                 }
-                            } else if let data = data as? URL {
-                                if let imageData = try? Data(contentsOf: data) {
-                                    let image = UIImage(data: imageData)
-                                    DispatchQueue.main.async {
-                                        let sharePhotoController = UploadImageViewController()
-                                        sharePhotoController.selectedImage = image
-                                        sharePhotoController.onClose = self.onClose
-                                        self.present(sharePhotoController, animated: true, completion: nil)
-                                    }
+                            } else if let data = data as? URL, let imageData = try? Data(contentsOf: data) {
+                                let image = UIImage(data: imageData)
+                                DispatchQueue.main.async {
+                                    let sharePhotoController = UploadImageViewController()
+                                    sharePhotoController.selectedImage = image
+                                    sharePhotoController.onClose = self.onClose
+                                    self.present(sharePhotoController, animated: true, completion: nil)
                                 }
                             } else {
                                 showErrorToastWithCompletionHandler(controller: self, message: "Unable to load the item into PogoSnap", seconds: 3.0, completion: self.onClose)

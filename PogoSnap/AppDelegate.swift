@@ -12,10 +12,8 @@ import CoreData
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
-    class var sharedInstance: AppDelegate {
-        return UIApplication.shared.delegate as! AppDelegate
-    }
-    
+    var window: UIWindow?
+
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey:Any] = [:]) -> Bool {
         if url.host == "response" {
             OAuthSwift.handle(url: url)
@@ -25,6 +23,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+
+        window = UIWindow(frame: UIScreen.main.bounds)
+        window?.rootViewController = MainTabBarController()
+        window?.makeKeyAndVisible()
+
         return true
     }
 
@@ -53,19 +56,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             do {
                 try context.save()
             } catch {}
-        }
-    }
-}
-
-// MARK: handle callback url
-extension AppDelegate {
-    
-    func applicationHandle(url: URL) {
-        if url.host == "response" {
-            OAuthSwift.handle(url: url)
-        } else {
-            // Google provider is the only one with your.bundle.id url schema.
-            OAuthSwift.handle(url: url)
         }
     }
 }

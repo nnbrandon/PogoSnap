@@ -182,7 +182,7 @@ class UploadImageViewController: UIViewController {
                                         self.progressView.setProgress(1, animated: true)
                                         generatorImpactOccured()
                                         self.activityIndicatorView.stopAnimating()
-                                        showSuccessToastAndDismiss(controller: self, message: "Image upload success", seconds: 0.5)
+                                        showSuccessToastAndDismiss(controller: self, message: "Image upload success", seconds: 2.0)
                                     }
                                 case .error:
                                     DispatchQueue.main.async {
@@ -190,7 +190,7 @@ class UploadImageViewController: UIViewController {
                                         generatorImpactOccured()
                                         self.activityIndicatorView.stopAnimating()
                                         self.submitButton.isHidden = false
-                                        showErrorToast(controller: self, message: "Image upload failed", seconds: 1.0)
+                                        showErrorToast(controller: self, message: "Image upload failed", seconds: 9.0)
                                     }
                                 }
                             }
@@ -199,7 +199,7 @@ class UploadImageViewController: UIViewController {
                                 self.progressView.setProgress(0.0, animated: true)
                                 self.submitButton.isHidden = false
                                 self.activityIndicatorView.stopAnimating()
-                                showErrorToast(controller: self, message: error, seconds: 1.0)
+                                showErrorToast(controller: self, message: error, seconds: 9.0)
                             }
                             return
                         }

@@ -90,7 +90,7 @@ class ImgurClient {
     
     private func getBase64Image(image: UIImage, completion: @escaping Base64Handler) {
         DispatchQueue.main.async {
-            let imageData = image.pngData()
+            let imageData = image.jpegData(compressionQuality: 1.0)
             if let base64Image = imageData?.base64EncodedString(options: .lineLength64Characters) {
                 completion(base64Image)
             }
@@ -154,8 +154,7 @@ class ImgurClient {
             request.httpBody = postData
             
             URLSession.shared.dataTask(with: request) { data, response, _ in
-                guard let response = response as? HTTPURLResponse,
-                    (200...299).contains(response.statusCode), let data = data, let mimeType = response.mimeType, mimeType == "application/json" else {
+                guard let response = response, let data = data, let mimeType = response.mimeType, mimeType == "application/json" else {
                     completion(ImgurUploadResult.error(error: "Unable to upload image"))
                     return
                 }
@@ -166,11 +165,17 @@ class ImgurClient {
                         return
                     }
                     if let dataJson = parsedResult["data"] as? [String: Any] {
-                        if let link = dataJson["link"] as? String, let deleteHash = dataJson["deletehash"] as? String, let width = dataJson["width"] as? Int, let height = dataJson["height"] as? Int {
+                        if let error = dataJson["error"], error as? String == "File is over the size limit" {
+                            completion(ImgurUploadResult.error(error: "Unable to upload image: Imgur and PogoSnap only allows image size up to 10MB"))
+                        } else if let link = dataJson["link"] as? String, let deleteHash = dataJson["deletehash"] as? String, let width = dataJson["width"] as? Int, let height = dataJson["height"] as? Int {
                             let imageSource = ImageSource(url: link, width: width, height: height)
                             self.saveImageUrlDelete(url: link, deleteHash: deleteHash)
                             completion(ImgurUploadResult.success(imageSource: imageSource))
+                        } else {
+                            completion(ImgurUploadResult.error(error: "Unable to upload image"))
                         }
+                    } else {
+                        completion(ImgurUploadResult.error(error: "Unable to upload image"))
                     }
                 } catch {
                     completion(ImgurUploadResult.error(error: "Unable to upload image"))

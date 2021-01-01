@@ -38,12 +38,12 @@ class HomeController: PostCollectionController {
         navigationItem.title = "PogoSnap"
         if traitCollection.userInterfaceStyle == .light {
             collectionView.backgroundColor = .white
-            let barButton = UIBarButtonItem(image: UIImage(named: "add-image-30")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
+            let barButton = UIBarButtonItem(image: UIImage(named: "plus_unselected")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
             barButton.tintColor = .darkGray
             navigationItem.rightBarButtonItem = barButton
         } else {
             collectionView.backgroundColor = RedditConsts.redditDarkMode
-            let barButton = UIBarButtonItem(image: UIImage(named: "add-image-30")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
+            let barButton = UIBarButtonItem(image: UIImage(named: "plus_unselected")?.withRenderingMode(.alwaysTemplate), style: .plain, target: self, action: #selector(handleAdd))
             barButton.tintColor = .white
             navigationItem.rightBarButtonItem = barButton
         }
@@ -135,6 +135,8 @@ class HomeController: PostCollectionController {
     }
     
     private func changeSort() {
+        generatorImpactOccured()
+
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Hot", style: .default, handler: { _ in
             self.sort = SortOptions.hot
@@ -209,6 +211,8 @@ class HomeController: PostCollectionController {
     }
     
     private func changeLayout() {
+        generatorImpactOccured()
+
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Card", style: .default, handler: { _ in
             self.listLayoutOption = .card
@@ -237,6 +241,7 @@ class HomeController: PostCollectionController {
         } else {
             var config = YPImagePickerConfiguration()
             config.screens = [.library]
+            config.showsPhotoFilters = false
             config.shouldSaveNewPicturesToAlbum = false
             let picker = YPImagePicker(configuration: config)
             if traitCollection.userInterfaceStyle == .dark {
@@ -302,7 +307,7 @@ extension HomeController: ShareDelegate {
                             self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
                             generatorImpactOccured()
                             if let navController = self.navigationController {
-                                showImageToast(controller: navController, message: message, image: image, seconds: 3.0)
+                                showImageToast(controller: navController, message: message, image: image, seconds: 10.0)
                             }
                             progressView?.setProgress(0, animated: true)
                         }
@@ -311,8 +316,9 @@ extension HomeController: ShareDelegate {
                 case .error(let error):
                     DispatchQueue.main.async {
                         progressView?.setProgress(0.0, animated: true)
+                        generatorImpactOccured()
                         if let navController = self.navigationController {
-                            showErrorToast(controller: navController, message: error, seconds: 3.0)
+                            showErrorToast(controller: navController, message: error, seconds: 10.0)
                         }
                     }
                     return
