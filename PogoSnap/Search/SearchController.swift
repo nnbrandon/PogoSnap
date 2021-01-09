@@ -87,6 +87,7 @@ extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableVie
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         // Default search posts in PokemonGoSnap
+        // needs search
     }
     
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
