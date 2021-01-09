@@ -31,6 +31,7 @@ class ImgurTableController: UITableViewController {
         title = "Imgur Uploads"
         tableView.register(ImgurCell.self, forCellReuseIdentifier: cellId)
         tableView.rowHeight = 100
+        tableView.tableFooterView = UIView()
 
         if let imgurDeletes = ImgurClient.sharedInstance.getImageUrlList() {
             self.imgurDeletes = imgurDeletes
