@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import IGListKit
 import YPImagePicker
 
 class HomeController: PostCollectionController {
@@ -49,17 +50,14 @@ class HomeController: PostCollectionController {
             navigationItem.rightBarButtonItem = barButton
         }
         
+        view.addSubview(collectionView)
         pinCollectionView(to: view)
-        collectionView.delegate = self
-        collectionView.dataSource = self
+        adapter.collectionView = collectionView
+        adapter.dataSource = self
 
-        collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cardCellId)
-        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: galleryCellId)
         collectionView.refreshControl = refreshControl
         collectionView.register(HomeHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerId)
-        collectionView.register(CollectionViewFooterView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: footerId)
         (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.headerReferenceSize = CGSize(width: collectionView.bounds.width, height: 35)
-        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.footerReferenceSize = CGSize(width: collectionView.bounds.width, height: 50)
 
         view.addSubview(activityIndicatorView)
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
@@ -87,26 +85,6 @@ class HomeController: PostCollectionController {
     }
     
     private func fetchPosts() {
-//        if let after = after {
-//            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { result in
-//                DispatchQueue.main.async {
-//                    self.activityIndicatorView.stopAnimating()
-//                    self.footerView.stopAnimating()
-//                }
-//                switch result {
-//                case .success(let posts, let nextAfter):
-//                    self.posts.append(contentsOf: posts)
-//                    self.after = nextAfter
-//                case .error:
-//                    DispatchQueue.main.async {
-//                        showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
-//                    }
-//                }
-//            }
-//        } else {
-//            activityIndicatorView.stopAnimating()
-//            footerView.stopAnimating()
-//        }
         RedditClient.sharedInstance.fetchGoAndSnapPosts(pokemonGoAfter: pokemonGoAfter, pokemonGoSnapAfter: pokemonGoSnapAfter, sort: sort.rawValue, topOption: topOption) { result in
             DispatchQueue.main.async {
                 self.activityIndicatorView.stopAnimating()
@@ -140,11 +118,11 @@ class HomeController: PostCollectionController {
             }
             switch result {
             case .success(let posts, let nextPokemonGoSnapAfter, let nextPokemonGoAfter):
-                if self.posts != posts {
+//                if self.posts != posts {
                     self.posts = posts
                     self.pokemonGoSnapAfter = nextPokemonGoSnapAfter
                     self.pokemonGoAfter = nextPokemonGoAfter
-                }
+//                }
             case .error:
                 DispatchQueue.main.async {
                     showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 3.0)
@@ -153,7 +131,62 @@ class HomeController: PostCollectionController {
         }
     }
     
-    private func changeSort() {
+    @objc func handleAdd() {
+        if RedditClient.sharedInstance.getUsername() == nil {
+            DispatchQueue.main.async {
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "You need to sign in to upload an image", seconds: 0.5)
+                }
+            }
+        } else {
+            var config = YPImagePickerConfiguration()
+            config.screens = [.library]
+            config.showsPhotoFilters = false
+            config.shouldSaveNewPicturesToAlbum = false
+            let picker = YPImagePicker(configuration: config)
+            if traitCollection.userInterfaceStyle == .dark {
+                picker.navigationBar.barTintColor = RedditConsts.redditDarkMode
+                picker.view.backgroundColor = RedditConsts.redditDarkMode
+            }
+            picker.didFinishPicking { [unowned picker] items, cancelled in
+                if cancelled {
+                    picker.dismiss(animated: true, completion: nil)
+                }
+                if let photo = items.singlePhoto {
+                    let sharePhotoVC = SharePhotoController()
+                    sharePhotoVC.delegate = self
+                    sharePhotoVC.selectedImage = photo.image
+                    picker.pushViewController(sharePhotoVC, animated: true)
+                }
+            }
+            present(picker, animated: true, completion: nil)
+        }
+    }
+}
+
+extension HomeController: ListAdapterDataSource {
+    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
+        return posts
+    }
+    
+    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
+        let postListSectionController = PostListSectionController()
+        postListSectionController.postViewDelegate = self
+        postListSectionController.homeHeaderDelegate = self
+        postListSectionController.profileImageDelegate = self
+        postListSectionController.sort = sort
+        postListSectionController.topOption = topOption
+        postListSectionController.listLayoutOption = listLayoutOption
+        return postListSectionController
+    }
+    
+    func emptyView(for listAdapter: ListAdapter) -> UIView? {
+        return nil
+    }
+}
+
+extension HomeController: HomeHeaderDelegate {
+    func changeSort() {
         generatorImpactOccured()
 
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
@@ -232,62 +265,25 @@ class HomeController: PostCollectionController {
         present(alertController, animated: true, completion: nil)
     }
     
-    private func changeLayout() {
+    func changeLayout() {
         generatorImpactOccured()
 
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Card", style: .default, handler: { _ in
             self.listLayoutOption = .card
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
+            self.adapter.reloadData(completion: nil)
         }))
         alertController.addAction(UIAlertAction(title: "Gallery", style: .default, handler: { _ in
             self.listLayoutOption = .gallery
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
+            self.adapter.reloadData(completion: nil)
         }))
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         
         present(alertController, animated: true, completion: nil)
     }
-    
-    @objc func handleAdd() {
-        if RedditClient.sharedInstance.getUsername() == nil {
-            DispatchQueue.main.async {
-                if let navController = self.navigationController {
-                    showErrorToast(controller: navController, message: "You need to sign in to upload an image", seconds: 0.5)
-                }
-            }
-        } else {
-            var config = YPImagePickerConfiguration()
-            config.screens = [.library]
-            config.showsPhotoFilters = false
-            config.shouldSaveNewPicturesToAlbum = false
-            let picker = YPImagePicker(configuration: config)
-            if traitCollection.userInterfaceStyle == .dark {
-                picker.navigationBar.barTintColor = RedditConsts.redditDarkMode
-                picker.view.backgroundColor = RedditConsts.redditDarkMode
-            }
-            picker.didFinishPicking { [unowned picker] items, cancelled in
-                if cancelled {
-                    picker.dismiss(animated: true, completion: nil)
-                }
-                if let photo = items.singlePhoto {
-                    let sharePhotoVC = SharePhotoController()
-                    sharePhotoVC.delegate = self
-                    sharePhotoVC.selectedImage = photo.image
-                    picker.pushViewController(sharePhotoVC, animated: true)
-                }
-            }
-            present(picker, animated: true, completion: nil)
-        }
-    }
 }
 
 extension HomeController: ShareDelegate {
-    
     func imageSubmitted(image: UIImage, title: String) {
         guard let author = RedditClient.sharedInstance.getUsername() else {return}
 
@@ -350,103 +346,79 @@ extension HomeController: ShareDelegate {
     }
 }
 
-extension HomeController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        if kind == UICollectionView.elementKindSectionHeader {
-            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? HomeHeader else {return UICollectionReusableView()}
-            header.sortOption = sort
-            if let topOption = topOption {
-                header.topOption = TopOptions(rawValue: topOption)
-            }
-            header.changeSort = changeSort
-            header.listLayoutOption = listLayoutOption
-            header.changeLayout = changeLayout
-            return header
-        }
-         if kind == UICollectionView.elementKindSectionFooter {
-             let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
-             footer.addSubview(footerView)
-             footerView.frame = CGRect(x: 0, y: 0, width: collectionView.bounds.width, height: 50)
-             return footer
-         }
-         return UICollectionReusableView()
-     }
+extension HomeController {
+//    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+//        if kind == UICollectionView.elementKindSectionHeader {
+//            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? HomeHeader else {return UICollectionReusableView()}
+//            header.sortOption = sort
+//            if let topOption = topOption {
+//                header.topOption = TopOptions(rawValue: topOption)
+//            }
+//            header.changeSort = changeSort
+//            header.listLayoutOption = listLayoutOption
+//            header.changeLayout = changeLayout
+//            return header
+//        }
+//         if kind == UICollectionView.elementKindSectionFooter {
+//             let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
+//             footer.addSubview(footerView)
+//             footerView.frame = CGRect(x: 0, y: 0, width: collectionView.bounds.width, height: 50)
+//             return footer
+//         }
+//         return UICollectionReusableView()
+//     }
 
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        switch listLayoutOption {
-        case .card:
-            let post = posts[indexPath.row]
-            var imageFrameHeight = view.frame.width
-            if !post.aspectFit {
-                imageFrameHeight += view.frame.width/2
-            }
-            var height = 8 + 30 + 50 + imageFrameHeight
-            let title = posts[indexPath.row].title
-            let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
-            height += titleEstimatedHeight
-            return CGSize(width: view.frame.width, height: height)
-        case .gallery:
-            let width = (view.frame.width - 2) / 3
-            return CGSize(width: width, height: width)
-        }
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        switch listLayoutOption {
-        case .card:
-            return 10
-        case .gallery:
-            return getSpacingForCells()
-        }
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        switch listLayoutOption {
-        case .card:
-            return 10
-        case .gallery:
-            return getSpacingForCells()
-        }
-    }
+//    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
+//        switch listLayoutOption {
+//        case .card:
+//            return 10
+//        case .gallery:
+//            return getSpacingForCells()
+//        }
+//    }
+//
+//    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+//        switch listLayoutOption {
+//        case .card:
+//            return 10
+//        case .gallery:
+//            return getSpacingForCells()
+//        }
+//    }
 
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return posts.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        switch listLayoutOption {
-        case .card:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as? HomePostCell
-            else {
-                return UICollectionViewCell()
-            }
-            cell.post = posts[indexPath.row]
-            cell.index = indexPath.row
-            cell.delegate = self
-
-            return cell
-        case .gallery:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as? UserProfileCell
-            else {
-                return UICollectionViewCell()
-            }
-            cell.photoImageView.image = UIImage()
-            let post = posts[indexPath.row]
-            cell.post = post
-            cell.index = indexPath.row
-            cell.delegate = self
-
-            return cell
-        }
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.row == posts.count - 8 {
-            footerView.startAnimating()
-            fetchPosts()
-        }
-    }
+//    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+//        switch listLayoutOption {
+//        case .card:
+//            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as? HomePostCell
+//            else {
+//                return UICollectionViewCell()
+//            }
+//            cell.post = posts[indexPath.row]
+//            cell.index = indexPath.row
+//            cell.delegate = self
+//
+//            return cell
+//        case .gallery:
+//            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as? UserProfileCell
+//            else {
+//                return UICollectionViewCell()
+//            }
+//            cell.photoImageView.image = UIImage()
+//            let post = posts[indexPath.row]
+//            cell.post = post
+//            cell.index = indexPath.row
+//            cell.delegate = self
+//
+//            return cell
+//        }
+//    }
+//
+//    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+//        if indexPath.row == posts.count - 8 {
+//            footerView.startAnimating()
+//            fetchPosts()
+//        }
+//    }
 }
 
 public class CollectionViewFooterView: UICollectionReusableView {

@@ -6,18 +6,31 @@
 //
 
 import UIKit
+import IGListKit
 
+/**
+ An abstract view controller to conform to when you need to deal with anything related
+ to Reddit posts. This view controller already conforms to the PostViewDelegate and implements
+ basic functionality of tapping a comment, username, image, options, and upvote/downvote.
+ 
+ View Controllers that do conform to this must make sure to add the data source to the adapter and
+ must conform and implement ListAdapterDataSource.
+ */
 class PostCollectionController: UIViewController {
-    
-    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     
     var posts = [Post]() {
         didSet {
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
+            adapter.performUpdates(animated: true, completion: nil)
         }
     }
+
+    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: ListCollectionViewLayout(stickyHeaders: false, scrollDirection: .vertical, topContentInset: 0, stretchToEdge: false))
+    lazy var adapter: ListAdapter = {
+      return ListAdapter(
+      updater: ListAdapterUpdater(),
+      viewController: self,
+      workingRangeSize: 1)
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -208,6 +221,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
                 posts[index].liked = false
                 posts[index].score -= 1
             }
+            adapter.reloadObjects([posts[index]])
             votePost(id: post.id, direction: direction, index: index)
         }
     }

@@ -10,7 +10,8 @@ import UIKit
 class SearchController: UIViewController {
     
     let searchDescriptions = [
-        "PokemonGoSnap posts with ",
+        "r/PokemonGoSnap posts with ",
+        "r/PokemonGo posts with ",
         "Go to User "
     ]
     
@@ -62,7 +63,7 @@ class SearchController: UIViewController {
 
 extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 2
+        return 3
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -81,15 +82,20 @@ extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableVie
                 showErrorToast(controller: self, message: "Search is empty", seconds: 3.0)
             }
         } else {
-            if indexPath.row == 0 {
-                let searchPostsController = SearchPostsController()
-                searchPostsController.searchText = searchText
-                navigationController?.pushViewController(searchPostsController, animated: true)
-            } else {
-                let userProfileController = UserProfileController()
-                userProfileController.usernameProp = searchText
-                navigationController?.pushViewController(userProfileController, animated: true)
-            }
+//            if indexPath.row < 2 {
+//                let searchPostsController = SearchPostsController()
+//                searchPostsController.searchText = searchText
+//                if indexPath.row == 0 {
+//                    searchPostsController.subReddit = RedditConsts.subredditName
+//                } else {
+//                    searchPostsController.subReddit = RedditConsts.pokemonGoSubredditName
+//                }
+//                navigationController?.pushViewController(searchPostsController, animated: true)
+//            } else {
+//                let userProfileController = UserProfileController()
+//                userProfileController.usernameProp = searchText
+//                navigationController?.pushViewController(userProfileController, animated: true)
+//            }
         }
     }
     
@@ -99,9 +105,9 @@ extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableVie
                 showErrorToast(controller: self, message: "Search is empty", seconds: 3.0)
             }
         } else {
-            let searchPostsController = SearchPostsController()
-            searchPostsController.searchText = searchText
-            navigationController?.pushViewController(searchPostsController, animated: true)
+//            let searchPostsController = SearchPostsController()
+//            searchPostsController.searchText = searchText
+//            navigationController?.pushViewController(searchPostsController, animated: true)
         }
     }
     

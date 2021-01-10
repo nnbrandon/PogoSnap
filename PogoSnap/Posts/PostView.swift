@@ -7,14 +7,6 @@
 
 import UIKit
 
-protocol PostViewDelegate: class {
-    func didTapComment(post: Post, index: Int)
-    func didTapUsername(username: String, user_icon: String?)
-    func didTapImage(imageSources: [ImageSource], position: Int)
-    func didTapOptions(post: Post)
-    func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool)
-}
-
 class PostView: UIView {
 
     var post: Post? {

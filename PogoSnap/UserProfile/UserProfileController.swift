@@ -146,13 +146,13 @@ class UserProfileController: PostCollectionController {
                     }
                     var nextPosts = self.posts
                     for post in posts {
-                        if !nextPosts.contains(post) {
-                            nextPosts.append(post)
-                        }
+//                        if !nextPosts.contains(post) {
+//                            nextPosts.append(post)
+//                        }
                     }
-                    if self.posts != nextPosts {
-                        self.posts = nextPosts
-                    }
+//                    if self.posts != nextPosts {
+//                        self.posts = nextPosts
+//                    }
                     self.after = nextAfter
                 case .error:
                     DispatchQueue.main.async {

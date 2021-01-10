@@ -109,6 +109,7 @@ class RedditClient {
     
     typealias CombinedPosts = (RedditGoAndSnapResult) -> Void
     public func fetchGoAndSnapPosts(pokemonGoAfter: String?, pokemonGoSnapAfter: String?, sort: String, topOption: String?, completion: @escaping CombinedPosts) {
+        let limit = 10
         let requestsGroup = DispatchGroup()
 
         var pokemonGoSnapPosts = [Post]()
@@ -118,7 +119,7 @@ class RedditClient {
         var nextPokemonGoAfter: String?
         
         if let pokemonGoSnapAfter = pokemonGoSnapAfter {
-            var pokemonGoSnapURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/\(sort).json?limit=10&after=" + pokemonGoSnapAfter : "https://www.reddit.com/r/\(RedditConsts.subredditName)/\(sort).json?limit=10&after=" + pokemonGoSnapAfter
+            var pokemonGoSnapURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/\(sort).json?limit=\(limit)&after=" + pokemonGoSnapAfter : "https://www.reddit.com/r/\(RedditConsts.subredditName)/\(sort).json?limit=\(limit)&after=" + pokemonGoSnapAfter
             if let topOption = topOption {
                 pokemonGoSnapURL += "&t=\(topOption)"
             }
@@ -137,7 +138,7 @@ class RedditClient {
         
         if let pokemonGoAfter = pokemonGoAfter {
             let query = "flair:\"AR SHOT\"".addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
-            var pokemonGoURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.pokemonGoSubredditName)/search.json?q=\(query!)&restrict_sr=t&sort=\(sort)&limit=10&after=" + pokemonGoAfter : "https://www.reddit.com/r/\(RedditConsts.pokemonGoSubredditName)/search.json?q=\(query!)&restrict_sr=t&sort=\(sort)&limit=10&after=" + pokemonGoAfter
+            var pokemonGoURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.pokemonGoSubredditName)/search.json?q=\(query!)&restrict_sr=t&sort=\(sort)&limit=\(limit)&after=" + pokemonGoAfter : "https://www.reddit.com/r/\(RedditConsts.pokemonGoSubredditName)/search.json?q=\(query!)&restrict_sr=t&sort=\(sort)&limit=\(limit)&after=" + pokemonGoAfter
             if let topOption = topOption {
                 pokemonGoURL += "&t=\(topOption)"
             }
@@ -158,7 +159,7 @@ class RedditClient {
             var posts = [Post]()
             let pokemonGoSnapPostsCount = pokemonGoSnapPosts.count - 1
             let pokemonGoPostsCount = pokemonGoPosts.count - 1
-            for index in 0..<10 {
+            for index in 0..<limit {
                 if index <= pokemonGoSnapPostsCount {
                     posts.append(pokemonGoSnapPosts[index])
                 }
@@ -231,25 +232,29 @@ class RedditClient {
         }
     }
     
-    public func searchPosts(query: String, after: String, completion: @escaping PostsHandler) {
-        let query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+    public func searchPosts(subReddit: String, query: String, after: String, completion: @escaping PostsHandler) {
+        var query = query
+        if subReddit == RedditConsts.pokemonGoSubredditName {
+            query += " AND flair:\"AR SHOT\""
+        }
+        query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
         if getUsername() != nil {
-            let url = "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
+            let url = "\(RedditConsts.oauthEndpoint)/r/\(subReddit)/search.json?q=\(query)&restrict_sr=t&sort=new&after=\(after)"
             redditOAuth.getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
                 postsRequest.setValue(RedditConsts.userAgent, forHTTPHeaderField: "User-Agent")
                 URLSession.shared.dataTask(with: postsRequest) { data, _, _ in
-                    let (posts, nextAfter) = self.extractPosts(subReddit: RedditConsts.subredditName, after: after, data: data, user_icon: nil)
+                    let (posts, nextAfter) = self.extractPosts(subReddit: subReddit, after: after, data: data, user_icon: nil)
                     self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
                         completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
                     }
                 }.resume()
             }
         } else {
-            let url = "https://www.reddit.com/r/\(RedditConsts.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
+            let url = "https://www.reddit.com/r/\(RedditConsts.subredditName)/search.json?q=\(query)&restrict_sr=t&sort=new&after=\(after)"
             URLSession.shared.dataTask(with: URL(string: url)!) { data, _, _ in
-                let (posts, nextAfter) = self.extractPosts(subReddit: RedditConsts.subredditName, after: after, data: data, user_icon: nil)
+                let (posts, nextAfter) = self.extractPosts(subReddit: subReddit, after: after, data: data, user_icon: nil)
                 self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
                     completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
                 }
