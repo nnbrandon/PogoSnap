@@ -7,7 +7,7 @@
 
 import UIKit
 
-class UserProfileController: PostCollectionController, UICollectionViewDataSource {
+class UserProfileController: PostCollectionController {
 
     var usernameProp: String?
     var icon_imgProp: String? {
@@ -23,6 +23,7 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
     
     let cellId = "cellId"
     let headerId = "headerId"
+    let footerId = "footerId"
     let username = "username"
     
     let refreshControl: UIRefreshControl = {
@@ -34,6 +35,7 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
         let activityView = UIActivityIndicatorView()
         return activityView
     }()
+    let footerView = UIActivityIndicatorView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -52,6 +54,8 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
         
         collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerId)
         collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: cellId)
+        collectionView.register(CollectionViewFooterView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: footerId)
+        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.footerReferenceSize = CGSize(width: collectionView.bounds.width, height: 50)
         collectionView.refreshControl = refreshControl
         
         view.addSubview(activityIndicatorView)
@@ -227,7 +231,7 @@ class UserProfileController: PostCollectionController, UICollectionViewDataSourc
 
 }
 
-extension UserProfileController: UICollectionViewDelegateFlowLayout {
+extension UserProfileController: UICollectionViewDelegateFlowLayout, UICollectionViewDataSource {
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
         return getSpacingForCells()
@@ -246,7 +250,7 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
         return posts.count
     }
     
-    internal func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as? UserProfileCell else {
             return UICollectionViewCell()
         }
@@ -261,24 +265,33 @@ extension UserProfileController: UICollectionViewDelegateFlowLayout {
     }
     
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? UserProfileHeader else {
-            return UICollectionReusableView()
-        }
-        if traitCollection.userInterfaceStyle == .dark {
-            header.darkMode = true
-        } else {
-            header.darkMode = false
-        }
+        if kind == UICollectionView.elementKindSectionHeader {
+            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? UserProfileHeader else {
+                return UICollectionReusableView()
+            }
+            if traitCollection.userInterfaceStyle == .dark {
+                header.darkMode = true
+            } else {
+                header.darkMode = false
+            }
 
-        if let usernameProp = usernameProp {
-            header.username = usernameProp
-            header.icon_img = icon_imgProp
-        } else if let username = RedditClient.sharedInstance.getUsername() {
-            header.username = username
-            header.icon_img = RedditClient.sharedInstance.getIconImg()
+            if let usernameProp = usernameProp {
+                header.username = usernameProp
+                header.icon_img = icon_imgProp
+            } else if let username = RedditClient.sharedInstance.getUsername() {
+                header.username = username
+                header.icon_img = RedditClient.sharedInstance.getIconImg()
+            }
+            
+            return header
         }
-        
-        return header
+        if kind == UICollectionView.elementKindSectionFooter {
+            let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
+            footer.addSubview(footerView)
+            footerView.frame = CGRect(x: 0, y: 0, width: collectionView.bounds.width, height: 50)
+            return footer
+        }
+        return UICollectionReusableView()
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {

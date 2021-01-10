@@ -173,6 +173,32 @@ class RedditClient {
         }
     }
     
+    public func searchPosts(query: String, after: String, completion: @escaping PostsHandler) {
+        let query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+        if getUsername() != nil {
+            let url = "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
+            redditOAuth.getAccessToken { accessToken in
+                var postsRequest = URLRequest(url: URL(string: url)!)
+                postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+                postsRequest.setValue(RedditConsts.userAgent, forHTTPHeaderField: "User-Agent")
+                URLSession.shared.dataTask(with: postsRequest) { data, _, _ in
+                    let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                    self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
+                        completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
+                    }
+                }.resume()
+            }
+        } else {
+            let url = "https://www.reddit.com/r/\(RedditConsts.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
+            URLSession.shared.dataTask(with: URL(string: url)!) { data, _, _ in
+                let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
+                    completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
+                }
+            }.resume()
+        }
+    }
+    
     private func extractPosts(after: String, data: Data?, user_icon: String?) -> ([Post], String?) {
         if let data = data {
             var nextAfter: String?

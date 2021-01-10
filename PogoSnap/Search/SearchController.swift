@@ -76,18 +76,33 @@ extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableVie
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if indexPath.row == 0 {
-            
+        if searchText.isEmpty {
+            DispatchQueue.main.async {
+                showErrorToast(controller: self, message: "Search is empty", seconds: 3.0)
+            }
         } else {
-            let userProfileController = UserProfileController()
-            userProfileController.usernameProp = searchText
-            navigationController?.pushViewController(userProfileController, animated: true)
+            if indexPath.row == 0 {
+                let searchPostsController = SearchPostsController()
+                searchPostsController.searchText = searchText
+                navigationController?.pushViewController(searchPostsController, animated: true)
+            } else {
+                let userProfileController = UserProfileController()
+                userProfileController.usernameProp = searchText
+                navigationController?.pushViewController(userProfileController, animated: true)
+            }
         }
     }
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        // Default search posts in PokemonGoSnap
-        // needs search
+        if searchText.isEmpty {
+            DispatchQueue.main.async {
+                showErrorToast(controller: self, message: "Search is empty", seconds: 3.0)
+            }
+        } else {
+            let searchPostsController = SearchPostsController()
+            searchPostsController.searchText = searchText
+            navigationController?.pushViewController(searchPostsController, animated: true)
+        }
     }
     
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
