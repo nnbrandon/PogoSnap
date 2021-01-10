@@ -20,6 +20,7 @@ struct Post: Equatable {
     var liked: Bool?
     let aspectFit: Bool
     var user_icon: String?
+    let subReddit: String
     
     static func == (lhs: Post, rhs: Post) -> Bool {
         return lhs.author == rhs.author && lhs.title == rhs.title && lhs.score != rhs.score && lhs.numComments != rhs.numComments

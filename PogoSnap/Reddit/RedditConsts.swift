@@ -10,6 +10,7 @@ import UIKit
 
 struct RedditConsts {
     static let subredditName = "PokemonGoSnap"
+    static let pokemonGoSubredditName = "PokemonGo"
 //    static let subredditName = "PogoSnap"
 
     static let username = "username"

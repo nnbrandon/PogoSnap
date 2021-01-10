@@ -10,7 +10,8 @@ import YPImagePicker
 
 class HomeController: PostCollectionController {
 
-    var after: String? = ""
+    var pokemonGoAfter: String? = ""
+    var pokemonGoSnapAfter: String? = ""
     var sort = SortOptions.hot
     var topOption: String?
     var listLayoutOption = ListLayoutOptions.card
@@ -75,35 +76,52 @@ class HomeController: PostCollectionController {
         userSignFlag = RedditClient.sharedInstance.getUsername()
         if previousUserSignFlag != userSignFlag {
             posts = [Post]()
-            after = ""
+            pokemonGoAfter = ""
+            pokemonGoSnapAfter = ""
         }
         if posts.isEmpty || posts.count == 1 {
             activityIndicatorView.startAnimating()
-            fetchRules()
+//            fetchRules()
             fetchPosts()
         }
     }
     
     private func fetchPosts() {
-        if let after = after {
-            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { result in
+//        if let after = after {
+//            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { result in
+//                DispatchQueue.main.async {
+//                    self.activityIndicatorView.stopAnimating()
+//                    self.footerView.stopAnimating()
+//                }
+//                switch result {
+//                case .success(let posts, let nextAfter):
+//                    self.posts.append(contentsOf: posts)
+//                    self.after = nextAfter
+//                case .error:
+//                    DispatchQueue.main.async {
+//                        showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
+//                    }
+//                }
+//            }
+//        } else {
+//            activityIndicatorView.stopAnimating()
+//            footerView.stopAnimating()
+//        }
+        RedditClient.sharedInstance.fetchGoAndSnapPosts(pokemonGoAfter: pokemonGoAfter, pokemonGoSnapAfter: pokemonGoSnapAfter, sort: sort.rawValue, topOption: topOption) { result in
+            DispatchQueue.main.async {
+                self.activityIndicatorView.stopAnimating()
+                self.footerView.stopAnimating()
+            }
+            switch result {
+            case .success(let posts, let nextPokemonGoSnapAfter, let nextPokemonGoAfter):
+                self.posts.append(contentsOf: posts)
+                self.pokemonGoSnapAfter = nextPokemonGoSnapAfter
+                self.pokemonGoAfter = nextPokemonGoAfter
+            case .error:
                 DispatchQueue.main.async {
-                    self.activityIndicatorView.stopAnimating()
-                    self.footerView.stopAnimating()
-                }
-                switch result {
-                case .success(let posts, let nextAfter):
-                    self.posts.append(contentsOf: posts)
-                    self.after = nextAfter
-                case .error:
-                    DispatchQueue.main.async {
-                        showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
-                    }
+                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 3.0)
                 }
             }
-        } else {
-            activityIndicatorView.stopAnimating()
-            footerView.stopAnimating()
         }
     }
     
@@ -115,20 +133,21 @@ class HomeController: PostCollectionController {
         if posts.isEmpty {
             activityIndicatorView.startAnimating()
         }
-        RedditClient.sharedInstance.fetchPosts(after: "", sort: sort.rawValue, topOption: topOption) { result in
+        RedditClient.sharedInstance.fetchGoAndSnapPosts(pokemonGoAfter: "", pokemonGoSnapAfter: "", sort: sort.rawValue, topOption: topOption) { result in
             DispatchQueue.main.async {
                 self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
             }
             switch result {
-            case .success(let posts, let nextAfter):
+            case .success(let posts, let nextPokemonGoSnapAfter, let nextPokemonGoAfter):
                 if self.posts != posts {
                     self.posts = posts
-                    self.after = nextAfter
+                    self.pokemonGoSnapAfter = nextPokemonGoSnapAfter
+                    self.pokemonGoAfter = nextPokemonGoAfter
                 }
             case .error:
                 DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
+                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 3.0)
                 }
             }
         }
@@ -141,7 +160,8 @@ class HomeController: PostCollectionController {
         alertController.addAction(UIAlertAction(title: "Hot", style: .default, handler: { _ in
             self.sort = SortOptions.hot
             self.posts = []
-            self.after = ""
+            self.pokemonGoSnapAfter = ""
+            self.pokemonGoAfter = ""
             self.topOption = nil
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
@@ -151,7 +171,8 @@ class HomeController: PostCollectionController {
         alertController.addAction(UIAlertAction(title: "New", style: .default, handler: { _ in
             self.sort = SortOptions.new
             self.posts = []
-            self.after = ""
+            self.pokemonGoSnapAfter = ""
+            self.pokemonGoAfter = ""
             self.topOption = nil
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
@@ -194,7 +215,8 @@ class HomeController: PostCollectionController {
                     }
                     self.sort = SortOptions.top
                     self.posts = []
-                    self.after = ""
+                    self.pokemonGoSnapAfter = ""
+                    self.pokemonGoAfter = ""
                     self.topOption = topOption
                     DispatchQueue.main.async {
                         self.activityIndicatorView.startAnimating()
@@ -292,7 +314,7 @@ extension HomeController: ShareDelegate {
                                 message = "Image upload success"
                                 let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
                                 let aspectFit = imageSource.width >= imageSource.height
-                                let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditClient.sharedInstance.getIconImg())
+                                let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditClient.sharedInstance.getIconImg(), subReddit: RedditConsts.subredditName)
                                 self.posts.insert(post, at: 0)
                                 DispatchQueue.main.async {
                                     if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
@@ -420,7 +442,7 @@ extension HomeController: UICollectionViewDataSource, UICollectionViewDelegateFl
     }
     
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.row == posts.count - 8, after != nil {
+        if indexPath.row == posts.count - 8 {
             footerView.startAnimating()
             fetchPosts()
         }

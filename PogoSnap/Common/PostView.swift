@@ -22,7 +22,7 @@ class PostView: UIView {
             if let post = post {
                 photoImageSlideshow.imageSources = post.imageSources
                 let date = Date(timeIntervalSince1970: post.created_utc)
-                usernameLabel.text = "u/\(post.author)・\(date.timeAgoSinceDate())"
+                usernameLabel.text = "u/\(post.author)・r/\(post.subReddit)・\(date.timeAgoSinceDate())"
                 
                 let titleText = NSAttributedString(string: post.title, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16, weight: .medium)])
                 titleLabel.attributedText = titleText

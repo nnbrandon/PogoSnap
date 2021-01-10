@@ -106,14 +106,73 @@ class RedditClient {
             }.resume()
         }
     }
+    
+    typealias CombinedPosts = (RedditGoAndSnapResult) -> Void
+    public func fetchGoAndSnapPosts(pokemonGoAfter: String?, pokemonGoSnapAfter: String?, sort: String, topOption: String?, completion: @escaping CombinedPosts) {
+        let requestsGroup = DispatchGroup()
+
+        var pokemonGoSnapPosts = [Post]()
+        var nextPokemonGoSnapAfter: String?
+
+        var pokemonGoPosts = [Post]()
+        var nextPokemonGoAfter: String?
+        
+        if let pokemonGoSnapAfter = pokemonGoSnapAfter {
+            var pokemonGoSnapURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/\(sort).json?limit=10&after=" + pokemonGoSnapAfter : "https://www.reddit.com/r/\(RedditConsts.subredditName)/\(sort).json?limit=10&after=" + pokemonGoSnapAfter
+            if let topOption = topOption {
+                pokemonGoSnapURL += "&t=\(topOption)"
+            }
+            requestsGroup.enter()
+            fetchPosts(subReddit: RedditConsts.subredditName, url: pokemonGoSnapURL, after: pokemonGoSnapAfter) { result in
+                switch result {
+                case .success(let posts, let nextAfter):
+                    pokemonGoSnapPosts = posts
+                    nextPokemonGoSnapAfter = nextAfter
+                case .error:
+                    break
+                }
+                requestsGroup.leave()
+            }
+        }
+        
+        if let pokemonGoAfter = pokemonGoAfter {
+            let query = "flair:\"AR SHOT\"".addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+            var pokemonGoURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.pokemonGoSubredditName)/search.json?q=\(query!)&restrict_sr=t&sort=\(sort)&limit=10&after=" + pokemonGoAfter : "https://www.reddit.com/r/\(RedditConsts.pokemonGoSubredditName)/search.json?q=\(query!)&restrict_sr=t&sort=\(sort)&limit=10&after=" + pokemonGoAfter
+            if let topOption = topOption {
+                pokemonGoURL += "&t=\(topOption)"
+            }
+            requestsGroup.enter()
+            fetchPosts(subReddit: RedditConsts.pokemonGoSubredditName, url: pokemonGoURL, after: pokemonGoAfter) { result in
+                switch result {
+                case .success(let posts, let nextAfter):
+                    pokemonGoPosts = posts
+                    nextPokemonGoAfter = nextAfter
+                case .error:
+                    break
+                }
+                requestsGroup.leave()
+            }
+        }
+        
+        requestsGroup.notify(queue: .main) {
+            var posts = [Post]()
+            let pokemonGoSnapPostsCount = pokemonGoSnapPosts.count - 1
+            let pokemonGoPostsCount = pokemonGoPosts.count - 1
+            for index in 0..<10 {
+                if index <= pokemonGoSnapPostsCount {
+                    posts.append(pokemonGoSnapPosts[index])
+                }
+                if index <= pokemonGoPostsCount {
+                    posts.append(pokemonGoPosts[index])
+                }
+            }
+            completion(RedditGoAndSnapResult.success(posts: posts, pokemonGoSnapAfter: nextPokemonGoSnapAfter, pokemonGoAfter: nextPokemonGoAfter))
+        }
+    }
         
     typealias PostsHandler = (RedditPostsResult) -> Void
-    public func fetchPosts(after: String, sort: String, topOption: String?, completion: @escaping PostsHandler) {
+    public func fetchPosts(subReddit: String, url: String, after: String, completion: @escaping PostsHandler) {
         if getUsername() != nil {
-            var url = "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/\(sort).json?after=" + after
-            if let topOption = topOption {
-                url += "&t=\(topOption)"
-            }
             redditOAuth.getAccessToken { accessToken in
                 var postsRequest = URLRequest(url: URL(string: url)!)
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -123,20 +182,19 @@ class RedditClient {
                         completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                         return
                     }
-                    let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                    let (posts, nextAfter) = self.extractPosts(subReddit: subReddit, after: after, data: data, user_icon: nil)
                     self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
                         completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
                     }
                 }.resume()
             }
         } else {
-            let url = "https://www.reddit.com/r/\(RedditConsts.subredditName)/\(sort).json?after=" + after
             URLSession.shared.dataTask(with: URL(string: url)!) { data, response, _ in
                 guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data else {
                     completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                     return
                 }
-                let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                let (posts, nextAfter) = self.extractPosts(subReddit: subReddit, after: after, data: data, user_icon: nil)
                 self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
                     completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
                 }
@@ -156,7 +214,7 @@ class RedditClient {
                         completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                         return
                     }
-                    let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: user_icon)
+                    let (posts, nextAfter) = self.extractPosts(subReddit: RedditConsts.subredditName, after: after, data: data, user_icon: user_icon)
                     completion(RedditPostsResult.success(posts: posts, nextAfter: nextAfter))
                 }.resume()
             }
@@ -167,7 +225,7 @@ class RedditClient {
                     completion(RedditPostsResult.error(error: "Unable to fetch posts"))
                     return
                 }
-                let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: user_icon)
+                let (posts, nextAfter) = self.extractPosts(subReddit: RedditConsts.subredditName, after: after, data: data, user_icon: user_icon)
                 completion(RedditPostsResult.success(posts: posts, nextAfter: nextAfter))
             }.resume()
         }
@@ -182,7 +240,7 @@ class RedditClient {
                 postsRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
                 postsRequest.setValue(RedditConsts.userAgent, forHTTPHeaderField: "User-Agent")
                 URLSession.shared.dataTask(with: postsRequest) { data, _, _ in
-                    let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                    let (posts, nextAfter) = self.extractPosts(subReddit: RedditConsts.subredditName, after: after, data: data, user_icon: nil)
                     self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
                         completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
                     }
@@ -191,7 +249,7 @@ class RedditClient {
         } else {
             let url = "https://www.reddit.com/r/\(RedditConsts.subredditName)/search.json?q=\(query!)&restrict_sr=t&sort=new&after=\(after)"
             URLSession.shared.dataTask(with: URL(string: url)!) { data, _, _ in
-                let (posts, nextAfter) = self.extractPosts(after: after, data: data, user_icon: nil)
+                let (posts, nextAfter) = self.extractPosts(subReddit: RedditConsts.subredditName, after: after, data: data, user_icon: nil)
                 self.assignUserImageIcons(posts: posts) { postsWithImageIcons in
                     completion(RedditPostsResult.success(posts: postsWithImageIcons, nextAfter: nextAfter))
                 }
@@ -199,7 +257,7 @@ class RedditClient {
         }
     }
     
-    private func extractPosts(after: String, data: Data?, user_icon: String?) -> ([Post], String?) {
+    private func extractPosts(subReddit: String, after: String, data: Data?, user_icon: String?) -> ([Post], String?) {
         if let data = data {
             var nextAfter: String?
             do {
@@ -234,8 +292,8 @@ class RedditClient {
                         // If it does not contain images at all, do not append
                         continue
                     }
-                    let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + redditPost.id + ".json"
-                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes, aspectFit: aspectFit, user_icon: user_icon)
+                    let commentsLink = "https://www.reddit.com/r/\(subReddit)/comments/" + redditPost.id + ".json"
+                    let post = Post(author: redditPost.author, title: redditPost.title, imageSources: imageSources, score: redditPost.score, numComments: redditPost.num_comments, commentsLink: commentsLink, archived: redditPost.archived, id: redditPost.id, created_utc: redditPost.created_utc, liked: redditPost.likes, aspectFit: aspectFit, user_icon: user_icon, subReddit: subReddit)
                     posts.append(post)
                 }
                 return (posts, nextAfter)

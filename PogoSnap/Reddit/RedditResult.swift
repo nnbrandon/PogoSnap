@@ -32,6 +32,11 @@ enum RedditPostsResult {
     case error(error: String)
 }
 
+enum RedditGoAndSnapResult {
+    case success(posts: [Post], pokemonGoSnapAfter: String?, pokemonGoAfter: String?)
+    case error(error: String)
+}
+
 enum RedditBoolResult {
     case success
     case error(error: String)
