@@ -10,8 +10,8 @@ import UIKit
 class SearchController: UIViewController {
     
     let searchDescriptions = [
-        "r/PokemonGoSnap posts with ",
         "r/PokemonGo posts with ",
+        "r/PokemonGoSnap posts with ",
         "Go to User "
     ]
     
@@ -82,20 +82,20 @@ extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableVie
                 showErrorToast(controller: self, message: "Search is empty", seconds: 3.0)
             }
         } else {
-//            if indexPath.row < 2 {
-//                let searchPostsController = SearchPostsController()
-//                searchPostsController.searchText = searchText
-//                if indexPath.row == 0 {
-//                    searchPostsController.subReddit = RedditConsts.subredditName
-//                } else {
-//                    searchPostsController.subReddit = RedditConsts.pokemonGoSubredditName
-//                }
-//                navigationController?.pushViewController(searchPostsController, animated: true)
-//            } else {
-//                let userProfileController = UserProfileController()
-//                userProfileController.usernameProp = searchText
-//                navigationController?.pushViewController(userProfileController, animated: true)
-//            }
+            if indexPath.row < 2 {
+                let searchPostsController = SearchPostsController()
+                searchPostsController.searchText = searchText
+                if indexPath.row == 0 {
+                    searchPostsController.subReddit = RedditConsts.pokemonGoSubredditName
+                } else {
+                    searchPostsController.subReddit = RedditConsts.subredditName
+                }
+                navigationController?.pushViewController(searchPostsController, animated: true)
+            } else {
+                let userProfileController = UserProfileController()
+                userProfileController.usernameProp = searchText
+                navigationController?.pushViewController(userProfileController, animated: true)
+            }
         }
     }
     
@@ -105,9 +105,9 @@ extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableVie
                 showErrorToast(controller: self, message: "Search is empty", seconds: 3.0)
             }
         } else {
-//            let searchPostsController = SearchPostsController()
-//            searchPostsController.searchText = searchText
-//            navigationController?.pushViewController(searchPostsController, animated: true)
+            let searchPostsController = SearchPostsController()
+            searchPostsController.searchText = searchText
+            navigationController?.pushViewController(searchPostsController, animated: true)
         }
     }
     
@@ -118,5 +118,4 @@ extension SearchController: UISearchBarDelegate, UITableViewDelegate, UITableVie
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         self.searchText = searchText
     }
-    
 }

@@ -160,7 +160,7 @@ class RedditCommentTextController: UIViewController {
                 if let parentCommentId = parentCommentId {
                     parentId = "t1_\(parentCommentId)"
                 }
-                RedditClient.sharedInstance.postComment(parentId: parentId, text: body) { result in
+                RedditClient.sharedInstance.postComment(subReddit: post.subReddit, parentId: parentId, text: body) { result in
                     switch result {
                     case .success(let commentId):
                         var depth = 0

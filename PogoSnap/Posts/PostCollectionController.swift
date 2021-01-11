@@ -23,13 +23,16 @@ class PostCollectionController: UIViewController {
             adapter.performUpdates(animated: true, completion: nil)
         }
     }
+    var pokemonGoAfter: String? = ""
+    var pokemonGoSnapAfter: String? = ""
+    var listLayoutOption = ListLayoutOptions.card
 
     let collectionView = UICollectionView(frame: .zero, collectionViewLayout: ListCollectionViewLayout(stickyHeaders: false, scrollDirection: .vertical, topContentInset: 0, stretchToEdge: false))
     lazy var adapter: ListAdapter = {
       return ListAdapter(
       updater: ListAdapterUpdater(),
       viewController: self,
-      workingRangeSize: 1)
+      workingRangeSize: 10)
     }()
 
     override func viewDidLoad() {
@@ -45,8 +48,8 @@ class PostCollectionController: UIViewController {
         collectionView.bottomAnchor.constraint(equalTo: superView.bottomAnchor).isActive = true
     }
 
-    private func votePost(id: String, direction: Int, index: Int) {
-        RedditClient.sharedInstance.votePost(postId: id, direction: direction) { _ in}
+    private func votePost(subReddit: String, id: String, direction: Int, index: Int) {
+        RedditClient.sharedInstance.votePost(subReddit: subReddit, postId: id, direction: direction) { _ in}
     }
     
     private func deletePost(id: String) {
@@ -74,9 +77,9 @@ class PostCollectionController: UIViewController {
         }
     }
     
-    private func reportPost(id: String, reason: String) {
+    private func reportPost(subReddit: String, id: String, reason: String) {
         let postId = "t3_\(id)"
-        RedditClient.sharedInstance.report(id: postId, reason: reason) { result in
+        RedditClient.sharedInstance.report(subReddit: subReddit, id: postId, reason: reason) { result in
             switch result {
             case .success:
                 DispatchQueue.main.async {
@@ -148,14 +151,14 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
             }
             
             let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
-            reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
+            reportOptionsController.addAction(UIAlertAction(title: "r/\(post.subReddit) Rules", style: .default, handler: { _ in
                 
                 let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
-                let subredditRules = RedditClient.sharedInstance.getSubredditRules()
+                let subredditRules = RedditClient.sharedInstance.getSubredditRules(subReddit: post.subReddit)
                 for rule in subredditRules {
                     subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
                         if let reason = action.title {
-                            self.reportPost(id: post.id, reason: reason)
+                            self.reportPost(subReddit: post.subReddit, id: post.id, reason: reason)
                         }
                     }))
                 }
@@ -169,7 +172,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
                 for rule in siteRules {
                     siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
                         if let reason = action.title {
-                            self.reportPost(id: post.id, reason: reason)
+                            self.reportPost(subReddit: post.subReddit, id: post.id, reason: reason)
                         }
                     }))
                 }
@@ -222,7 +225,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
                 posts[index].score -= 1
             }
             adapter.reloadObjects([posts[index]])
-            votePost(id: post.id, direction: direction, index: index)
+            votePost(subReddit: post.subReddit, id: post.id, direction: direction, index: index)
         }
     }
     

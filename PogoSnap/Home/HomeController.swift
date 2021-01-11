@@ -11,17 +11,11 @@ import YPImagePicker
 
 class HomeController: PostCollectionController {
 
-    var pokemonGoAfter: String? = ""
-    var pokemonGoSnapAfter: String? = ""
     var sort = SortOptions.hot
     var topOption: String?
-    var listLayoutOption = ListLayoutOptions.card
     var userSignFlag: String?
+    var fetching = false
 
-    let cardCellId = "cardCellId"
-    let galleryCellId = "galleryCellId"
-    let footerId = "footerId"
-    let headerId = "headerId"
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
 
     let refreshControl: UIRefreshControl = {
@@ -54,10 +48,8 @@ class HomeController: PostCollectionController {
         pinCollectionView(to: view)
         adapter.collectionView = collectionView
         adapter.dataSource = self
-
+        adapter.scrollViewDelegate = self
         collectionView.refreshControl = refreshControl
-        collectionView.register(HomeHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerId)
-        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.headerReferenceSize = CGSize(width: collectionView.bounds.width, height: 35)
 
         view.addSubview(activityIndicatorView)
         activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
@@ -79,16 +71,18 @@ class HomeController: PostCollectionController {
         }
         if posts.isEmpty || posts.count == 1 {
             activityIndicatorView.startAnimating()
-//            fetchRules()
+            fetchRules()
             fetchPosts()
         }
     }
     
     private func fetchPosts() {
+        fetching = true
         RedditClient.sharedInstance.fetchGoAndSnapPosts(pokemonGoAfter: pokemonGoAfter, pokemonGoSnapAfter: pokemonGoSnapAfter, sort: sort.rawValue, topOption: topOption) { result in
+            self.fetching = false
             DispatchQueue.main.async {
+                self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
-                self.footerView.stopAnimating()
             }
             switch result {
             case .success(let posts, let nextPokemonGoSnapAfter, let nextPokemonGoAfter):
@@ -98,37 +92,22 @@ class HomeController: PostCollectionController {
             case .error:
                 DispatchQueue.main.async {
                     showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 3.0)
+                    self.activityIndicatorView.stopAnimating()
                 }
             }
         }
     }
     
     private func fetchRules() {
-        RedditClient.sharedInstance.fetchRules { _ in}
+        RedditClient.sharedInstance.fetchRules(subReddit: RedditConsts.subredditName) { _ in}
+        RedditClient.sharedInstance.fetchRules(subReddit: RedditConsts.pokemonGoSubredditName) { _ in}
     }
     
     @objc private func refreshPosts() {
         if posts.isEmpty {
             activityIndicatorView.startAnimating()
         }
-        RedditClient.sharedInstance.fetchGoAndSnapPosts(pokemonGoAfter: "", pokemonGoSnapAfter: "", sort: sort.rawValue, topOption: topOption) { result in
-            DispatchQueue.main.async {
-                self.refreshControl.endRefreshing()
-                self.activityIndicatorView.stopAnimating()
-            }
-            switch result {
-            case .success(let posts, let nextPokemonGoSnapAfter, let nextPokemonGoAfter):
-//                if self.posts != posts {
-                    self.posts = posts
-                    self.pokemonGoSnapAfter = nextPokemonGoSnapAfter
-                    self.pokemonGoAfter = nextPokemonGoAfter
-//                }
-            case .error:
-                DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 3.0)
-                }
-            }
-        }
+        fetchPosts()
     }
     
     @objc func handleAdd() {
@@ -182,6 +161,17 @@ extension HomeController: ListAdapterDataSource {
     
     func emptyView(for listAdapter: ListAdapter) -> UIView? {
         return nil
+    }
+}
+
+extension HomeController: UIScrollViewDelegate {
+    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+        let distance = scrollView.contentSize.height - (targetContentOffset.pointee.y + scrollView.bounds.height)
+        if !fetching && distance < 200 {
+            if pokemonGoAfter != nil && pokemonGoSnapAfter != nil {
+                fetchPosts()
+            }
+        }
     }
 }
 
@@ -344,81 +334,6 @@ extension HomeController: ShareDelegate {
             }
         }
     }
-}
-
-extension HomeController {
-//    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-//        if kind == UICollectionView.elementKindSectionHeader {
-//            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? HomeHeader else {return UICollectionReusableView()}
-//            header.sortOption = sort
-//            if let topOption = topOption {
-//                header.topOption = TopOptions(rawValue: topOption)
-//            }
-//            header.changeSort = changeSort
-//            header.listLayoutOption = listLayoutOption
-//            header.changeLayout = changeLayout
-//            return header
-//        }
-//         if kind == UICollectionView.elementKindSectionFooter {
-//             let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
-//             footer.addSubview(footerView)
-//             footerView.frame = CGRect(x: 0, y: 0, width: collectionView.bounds.width, height: 50)
-//             return footer
-//         }
-//         return UICollectionReusableView()
-//     }
-
-//    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-//        switch listLayoutOption {
-//        case .card:
-//            return 10
-//        case .gallery:
-//            return getSpacingForCells()
-//        }
-//    }
-//
-//    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-//        switch listLayoutOption {
-//        case .card:
-//            return 10
-//        case .gallery:
-//            return getSpacingForCells()
-//        }
-//    }
-
-//    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-//        switch listLayoutOption {
-//        case .card:
-//            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as? HomePostCell
-//            else {
-//                return UICollectionViewCell()
-//            }
-//            cell.post = posts[indexPath.row]
-//            cell.index = indexPath.row
-//            cell.delegate = self
-//
-//            return cell
-//        case .gallery:
-//            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as? UserProfileCell
-//            else {
-//                return UICollectionViewCell()
-//            }
-//            cell.photoImageView.image = UIImage()
-//            let post = posts[indexPath.row]
-//            cell.post = post
-//            cell.index = indexPath.row
-//            cell.delegate = self
-//
-//            return cell
-//        }
-//    }
-//
-//    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-//        if indexPath.row == posts.count - 8 {
-//            footerView.startAnimating()
-//            fetchPosts()
-//        }
-//    }
 }
 
 public class CollectionViewFooterView: UICollectionReusableView {

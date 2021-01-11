@@ -322,8 +322,9 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     private func reportComment(commentId: String, reason: String) {
+        guard let post = post else {return}
         let commentId = "t1_\(commentId)"
-        RedditClient.sharedInstance.report(id: commentId, reason: reason) { result in
+        RedditClient.sharedInstance.report(subReddit: post.subReddit, id: commentId, reason: reason) { result in
             switch result {
             case .success:
                 DispatchQueue.main.async {

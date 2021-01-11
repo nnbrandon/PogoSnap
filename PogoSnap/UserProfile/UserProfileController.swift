@@ -6,26 +6,14 @@
 //
 
 import UIKit
+import IGListKit
 
 class UserProfileController: PostCollectionController {
 
     var usernameProp: String?
-    var icon_imgProp: String? {
-        didSet {
-            if icon_imgProp != nil {
-                DispatchQueue.main.async {
-                    self.collectionView.reloadData()
-                }
-            }
-        }
-    }
-    var after: String? = ""
-    
-    let cellId = "cellId"
-    let headerId = "headerId"
-    let footerId = "footerId"
-    let username = "username"
-    
+    var icon_imgProp: String?
+    var fetching = false
+
     let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
         control.addTarget(self, action: #selector(refreshPosts), for: .valueChanged)
@@ -46,16 +34,13 @@ class UserProfileController: PostCollectionController {
             view.backgroundColor = RedditConsts.redditDarkMode
             collectionView.backgroundColor = RedditConsts.redditDarkMode
         }
-        
+
+        listLayoutOption = ListLayoutOptions.gallery
+
         pinCollectionView(to: view)
-        
-        collectionView.delegate = self
-        collectionView.dataSource = self
-        
-        collectionView.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerId)
-        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: cellId)
-        collectionView.register(CollectionViewFooterView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: footerId)
-        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.footerReferenceSize = CGSize(width: collectionView.bounds.width, height: 50)
+        adapter.collectionView = collectionView
+        adapter.dataSource = self
+        adapter.scrollViewDelegate = self
         collectionView.refreshControl = refreshControl
         
         view.addSubview(activityIndicatorView)
@@ -117,7 +102,6 @@ class UserProfileController: PostCollectionController {
                 switch result {
                 case .success(let username, let icon_img):
                     DispatchQueue.main.async {
-                        self.collectionView.reloadData()
                         self.activityIndicatorView.startAnimating()
                     }
                     self.fetchUserPosts(username: username, user_icon: icon_img)
@@ -137,32 +121,24 @@ class UserProfileController: PostCollectionController {
     }
     
     private func fetchUserPosts(username: String, user_icon: String?) {
-        if let after = after {
-            RedditClient.sharedInstance.fetchUserPosts(username: username, after: after, user_icon: user_icon) { result in
-                switch result {
-                case .success(let posts, let nextAfter):
-                    DispatchQueue.main.async {
-                        self.activityIndicatorView.stopAnimating()
-                    }
-                    var nextPosts = self.posts
-                    for post in posts {
-//                        if !nextPosts.contains(post) {
-//                            nextPosts.append(post)
-//                        }
-                    }
-//                    if self.posts != nextPosts {
-//                        self.posts = nextPosts
-//                    }
-                    self.after = nextAfter
-                case .error:
-                    DispatchQueue.main.async {
-                        showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 1.0)
-                        self.activityIndicatorView.stopAnimating()
-                    }
+        fetching = true
+        RedditClient.sharedInstance.fetchGoAndSnapUserPosts(username: username, user_icon: user_icon, pokemonGoAfter: pokemonGoAfter, pokemonGoSnapAfter: pokemonGoSnapAfter) { result in
+            self.fetching = false
+            switch result {
+            case .success(let posts, let nextPokemonGoAfter, let nextPokemonGoSnapAfter):
+                DispatchQueue.main.async {
+                    self.refreshControl.endRefreshing()
+                    self.activityIndicatorView.stopAnimating()
+                }
+                self.posts.append(contentsOf: posts)
+                self.pokemonGoSnapAfter = nextPokemonGoSnapAfter
+                self.pokemonGoAfter = nextPokemonGoAfter
+            case .error:
+                DispatchQueue.main.async {
+                    showErrorToast(controller: self, message: "Failed to retrieve user's posts", seconds: 3.0)
+                    self.activityIndicatorView.stopAnimating()
                 }
             }
-        } else {
-            activityIndicatorView.stopAnimating()
         }
     }
     
@@ -177,7 +153,8 @@ class UserProfileController: PostCollectionController {
             alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
                 RedditClient.sharedInstance.deleteCredentials()
                 self.posts = [Post]()
-                self.after = ""
+                self.pokemonGoAfter = ""
+                self.pokemonGoSnapAfter = ""
                 self.showSignInVC()
             }))
         }
@@ -197,23 +174,7 @@ class UserProfileController: PostCollectionController {
             user_icon = RedditClient.sharedInstance.getIconImg()
         }
         
-        RedditClient.sharedInstance.fetchUserPosts(username: username, after: "", user_icon: user_icon) { result in
-            DispatchQueue.main.async {
-                self.activityIndicatorView.stopAnimating()
-                self.refreshControl.endRefreshing()
-            }
-            switch result {
-            case .success(let posts, let nextAfter):
-                self.posts = posts
-                self.after = nextAfter
-            case .error:
-                DispatchQueue.main.async {
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Failed to retrieve user's posts", seconds: 1.0)
-                    }
-                }
-            }
-        }
+        fetchUserPosts(username: username, user_icon: user_icon)
     }
     
     private func showSignInVC() {
@@ -228,82 +189,47 @@ class UserProfileController: PostCollectionController {
         signInVC.view.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         signInVC.didMove(toParent: self)
     }
-
 }
 
-extension UserProfileController: UICollectionViewDelegateFlowLayout, UICollectionViewDataSource {
+extension UserProfileController: ListAdapterDataSource {
+    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
+        return posts
+    }
+    
+    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
+        let postListSectionController = PostListSectionController()
+        postListSectionController.postViewDelegate = self
+        postListSectionController.profileImageDelegate = self
+        postListSectionController.listLayoutOption = listLayoutOption
+        postListSectionController.showUserHeader = true
+        if let usernameProp = usernameProp {
+            postListSectionController.username = usernameProp
+            postListSectionController.icon_img = icon_imgProp
+        } else if let username = RedditClient.sharedInstance.getUsername() {
+            postListSectionController.username = username
+            postListSectionController.icon_img = RedditClient.sharedInstance.getIconImg()
+        }
+        if traitCollection.userInterfaceStyle == .dark {
+            postListSectionController.userHeaderDarkMode = true
+        }
+        return postListSectionController
+    }
+    
+    func emptyView(for listAdapter: ListAdapter) -> UIView? {
+        return nil
+    }
+}
 
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        return getSpacingForCells()
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        return getSpacingForCells()
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let width = (view.frame.width - 2) / 3
-        return CGSize(width: width, height: width)
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return posts.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as? UserProfileCell else {
-            return UICollectionViewCell()
-        }
-        
-        cell.photoImageView.image = UIImage()
-        let post = posts[indexPath.row]
-        cell.post = post
-        cell.index = indexPath.row
-        cell.delegate = self
-        
-        return cell
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        if kind == UICollectionView.elementKindSectionHeader {
-            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? UserProfileHeader else {
-                return UICollectionReusableView()
-            }
-            if traitCollection.userInterfaceStyle == .dark {
-                header.darkMode = true
-            } else {
-                header.darkMode = false
-            }
-
-            if let usernameProp = usernameProp {
-                header.username = usernameProp
-                header.icon_img = icon_imgProp
-            } else if let username = RedditClient.sharedInstance.getUsername() {
-                header.username = username
-                header.icon_img = RedditClient.sharedInstance.getIconImg()
-            }
-            
-            return header
-        }
-        if kind == UICollectionView.elementKindSectionFooter {
-            let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
-            footer.addSubview(footerView)
-            footerView.frame = CGRect(x: 0, y: 0, width: collectionView.bounds.width, height: 50)
-            return footer
-        }
-        return UICollectionReusableView()
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
-        return CGSize(width: view.frame.width, height: 200)
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.row == posts.count - 3 {
-            if let usernameProp = usernameProp {
-                fetchUserPosts(username: usernameProp, user_icon: icon_imgProp)
-            } else if let username = RedditClient.sharedInstance.getUsername() {
-                fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
+extension UserProfileController: UIScrollViewDelegate {
+    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+        let distance = scrollView.contentSize.height - (targetContentOffset.pointee.y + scrollView.bounds.height)
+        if !fetching && distance < 200 {
+            if pokemonGoAfter != nil && pokemonGoSnapAfter != nil {
+                if let usernameProp = self.usernameProp {
+                    fetchUserPosts(username: usernameProp, user_icon: self.icon_imgProp)
+                } else if let username = RedditClient.sharedInstance.getUsername() {
+                    fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
+                }
             }
         }
     }
