@@ -541,4 +541,8 @@ class RedditClient {
             }.resume()
         }
     }
+    
+    public func fetchMoreReplies() {
+        
+    }
 }

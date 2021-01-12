@@ -28,10 +28,16 @@ struct RedditComment: Decodable {
     let depth: Int?
     let replies: Reply?
     let id: String?
-    let created_utc: TimeInterval
+    let created_utc: TimeInterval?
     
     let preview: Preview?
     let media_metadata: MediaData?
+    
+    // More
+    let count: Int?
+    let name: String?
+    let parent_id: String?
+    let children: [String]?
 }
 
 enum Reply: Decodable {
@@ -51,3 +57,23 @@ enum Reply: Decodable {
         throw DecodingError.typeMismatch(Reply.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for Reply"))
     }
 }
+
+// More Replies
+struct RedditMoreChildrentResponse: Decodable {
+    let json: MoreRepliesJsonResponse
+}
+
+struct MoreRepliesJsonResponse: Decodable {
+    let errors: [String]?
+    let data: MoreReplies?
+}
+
+struct MoreReplies: Decodable {
+    let things: [RedditRepliesResponse]?
+}
+
+struct RedditRepliesResponse: Decodable {
+    let kind: String // Listing
+    let data: RedditComment
+}
+

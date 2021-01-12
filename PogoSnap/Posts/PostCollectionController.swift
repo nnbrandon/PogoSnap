@@ -18,9 +18,11 @@ import IGListKit
  */
 class PostCollectionController: UIViewController {
     
-    var posts = [Post]() {
+    lazy var posts = [ListDiffable]() {
         didSet {
-            adapter.performUpdates(animated: true, completion: nil)
+            DispatchQueue.main.async {
+                self.adapter.performUpdates(animated: true, completion: nil)
+            }
         }
     }
     var pokemonGoAfter: String? = ""
@@ -57,8 +59,15 @@ class PostCollectionController: UIViewController {
         RedditClient.sharedInstance.delete(id: postId) { result in
             switch result {
             case .success:
-                if let index = self.posts.firstIndex(where: { post -> Bool in post.id == id}) {
-                    self.posts.remove(at: index)
+                var indexFound = -1
+                for (index, post) in self.posts.enumerated() {
+                    if let post = post as? Post, post.id == id {
+                        indexFound = index
+                        break
+                    }
+                }
+                if indexFound > -1 {
+                    self.posts.remove(at: indexFound)
                     DispatchQueue.main.async {
                         generatorImpactOccured()
                         if let navController = self.navigationController {
@@ -108,7 +117,7 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
             imageFrameHeight += view.frame.width/2
         }
         var height = 8 + 50 + 40 + imageFrameHeight
-        let title = posts[index].title
+        let title = post.title
         let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
         height += titleEstimatedHeight
         
@@ -207,24 +216,42 @@ extension PostCollectionController: PostViewDelegate, ProfileImageDelegate {
                 }
             }
         } else {
+//            if direction == 0 {
+//                if let liked = posts[index].liked {
+//                    if liked {
+//                        posts[index].liked = nil
+//                        posts[index].score -= 1
+//                    } else {
+//                        posts[index].liked = nil
+//                        posts[index].score += 1
+//                    }
+//                }
+//            } else if direction == 1 {
+//                posts[index].liked = true
+//                posts[index].score += 1
+//            } else {
+//                posts[index].liked = false
+//                posts[index].score -= 1
+//            }
             if direction == 0 {
-                if let liked = posts[index].liked {
+                if let liked = post.liked {
                     if liked {
-                        posts[index].liked = nil
-                        posts[index].score -= 1
+                        post.liked = nil
+                        post.score -= 1
                     } else {
-                        posts[index].liked = nil
-                        posts[index].score += 1
+                        post.liked = nil
+                        post.score += 1
                     }
                 }
             } else if direction == 1 {
-                posts[index].liked = true
-                posts[index].score += 1
+                post.liked = true
+                post.score += 1
             } else {
-                posts[index].liked = false
-                posts[index].score -= 1
+                post.liked = false
+                post.score -= 1
             }
-            adapter.reloadObjects([posts[index]])
+            adapter.reloadObjects([post])
+//            adapter.reloadObjects([posts[index]])
             votePost(subReddit: post.subReddit, id: post.id, direction: direction, index: index)
         }
     }

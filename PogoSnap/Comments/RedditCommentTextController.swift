@@ -167,7 +167,7 @@ class RedditCommentTextController: UIViewController {
                         if let parentDepth = self.parentDepth {
                             depth = parentDepth + 1
                         }
-                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId, isAuthorPost: false, created_utc: Date().timeIntervalSince1970)
+                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId, isAuthorPost: false, created_utc: Date().timeIntervalSince1970, count: nil, name: nil, parent_id: nil, children: nil)
                         self.updateComments?(comment, self.parentCommentId)
                         generatorImpactOccured()
                         DispatchQueue.main.async {

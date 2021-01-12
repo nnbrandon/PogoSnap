@@ -96,6 +96,15 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             return CommentCell()
         }
         let comment = currentlyDisplayed[indexPath.row]
+        
+        if let count = comment.count, comment.name != nil, let parent_id = comment.parent_id, let children = comment.children {
+            // MORE comment
+            commentCell.isMore = true
+            commentCell.children = children
+            commentCell.count = count
+        } else {
+            commentCell.isMore = false
+        }
         commentCell.depth = comment.depth
         commentCell.commentDepth = comment.depth
         commentCell.commentContent = comment.body
@@ -142,12 +151,13 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                 let body = redditComment.body ?? ""
                 let depth = redditComment.depth ?? 0
                 let commentId = redditComment.id ?? ""
+                let created_utc = redditComment.created_utc ?? Date().timeIntervalSince1970
 
                 var cReplies = [Comment]()
                 if let commentReplies = redditComment.replies {
                     cReplies = extractReplies(commentReplies: commentReplies)
                 }
-                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: commentId, isAuthorPost: false, created_utc: redditComment.created_utc)
+                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: commentId, isAuthorPost: false, created_utc: created_utc, count: redditComment.count, name: redditComment.name, parent_id: redditComment.parent_id, children: redditComment.children)
                 replies.append(comment)
             }
         }
@@ -170,18 +180,21 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                         let body = redditComment.body ?? ""
                         let depth = redditComment.depth ?? 0
                         let commentId = redditComment.id ?? ""
+                        let created_utc = redditComment.created_utc ?? Date().timeIntervalSince1970
 
                         var replies = [Comment]()
                         if let commentReplies = redditComment.replies {
                             replies = extractReplies(commentReplies: commentReplies)
                         }
 
-                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: commentId, isAuthorPost: false, created_utc: redditComment.created_utc)
+                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: commentId, isAuthorPost: false, created_utc: created_utc, count: redditComment.count, name: redditComment.name, parent_id: redditComment.parent_id, children: redditComment.children)
                         comments.append(comment)
                     }
                 }
             }
-        } catch {}
+        } catch let error {
+            print(error)
+        }
         return comments
     }
 
@@ -204,6 +217,34 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                 }
             }.resume()
         }
+    }
+    
+    private func extractMoreReplies(data: Data) -> [Comment] {
+        var comments = [Comment]()
+        do {
+            let decoded = try JSONDecoder().decode(RedditMoreChildrentResponse.self, from: data)
+            if let things = decoded.json.data?.things {
+                for thing in things {
+                    let redditComment = thing.data
+                    let author = redditComment.author ?? ""
+                    let body = redditComment.body ?? ""
+                    let depth = redditComment.depth ?? 0
+                    let commentId = redditComment.id ?? ""
+                    let created_utc = redditComment.created_utc ?? Date().timeIntervalSince1970
+
+                    var replies = [Comment]()
+                    if let commentReplies = redditComment.replies {
+                        replies = extractReplies(commentReplies: commentReplies)
+                    }
+
+                    let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: commentId, isAuthorPost: false, created_utc: created_utc, count: redditComment.count, name: redditComment.name, parent_id: redditComment.parent_id, children: redditComment.children)
+                    comments.append(comment)
+                }
+            }
+        } catch let error {
+            print(error)
+        }
+        return comments
     }
     
     public func updateComments(comment: Comment, parentCommentId: String?) {
@@ -236,6 +277,30 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             textController.parentDepth = parentDepth
             present(textController, animated: true, completion: nil)
         }
+    }
+    
+    func didTapMoreChildren(children: [String]) {
+        guard let post = post else {
+            return
+        }
+        let postId = "t3_" + post.id
+        let childrenQuery = children.joined(separator: ",")
+        guard let url = URL(string: "https://www.reddit.com/api/morechildren.json?api_type=json&limit_children=false&link_id=\(postId)&children=\(childrenQuery)") else {
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, response, _ in
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+                let moreReplies = self.extractMoreReplies(data: data)
+                self.addMoreReplies(moreReplies: moreReplies)
+            } else {
+                DispatchQueue.main.async {
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Unable to retrieve comments", seconds: 1.0)
+                    }
+                }
+            }
+        }.resume()
     }
     
     func didTapOptions(commentId: String, author: String) {

@@ -68,16 +68,18 @@ class UserProfileController: PostCollectionController {
                     RedditClient.sharedInstance.fetchUserAbout(username: usernameProp) { result in
                         switch result {
                         case .success( _, let icon_img):
-                            self.icon_imgProp = icon_img
+                            self.addUserInformation(username: usernameProp, user_icon: icon_img)
                             self.fetchUserPosts(username: usernameProp, user_icon: icon_img)
                         case .error(let error):
                             DispatchQueue.main.async {
                                 showErrorToast(controller: self, message: error, seconds: 1.0)
                             }
+                            self.addUserInformation(username: usernameProp, user_icon: self.icon_imgProp)
                             self.fetchUserPosts(username: usernameProp, user_icon: self.icon_imgProp)
                         }
                     }
                 } else {
+                    self.addUserInformation(username: usernameProp, user_icon: icon_imgProp)
                     fetchUserPosts(username: usernameProp, user_icon: icon_imgProp)
                 }
             }
@@ -104,6 +106,7 @@ class UserProfileController: PostCollectionController {
                     DispatchQueue.main.async {
                         self.activityIndicatorView.startAnimating()
                     }
+                    self.addUserInformation(username: username, user_icon: icon_img)
                     self.fetchUserPosts(username: username, user_icon: icon_img)
                 case .error(let error):
                     DispatchQueue.main.async {
@@ -115,9 +118,16 @@ class UserProfileController: PostCollectionController {
             if posts.isEmpty || posts.count == 1 {
                 activityIndicatorView.startAnimating()
                 RedditClient.sharedInstance.fetchMe { _ in}
-                fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
+                let user_icon = RedditClient.sharedInstance.getIconImg()
+                addUserInformation(username: username, user_icon: user_icon)
+                fetchUserPosts(username: username, user_icon: user_icon)
             }
         }
+    }
+    
+    private func addUserInformation(username: String, user_icon: String?) {
+        let user = User(username: username, user_icon: user_icon)
+        posts.insert(user, at: 0)
     }
     
     private func fetchUserPosts(username: String, user_icon: String?) {
@@ -152,7 +162,7 @@ class UserProfileController: PostCollectionController {
         if RedditClient.sharedInstance.getUsername() != nil {
             alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
                 RedditClient.sharedInstance.deleteCredentials()
-                self.posts = [Post]()
+                self.posts = [ListDiffable]()
                 self.pokemonGoAfter = ""
                 self.pokemonGoSnapAfter = ""
                 self.showSignInVC()
@@ -197,22 +207,19 @@ extension UserProfileController: ListAdapterDataSource {
     }
     
     func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
-        let postListSectionController = PostListSectionController()
-        postListSectionController.postViewDelegate = self
-        postListSectionController.profileImageDelegate = self
-        postListSectionController.listLayoutOption = listLayoutOption
-        postListSectionController.showUserHeader = true
-        if let usernameProp = usernameProp {
-            postListSectionController.username = usernameProp
-            postListSectionController.icon_img = icon_imgProp
-        } else if let username = RedditClient.sharedInstance.getUsername() {
-            postListSectionController.username = username
-            postListSectionController.icon_img = RedditClient.sharedInstance.getIconImg()
+        if (object as? User) != nil {
+            let userSectionController = UserSectionController()
+            if traitCollection.userInterfaceStyle == .dark {
+                userSectionController.userHeaderDarkMode = true
+            }
+            return userSectionController
+        } else {
+            let postListSectionController = PostListSectionController()
+            postListSectionController.postViewDelegate = self
+            postListSectionController.profileImageDelegate = self
+            postListSectionController.listLayoutOption = listLayoutOption
+            return postListSectionController
         }
-        if traitCollection.userInterfaceStyle == .dark {
-            postListSectionController.userHeaderDarkMode = true
-        }
-        return postListSectionController
     }
     
     func emptyView(for listAdapter: ListAdapter) -> UIView? {
@@ -224,12 +231,15 @@ extension UserProfileController: UIScrollViewDelegate {
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
         let distance = scrollView.contentSize.height - (targetContentOffset.pointee.y + scrollView.bounds.height)
         if !fetching && distance < 200 {
-            if pokemonGoAfter != nil && pokemonGoSnapAfter != nil {
-                if let usernameProp = self.usernameProp {
-                    fetchUserPosts(username: usernameProp, user_icon: self.icon_imgProp)
-                } else if let username = RedditClient.sharedInstance.getUsername() {
-                    fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
+            if pokemonGoAfter != nil || pokemonGoSnapAfter != nil {
+                if let user = posts.first as? User {
+                    fetchUserPosts(username: user.username, user_icon: user.user_icon)
                 }
+//                if let usernameProp = self.usernameProp {
+//                    fetchUserPosts(username: usernameProp, user_icon: self.icon_imgProp)
+//                } else if let username = RedditClient.sharedInstance.getUsername() {
+//                    fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
+//                }
             }
         }
     }

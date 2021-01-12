@@ -168,7 +168,7 @@ extension HomeController: UIScrollViewDelegate {
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
         let distance = scrollView.contentSize.height - (targetContentOffset.pointee.y + scrollView.bounds.height)
         if !fetching && distance < 200 {
-            if pokemonGoAfter != nil && pokemonGoSnapAfter != nil {
+            if pokemonGoAfter != nil || pokemonGoSnapAfter != nil {
                 fetchPosts()
             }
         }

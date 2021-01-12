@@ -14,11 +14,6 @@ class PostListSectionController: ListSectionController, ListSupplementaryViewSou
     var topOption: String?
     var listLayoutOption: ListLayoutOptions!
     
-    var showUserHeader = false
-    var userHeaderDarkMode = false
-    var username: String?
-    var icon_img: String?
-    
     weak var postViewDelegate: PostViewDelegate?
     weak var homeHeaderDelegate: HomeHeaderDelegate?
     weak var profileImageDelegate: ProfileImageDelegate?
@@ -34,37 +29,23 @@ class PostListSectionController: ListSectionController, ListSupplementaryViewSou
 
     func viewForSupplementaryElement(ofKind elementKind: String, at index: Int) -> UICollectionReusableView {
         if section == 0 && elementKind == UICollectionView.elementKindSectionHeader {
-            if showUserHeader {
-                guard let header = collectionContext?.dequeueReusableSupplementaryView(ofKind: elementKind, for: self, class: UserProfileHeader.self, at: index) as? UserProfileHeader else {
-                    fatalError()
-                }
-                header.darkMode = userHeaderDarkMode
-                header.username = username
-                header.icon_img = icon_img
-                return header
-            } else {
-                guard let header = collectionContext?.dequeueReusableSupplementaryView(ofKind: elementKind, for: self, class: HomeHeader.self, at: index) as? HomeHeader else {
-                    fatalError()
-                }
-                header.sortOption = sort
-                if let topOption = topOption {
-                    header.topOption = TopOptions(rawValue: topOption)
-                }
-                header.listLayoutOption = listLayoutOption
-                header.delegate = homeHeaderDelegate
-                return header
+            guard let header = collectionContext?.dequeueReusableSupplementaryView(ofKind: elementKind, for: self, class: HomeHeader.self, at: index) as? HomeHeader else {
+                fatalError()
             }
+            header.sortOption = sort
+            if let topOption = topOption {
+                header.topOption = TopOptions(rawValue: topOption)
+            }
+            header.listLayoutOption = listLayoutOption
+            header.delegate = homeHeaderDelegate
+            return header
         }
         return UICollectionReusableView()
     }
 
     func sizeForSupplementaryView(ofKind elementKind: String, at index: Int) -> CGSize {
         if section == 0, elementKind == UICollectionView.elementKindSectionHeader {
-            if showUserHeader {
-                return CGSize(width: UIScreen.main.bounds.width, height: 200)
-            } else {
-                return CGSize(width: UIScreen.main.bounds.width, height: 35)
-            }
+            return CGSize(width: UIScreen.main.bounds.width, height: 35)
         }
         return CGSize(width: 0, height: 0)
     }
