@@ -9,50 +9,44 @@ import UIKit
 
 class PostView: UIView {
 
-    var post: Post? {
+    var postViewModel: PostViewModel! {
         didSet {
-            if let post = post {
-                photoImageSlideshow.imageSources = post.imageSources
-                let date = Date(timeIntervalSince1970: post.created_utc)
-                usernameLabel.text = "u/\(post.author)・r/\(post.subReddit)・\(date.timeAgoSinceDate())"
-                
-                let titleText = NSAttributedString(string: post.title, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16, weight: .medium)])
-                titleLabel.attributedText = titleText
-                
-                likeLabel.text = String(post.score)
-                
-                commentLabel.text = String(post.numComments)
-                
-                if post.aspectFit {
-                    slideShowBottomConstraint?.isActive = false
-                    voteTopConstraint?.isActive = true
-                }
-                
-                if post.imageSources.count > 1 {
-                    dots.isHidden = false
-                    dots.numberOfPages = post.imageSources.count
+            photoImageSlideshow.imageSources = postViewModel.imageSources
+            headerLabel.text = postViewModel.headerText
+            titleLabel.text = postViewModel.titleText
+            likeLabel.text = postViewModel.likeCount
+            commentLabel.text = postViewModel.commentCount
+            
+            if postViewModel.aspectFit {
+                slideShowBottomConstraint?.isActive = false
+                voteTopConstraint?.isActive = true
+            }
+            
+            if postViewModel.hideDots {
+                dots.isHidden = true
+                dots.numberOfPages = 0
+            } else {
+                dots.isHidden = false
+                dots.numberOfPages = postViewModel.imageSources.count
+            }
+            
+            if let postLiked = postViewModel.liked {
+                if postLiked {
+                    liked = true
                 } else {
-                    dots.isHidden = true
+                    liked = false
                 }
-                
-                if let postLiked = post.liked {
-                    if postLiked {
-                        liked = true
-                    } else {
-                        liked = false
-                    }
-                } else {
-                    liked = nil
-                }
-                
-                if let user_icon = post.user_icon {
-                    usernameIcon.loadImage(urlString: user_icon)
-                }
+            } else {
+                liked = nil
+            }
+
+            if let userIconURL = postViewModel.userIconURL {
+                usernameIcon.loadImage(urlString: userIconURL)
             }
         }
     }
-    weak var delegate: PostViewDelegate?
-    var index: Int?
+    var commentFlag = false
+    var addCommentFunc: (() -> Void)?
     var liked: Bool? {
         didSet {
             if liked == nil {
@@ -82,8 +76,6 @@ class PostView: UIView {
             }
         }
     }
-    var commentFlag = false
-    var addCommentFunc: (() -> Void)?
         
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
@@ -123,7 +115,7 @@ class PostView: UIView {
         return imageView
     }()
     
-    lazy var usernameLabel: UILabel = {
+    lazy var headerLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 14)
         if traitCollection.userInterfaceStyle == .light {
@@ -194,6 +186,8 @@ class PostView: UIView {
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
         
+        label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        
         label.isUserInteractionEnabled = true
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTitle))
         label.addGestureRecognizer(guestureRecognizer)
@@ -201,75 +195,71 @@ class PostView: UIView {
     }()
     
     @objc private func handleComment() {
-        guard let post = post, let index = index else {return}
         if !commentFlag {
-            delegate?.didTapComment(post: post, index: index)
+//            delegate?.didTapComment(postViewModel: postViewModel)
         } else {
             addCommentFunc?()
         }
     }
     
     @objc private func handleTitle() {
-        guard let post = post, let index = index else {return}
         if !commentFlag {
-            delegate?.didTapComment(post: post, index: index)
+//            delegate?.didTapComment(postViewModel: postViewModel)
         }
     }
     
     @objc private func handleUsername() {
-        guard let post = post else {return}
-        delegate?.didTapUsername(username: post.author, user_icon: post.user_icon)
+//        delegate?.didTapUsername(username: postViewModel.author, userIconURL: postViewModel.userIconURL)
     }
     
     @objc private func handleImage() {
-        guard let post = post else {return}
-        delegate?.didTapImage(imageSources: post.imageSources, position: dots.currentPage)
+//        delegate?.didTapImage(imageSources: postViewModel.imageSources, position: dots.currentPage)
+        postViewModel.showFullImages(position: dots.currentPage)
     }
     
     @objc func handleOptions() {
-        guard let post = post else {return}
         generatorImpactOccured()
-        delegate?.didTapOptions(post: post)
+//        delegate?.didTapOptions(postViewModel: postViewModel)
+        postViewModel.showOptions()
     }
     
     @objc func handleUpvote() {
-        guard let post = post, let index = index else {return}
         generatorImpactOccured()
-        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
         var direction = 0
         if liked == nil {
             direction = 1
         } else if let liked = liked {
             direction = liked ? 0 : 1
         }
-        if authenticated && !post.archived {
+        if postViewModel.isUserAuthenticated && !postViewModel.postArchived {
             if direction == 1 {
                 liked = true
             } else {
                 liked = nil
             }
         }
-        delegate?.didTapVote(post: post, direction: direction, index: index, authenticated: authenticated, archived: post.archived)
+//        delegate?.didTapVote(postViewModel: postViewModel, direction: direction, authenticated: authenticated, archived: postViewModel.archived)
+        postViewModel.votePost(direction: direction)
     }
     
     @objc func handleDownvote() {
-        guard let post = post, let index = index else {return}
         generatorImpactOccured()
-        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
+//        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
         var direction = 0
         if liked == nil {
             direction = -1
         } else if let liked = liked {
             direction = liked ? -1 : 0
         }
-        if authenticated && !post.archived {
+        if postViewModel.isUserAuthenticated && !postViewModel.postArchived {
             if direction == -1 {
                 liked = false
             } else {
                 liked = nil
             }
         }
-        delegate?.didTapVote(post: post, direction: direction, index: index, authenticated: authenticated, archived: post.archived)
+//        delegate?.didTapVote(postViewModel: postViewModel, direction: direction, authenticated: authenticated, archived: postViewModel.archived)
+        postViewModel.votePost(direction: direction)
     }
     
     private var slideShowBottomConstraint: NSLayoutConstraint?
@@ -298,16 +288,16 @@ class PostView: UIView {
         usernameIcon.heightAnchor.constraint(equalToConstant: 30).isActive = true
         usernameIcon.widthAnchor.constraint(equalToConstant: 30).isActive = true
 
-        addSubview(usernameLabel)
-        usernameLabel.translatesAutoresizingMaskIntoConstraints = false
-        usernameLabel.topAnchor.constraint(equalTo: topAnchor).isActive = true
-        usernameLabel.leadingAnchor.constraint(equalTo: usernameIcon.trailingAnchor, constant: 8).isActive = true
-        usernameLabel.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        addSubview(headerLabel)
+        headerLabel.translatesAutoresizingMaskIntoConstraints = false
+        headerLabel.topAnchor.constraint(equalTo: topAnchor).isActive = true
+        headerLabel.leadingAnchor.constraint(equalTo: usernameIcon.trailingAnchor, constant: 8).isActive = true
+        headerLabel.heightAnchor.constraint(equalToConstant: 30).isActive = true
 
         addSubview(optionsButton)
         optionsButton.translatesAutoresizingMaskIntoConstraints = false
         optionsButton.topAnchor.constraint(equalTo: topAnchor).isActive = true
-        optionsButton.leadingAnchor.constraint(equalTo: usernameLabel.trailingAnchor).isActive = true
+        optionsButton.leadingAnchor.constraint(equalTo: headerLabel.trailingAnchor).isActive = true
         optionsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
         optionsButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
         

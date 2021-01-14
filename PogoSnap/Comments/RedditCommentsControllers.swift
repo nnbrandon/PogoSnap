@@ -9,27 +9,27 @@ import UIKit
 
 class RedditCommentsController: CommentsController, CommentDelegate {
 
-    var post: Post? {
-        didSet {
-            if let post = post {
-                postView.post = post
-            }
-        }
-    }
-    var index: Int? {
-        didSet {
-            if let index = index {
-                postView.index = index
-            }
-        }
-    }
-    var delegate: PostViewDelegate? {
-        didSet {
-            if let delegate = delegate {
-                postView.delegate = delegate
-            }
-        }
-    }
+//    var post: Post? {
+//        didSet {
+//            if let post = post {
+//                postView.post = post
+//            }
+//        }
+//    }
+//    var index: Int? {
+//        didSet {
+//            if let index = index {
+//                postView.index = index
+//            }
+//        }
+//    }
+//    var delegate: PostViewDelegate? {
+//        didSet {
+//            if let delegate = delegate {
+//                postView.delegate = delegate
+//            }
+//        }
+//    }
     var commentsLink: String?
     var archived = false {
         didSet {
@@ -97,7 +97,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         }
         let comment = currentlyDisplayed[indexPath.row]
         
-        if let count = comment.count, comment.name != nil, let parent_id = comment.parent_id, let children = comment.children {
+        if let count = comment.count, comment.name != nil, comment.parent_id != nil, let children = comment.children {
             // MORE comment
             commentCell.isMore = true
             commentCell.children = children
@@ -128,12 +128,12 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                 }
             }
         } else {
-            if let post = post {
-                let textController = RedditCommentTextController()
-                textController.post = post
-                textController.updateComments = updateComments
-                present(textController, animated: true, completion: nil)
-            }
+//            if let post = post {
+//                let textController = RedditCommentTextController()
+//                textController.post = post
+//                textController.updateComments = updateComments
+//                present(textController, animated: true, completion: nil)
+//            }
         }
     }
     
@@ -152,6 +152,11 @@ class RedditCommentsController: CommentsController, CommentDelegate {
                 let depth = redditComment.depth ?? 0
                 let commentId = redditComment.id ?? ""
                 let created_utc = redditComment.created_utc ?? Date().timeIntervalSince1970
+                
+                if let count = redditComment.count, count == 0 {
+                    // on more
+                    continue
+                }
 
                 var cReplies = [Comment]()
                 if let commentReplies = redditComment.replies {
@@ -267,40 +272,40 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int) {
-        if let post = post {
-            let textController = RedditCommentTextController()
-            textController.post = post
-            textController.updateComments = updateComments
-            textController.parentCommentId = parentCommentId
-            textController.parentCommentContent = parentCommentContent
-            textController.parentCommentAuthor = parentCommentAuthor
-            textController.parentDepth = parentDepth
-            present(textController, animated: true, completion: nil)
-        }
+//        if let post = post {
+//            let textController = RedditCommentTextController()
+//            textController.post = post
+//            textController.updateComments = updateComments
+//            textController.parentCommentId = parentCommentId
+//            textController.parentCommentContent = parentCommentContent
+//            textController.parentCommentAuthor = parentCommentAuthor
+//            textController.parentDepth = parentDepth
+//            present(textController, animated: true, completion: nil)
+//        }
     }
     
     func didTapMoreChildren(children: [String]) {
-        guard let post = post else {
-            return
-        }
-        let postId = "t3_" + post.id
-        let childrenQuery = children.joined(separator: ",")
-        guard let url = URL(string: "https://www.reddit.com/api/morechildren.json?api_type=json&limit_children=false&link_id=\(postId)&children=\(childrenQuery)") else {
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { data, response, _ in
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
-                let moreReplies = self.extractMoreReplies(data: data)
-                self.addMoreReplies(moreReplies: moreReplies)
-            } else {
-                DispatchQueue.main.async {
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Unable to retrieve comments", seconds: 1.0)
-                    }
-                }
-            }
-        }.resume()
+//        guard let post = post else {
+//            return
+//        }
+//        let postId = "t3_" + post.id
+//        let childrenQuery = children.joined(separator: ",")
+//        guard let url = URL(string: "https://www.reddit.com/api/morechildren.json?api_type=json&limit_children=false&link_id=\(postId)&children=\(childrenQuery)") else {
+//            return
+//        }
+//
+//        URLSession.shared.dataTask(with: url) { data, response, _ in
+//            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+//                let moreReplies = self.extractMoreReplies(data: data)
+//                self.addMoreReplies(moreReplies: moreReplies, children: children)
+//            } else {
+//                DispatchQueue.main.async {
+//                    if let navController = self.navigationController {
+//                        showErrorToast(controller: navController, message: "Unable to retrieve comments", seconds: 1.0)
+//                    }
+//                }
+//            }
+//        }.resume()
     }
     
     func didTapOptions(commentId: String, author: String) {
@@ -387,26 +392,26 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     private func reportComment(commentId: String, reason: String) {
-        guard let post = post else {return}
-        let commentId = "t1_\(commentId)"
-        RedditClient.sharedInstance.report(subReddit: post.subReddit, id: commentId, reason: reason) { result in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
-                    }
-                }
-            case .error:
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Could not report the post", seconds: 0.5)
-                    }
-                }
-            }
-        }
+//        guard let post = post else {return}
+//        let commentId = "t1_\(commentId)"
+//        RedditClient.sharedInstance.report(subReddit: post.subReddit, id: commentId, reason: reason) { result in
+//            switch result {
+//            case .success:
+//                DispatchQueue.main.async {
+//                    generatorImpactOccured()
+//                    if let navController = self.navigationController {
+//                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
+//                    }
+//                }
+//            case .error:
+//                DispatchQueue.main.async {
+//                    generatorImpactOccured()
+//                    if let navController = self.navigationController {
+//                        showErrorToast(controller: navController, message: "Could not report the post", seconds: 0.5)
+//                    }
+//                }
+//            }
+//        }
     }
 }
 

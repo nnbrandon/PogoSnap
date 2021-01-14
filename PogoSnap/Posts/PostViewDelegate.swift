@@ -8,9 +8,15 @@
 import Foundation
 
 protocol PostViewDelegate: class {
-    func didTapComment(post: Post, index: Int)
-    func didTapUsername(username: String, user_icon: String?)
-    func didTapImage(imageSources: [ImageSource], position: Int)
-    func didTapOptions(post: Post)
-    func didTapVote(post: Post, direction: Int, index: Int, authenticated: Bool, archived: Bool)
+//    func didTapComment(postViewModel: PostViewModel)
+//    func didTapUsername(username: String, userIconURL: String?)
+//    func didTapImage(imageSources: [ImageSource], position: Int)
+//    func didTapOptions(postViewModel: PostViewModel)
+//    func didTapVote(postViewModel: PostViewModel, direction: Int, authenticated: Bool, archived: Bool)
+//
+    
+    func showComments(post: Post, index: Int)
+    func votePost(index: Int, direction: Int, authenticated: Bool, archived: Bool)
+    func showOptions(id: String, subReddit: String, subRedditRules: [String], siteRules: [String], authenticated: Bool, canDelete: Bool)
+    func showFullImages(imageSources: [ImageSource], position: Int)
 }

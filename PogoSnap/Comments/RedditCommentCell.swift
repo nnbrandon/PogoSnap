@@ -257,7 +257,6 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     }
     
     @objc func handleMoreChildren() {
-        print("more pressed")
         if let children = children {
             delegate?.didTapMoreChildren(children: children)
         }

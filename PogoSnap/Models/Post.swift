@@ -8,7 +8,7 @@
 import Foundation
 import IGListKit
 
-class Post: ListDiffable {
+final class Post: ListDiffable {
     let author: String
     let title: String
     let imageSources: [ImageSource]
@@ -48,5 +48,9 @@ class Post: ListDiffable {
         guard self !== object else {return true}
         guard let object = object as? Post else {return false}
         return author == object.author && title == object.title && score == object.score && liked == object.liked && id == object.id
+    }
+    
+    static func postFactory(post: Post) -> Post {
+        return Post(author: post.author, title: post.title, imageSources: post.imageSources, score: post.score, numComments: post.numComments, commentsLink: post.commentsLink, archived: post.archived, id: post.id, created_utc: post.created_utc, liked: post.liked, aspectFit: post.aspectFit, user_icon: post.user_icon, subReddit: post.subReddit)
     }
 }

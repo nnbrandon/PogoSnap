@@ -8,11 +8,29 @@
 import UIKit
 import IGListKit
 
-class UserProfileController: PostCollectionController {
+class UserProfileController: UIViewController {
 
+    lazy var posts = [ListDiffable]() {
+        didSet {
+            DispatchQueue.main.async {
+                self.adapter.performUpdates(animated: true, completion: nil)
+            }
+        }
+    }
+    var pokemonGoAfter: String? = ""
+    var pokemonGoSnapAfter: String? = ""
+    var listLayoutOption = ListLayoutOptions.card
     var usernameProp: String?
     var icon_imgProp: String?
     var fetching = false
+    
+    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: ListCollectionViewLayout(stickyHeaders: false, scrollDirection: .vertical, topContentInset: 0, stretchToEdge: false))
+     lazy var adapter: ListAdapter = {
+       return ListAdapter(
+       updater: ListAdapterUpdater(),
+       viewController: self,
+       workingRangeSize: 10)
+     }()
 
     let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
@@ -37,7 +55,13 @@ class UserProfileController: PostCollectionController {
 
         listLayoutOption = ListLayoutOptions.gallery
 
-        pinCollectionView(to: view)
+        view.addSubview(collectionView)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+    
         adapter.collectionView = collectionView
         adapter.dataSource = self
         adapter.scrollViewDelegate = self
@@ -215,8 +239,8 @@ extension UserProfileController: ListAdapterDataSource {
             return userSectionController
         } else {
             let postListSectionController = PostListSectionController()
-            postListSectionController.postViewDelegate = self
-            postListSectionController.profileImageDelegate = self
+//            postListSectionController.postViewDelegate = self
+//            postListSectionController.profileImageDelegate = self
             postListSectionController.listLayoutOption = listLayoutOption
             return postListSectionController
         }

@@ -77,9 +77,9 @@ class PostListSectionController: ListSectionController, ListSupplementaryViewSou
             guard let cell = collectionContext!.dequeueReusableCell(of: HomePostCell.self, for: self, at: index) as? HomePostCell else {
                 fatalError()
             }
-            cell.post = post
-            cell.index = section
-            cell.delegate = postViewDelegate
+            let postViewModel = PostViewModel(post: post, index: section, redditClient: RedditClient.sharedInstance)
+            postViewModel.postViewDelegate = postViewDelegate
+            cell.postViewModel = postViewModel
             return cell
         case .gallery:
             guard let cell = collectionContext!.dequeueReusableCell(of: UserProfileCell.self, for: self, at: index) as? UserProfileCell

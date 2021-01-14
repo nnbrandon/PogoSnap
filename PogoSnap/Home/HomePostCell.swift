@@ -10,28 +10,34 @@ import UIKit
 class HomePostCell: UICollectionViewCell {
     
     let postView = PostView()
-    var post: Post? {
+//    var post: Post? {
+//        didSet {
+//            if let post = post {
+//                let postViewModel = PostViewModel(post: <#T##Post#>, index: <#T##Int#>, redditClient: <#T##RedditClient#>)
+//                postView.post = post
+//            }
+//        }
+//    }
+    var postViewModel: PostViewModel! {
         didSet {
-            if let post = post {
-                postView.post = post
-            }
+            postView.postViewModel = postViewModel
         }
     }
         
-    var delegate: PostViewDelegate? {
-        didSet {
-            if let delegate = delegate {
-                postView.delegate = delegate
-            }
-        }
-    }
-    var index: Int? {
-        didSet {
-            if let index = index {
-                postView.index = index
-            }
-        }
-    }
+//    var delegate: PostViewDelegate? {
+//        didSet {
+//            if let delegate = delegate {
+//                postView.delegate = delegate
+//            }
+//        }
+//    }
+//    var index: Int? {
+//        didSet {
+//            if let index = index {
+//                postView.index = index
+//            }
+//        }
+//    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
