@@ -74,8 +74,8 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         }
         tableView.alwaysBounceVertical = true
         tableView.tableHeaderView = postView
-        postView.commentFlag = true
-        postView.addCommentFunc = addCommentFunc
+//        postView.commentFlag = true
+//        postView.addCommentFunc = addCommentFunc
         
         view.addSubview(addButton)
         addButton.translatesAutoresizingMaskIntoConstraints = false

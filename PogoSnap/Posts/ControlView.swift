@@ -9,22 +9,12 @@ import UIKit
 
 class ControlView: UIView {
     
-    var commentFlag = false
-    var addCommentFunc: (() -> Void)?
-    
-    var likeCount: String = "0" {
+    var controlViewModel: ControlViewModel! {
         didSet {
-            likeLabel.text = likeCount
-        }
-    }
-    var commentCount: String = "" {
-        didSet {
-            commentLabel.text = commentCount
-        }
-    }
-    var liked: Bool? {
-        didSet {
-            if liked == nil {
+            likeLabel.text = controlViewModel.likeCount
+            commentLabel.text = controlViewModel.commentCount
+
+            if controlViewModel.liked == nil {
                 if traitCollection.userInterfaceStyle == .light {
                     upvoteButton.tintColor = RedditConsts.lightControlsColor
                     downvoteButton.tintColor = RedditConsts.lightControlsColor
@@ -32,7 +22,7 @@ class ControlView: UIView {
                     upvoteButton.tintColor = RedditConsts.darkControlsColor
                     downvoteButton.tintColor = RedditConsts.darkControlsColor
                 }
-            } else if let liked = liked {
+            } else if let liked = controlViewModel.liked {
                 if liked {
                     upvoteButton.tintColor = UIColor.red
                     if traitCollection.userInterfaceStyle == .light {
@@ -51,6 +41,7 @@ class ControlView: UIView {
             }
         }
     }
+    weak var controlViewDelegate: ControlViewDelegate?
     
     let voteView = UIView()
     
@@ -104,50 +95,28 @@ class ControlView: UIView {
     }()
     
     @objc private func handleComment() {
-        if !commentFlag {
-//            delegate?.didTapComment(postViewModel: postViewModel)
-        } else {
-            addCommentFunc?()
-        }
     }
     
     @objc func handleUpvote() {
         generatorImpactOccured()
         var direction = 0
-        if liked == nil {
+        if controlViewModel.liked == nil {
             direction = 1
-        } else if let liked = liked {
+        } else if let liked = controlViewModel.liked {
             direction = liked ? 0 : 1
         }
-//        if postViewModel.isUserAuthenticated && !postViewModel.postArchived {
-//            if direction == 1 {
-//                liked = true
-//            } else {
-//                liked = nil
-//            }
-//        }
-//        delegate?.didTapVote(postViewModel: postViewModel, direction: direction, authenticated: authenticated, archived: postViewModel.archived)
-//        postViewModel.votePost(direction: direction)
+        controlViewDelegate?.didTapVote(direction: direction)
     }
     
     @objc func handleDownvote() {
         generatorImpactOccured()
-//        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
         var direction = 0
-        if liked == nil {
+        if controlViewModel.liked == nil {
             direction = -1
-        } else if let liked = liked {
+        } else if let liked = controlViewModel.liked {
             direction = liked ? -1 : 0
         }
-//        if postViewModel.isUserAuthenticated && !postViewModel.postArchived {
-//            if direction == -1 {
-//                liked = false
-//            } else {
-//                liked = nil
-//            }
-//        }
-//        delegate?.didTapVote(postViewModel: postViewModel, direction: direction, authenticated: authenticated, archived: postViewModel.archived)
-//        postViewModel.votePost(direction: direction)
+        controlViewDelegate?.didTapVote(direction: direction)
     }
     
     override init(frame: CGRect) {

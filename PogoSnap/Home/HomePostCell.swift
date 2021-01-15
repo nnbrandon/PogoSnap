@@ -6,38 +6,11 @@
 //
 
 import UIKit
+import IGListKit
 
-class HomePostCell: UICollectionViewCell {
-    
+class HomePostCell: UICollectionViewCell, ListBindable {
+
     let postView = PostView()
-//    var post: Post? {
-//        didSet {
-//            if let post = post {
-//                let postViewModel = PostViewModel(post: <#T##Post#>, index: <#T##Int#>, redditClient: <#T##RedditClient#>)
-//                postView.post = post
-//            }
-//        }
-//    }
-    var postViewModel: PostViewModel! {
-        didSet {
-            postView.postViewModel = postViewModel
-        }
-    }
-        
-//    var delegate: PostViewDelegate? {
-//        didSet {
-//            if let delegate = delegate {
-//                postView.delegate = delegate
-//            }
-//        }
-//    }
-//    var index: Int? {
-//        didSet {
-//            if let index = index {
-//                postView.index = index
-//            }
-//        }
-//    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -55,5 +28,10 @@ class HomePostCell: UICollectionViewCell {
     
     override func prepareForReuse() {
         postView.resetView()
+    }
+    
+    func bindViewModel(_ viewModel: Any) {
+        guard let viewModel = viewModel as? PostViewModel else {return}
+        postView.postViewModel = viewModel
     }
 }

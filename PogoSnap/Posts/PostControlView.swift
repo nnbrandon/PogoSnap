@@ -7,7 +7,7 @@
 
 import UIKit
 
-class PostView: UIView {
+class PostControlView: UIView {
 
     var postViewModel: PostViewModel! {
         didSet {
@@ -27,11 +27,30 @@ class PostView: UIView {
                 dots.numberOfPages = postViewModel.imageSources.count
             }
 
-            if let userIconURL = postViewModel.userIconString {
-                usernameIcon.loadImage(urlString: userIconURL)
+            if let userIconString = postViewModel.userIconString {
+                usernameIcon.loadImage(urlString: userIconString)
             }
         }
     }
+//    var controlViewModel: ControlViewModel! {
+//        didSet {
+//            controlView.commentCount = controlViewModel.commentCount
+//            controlView.likeCount = controlViewModel.likeCount
+//            if let liked = controlViewModel.liked {
+//                if liked {
+//                    controlView.liked = true
+//                } else {
+//                    controlView.liked = false
+//                }
+//            } else {
+//                controlView.liked = nil
+//            }
+//        }
+//    }
+    var commentFlag = false
+    var addCommentFunc: (() -> Void)?
+    
+    let controlView = ControlView()
         
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
@@ -86,6 +105,7 @@ class PostView: UIView {
         return label
     }()
     
+
     lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.numberOfLines = 0
@@ -99,9 +119,9 @@ class PostView: UIView {
     }()
     
     @objc private func handleTitle() {
-//        if !commentFlag {
+        if !commentFlag {
 //            delegate?.didTapComment(postViewModel: postViewModel)
-//        }
+        }
     }
     
     @objc private func handleUsername() {
@@ -109,11 +129,13 @@ class PostView: UIView {
     }
     
     @objc private func handleImage() {
+//        delegate?.didTapImage(imageSources: postViewModel.imageSources, position: dots.currentPage)
         postViewModel.showFullImages(position: dots.currentPage)
     }
     
     @objc func handleOptions() {
         generatorImpactOccured()
+//        delegate?.didTapOptions(postViewModel: postViewModel)
         postViewModel.showOptions()
     }
     
@@ -165,7 +187,6 @@ class PostView: UIView {
         photoImageSlideshow.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8).isActive = true
         photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-        photoImageSlideshow.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
         
         addSubview(dots)
         dots.translatesAutoresizingMaskIntoConstraints = false
@@ -177,6 +198,14 @@ class PostView: UIView {
         } else {
             dots.currentPageIndicatorTintColor = .white
         }
+        
+        addSubview(controlView)
+        controlView.translatesAutoresizingMaskIntoConstraints = false
+        controlView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        controlView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
+        controlView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+        controlView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+        controlView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
     }
     
     required init?(coder: NSCoder) {
@@ -184,7 +213,7 @@ class PostView: UIView {
     }
 }
 
-extension PostView: UIScrollViewDelegate {
+extension PostControlView: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let pageNumber = round(photoImageSlideshow.contentOffset.x / photoImageSlideshow.frame.size.width)
         dots.currentPage = Int(pageNumber)
