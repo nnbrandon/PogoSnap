@@ -14,12 +14,9 @@ class PostView: UIView {
             photoImageSlideshow.imageSources = postViewModel.imageSources
             headerLabel.text = postViewModel.headerText
             titleLabel.text = postViewModel.titleText
-            likeLabel.text = postViewModel.likeCount
-            commentLabel.text = postViewModel.commentCount
             
             if postViewModel.aspectFit {
                 slideShowBottomConstraint?.isActive = false
-                voteTopConstraint?.isActive = true
             }
             
             if postViewModel.hideDots {
@@ -29,53 +26,28 @@ class PostView: UIView {
                 dots.isHidden = false
                 dots.numberOfPages = postViewModel.imageSources.count
             }
-            
-            if let postLiked = postViewModel.liked {
-                if postLiked {
-                    liked = true
-                } else {
-                    liked = false
-                }
-            } else {
-                liked = nil
-            }
 
             if let userIconURL = postViewModel.userIconURL {
                 usernameIcon.loadImage(urlString: userIconURL)
+            }
+            
+            controlView.commentCount = postViewModel.commentCount
+            controlView.likeCount = postViewModel.likeCount
+            if let postLiked = postViewModel.liked {
+                if postLiked {
+                    controlView.liked = true
+                } else {
+                    controlView.liked = false
+                }
+            } else {
+                controlView.liked = nil
             }
         }
     }
     var commentFlag = false
     var addCommentFunc: (() -> Void)?
-    var liked: Bool? {
-        didSet {
-            if liked == nil {
-                if traitCollection.userInterfaceStyle == .light {
-                    upvoteButton.tintColor = RedditConsts.lightControlsColor
-                    downvoteButton.tintColor = RedditConsts.lightControlsColor
-                } else {
-                    upvoteButton.tintColor = RedditConsts.darkControlsColor
-                    downvoteButton.tintColor = RedditConsts.darkControlsColor
-                }
-            } else if let liked = liked {
-                if liked {
-                    upvoteButton.tintColor = UIColor.red
-                    if traitCollection.userInterfaceStyle == .light {
-                        downvoteButton.tintColor = RedditConsts.lightControlsColor
-                    } else {
-                        downvoteButton.tintColor = RedditConsts.darkControlsColor
-                    }
-                } else {
-                    if traitCollection.userInterfaceStyle == .light {
-                        upvoteButton.tintColor = RedditConsts.lightControlsColor
-                    } else {
-                        upvoteButton.tintColor = RedditConsts.darkControlsColor
-                    }
-                    downvoteButton.tintColor = UIColor.red
-                }
-            }
-        }
-    }
+    
+    let controlView = ControlView()
         
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
@@ -130,77 +102,18 @@ class PostView: UIView {
         return label
     }()
     
-    let voteView = UIView()
-    
-    lazy var upvoteButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(named: "upvte")?.withRenderingMode(.alwaysTemplate), for: .normal)
-        button.addTarget(self, action: #selector(handleUpvote), for: .touchUpInside)
-        button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-        return button
-    }()
-    
-    lazy var downvoteButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(named: "downvte")?.withRenderingMode(.alwaysTemplate), for: .normal)
-        button.addTarget(self, action: #selector(handleDownvote), for: .touchUpInside)
-        button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-        return button
-    }()
-    
-    let likeLabel: UILabel = {
-        let label = UILabel()
-        label.font = UIFont.boldSystemFont(ofSize: 12)
-        return label
-    }()
-    
-    lazy var commentLabel: UILabel = {
-        let label = UILabel()
-        label.font = UIFont.boldSystemFont(ofSize: 12)
-        return label
-    }()
-    
-    lazy var commentButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(named: "comment")?.withRenderingMode(.alwaysTemplate), for: .normal)
-        if traitCollection.userInterfaceStyle == .light {
-            button.tintColor = RedditConsts.lightControlsColor
-        } else {
-            button.tintColor = RedditConsts.darkControlsColor
-        }
-        button.addTarget(self, action: #selector(handleComment), for: .touchUpInside)
-        return button
-    }()
-    
-    lazy var commentView: UIView = {
-       let view = UIView()
-       view.isUserInteractionEnabled = true
-       view.isUserInteractionEnabled = true
-       let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleComment))
-       view.addGestureRecognizer(guestureRecognizer)
-       return view
-    }()
-    
+
     lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
         
         label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        
         label.isUserInteractionEnabled = true
         let guestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTitle))
         label.addGestureRecognizer(guestureRecognizer)
         return label
     }()
-    
-    @objc private func handleComment() {
-        if !commentFlag {
-//            delegate?.didTapComment(postViewModel: postViewModel)
-        } else {
-            addCommentFunc?()
-        }
-    }
     
     @objc private func handleTitle() {
         if !commentFlag {
@@ -223,47 +136,7 @@ class PostView: UIView {
         postViewModel.showOptions()
     }
     
-    @objc func handleUpvote() {
-        generatorImpactOccured()
-        var direction = 0
-        if liked == nil {
-            direction = 1
-        } else if let liked = liked {
-            direction = liked ? 0 : 1
-        }
-        if postViewModel.isUserAuthenticated && !postViewModel.postArchived {
-            if direction == 1 {
-                liked = true
-            } else {
-                liked = nil
-            }
-        }
-//        delegate?.didTapVote(postViewModel: postViewModel, direction: direction, authenticated: authenticated, archived: postViewModel.archived)
-        postViewModel.votePost(direction: direction)
-    }
-    
-    @objc func handleDownvote() {
-        generatorImpactOccured()
-//        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
-        var direction = 0
-        if liked == nil {
-            direction = -1
-        } else if let liked = liked {
-            direction = liked ? -1 : 0
-        }
-        if postViewModel.isUserAuthenticated && !postViewModel.postArchived {
-            if direction == -1 {
-                liked = false
-            } else {
-                liked = nil
-            }
-        }
-//        delegate?.didTapVote(postViewModel: postViewModel, direction: direction, authenticated: authenticated, archived: postViewModel.archived)
-        postViewModel.votePost(direction: direction)
-    }
-    
     private var slideShowBottomConstraint: NSLayoutConstraint?
-    private var voteTopConstraint: NSLayoutConstraint?
     
     public func resetView() {
         for index in 0..<photoImageSlideshow.subviews.count {
@@ -273,8 +146,6 @@ class PostView: UIView {
         }
         photoImageSlideshow.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width + UIScreen.main.bounds.width/2)
         slideShowBottomConstraint?.isActive = true
-        voteTopConstraint?.isActive = false
-        
         dots.currentPage = 0
     }
 
@@ -307,60 +178,12 @@ class PostView: UIView {
         titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8).isActive = true
         titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8).isActive = true
                 
-        addSubview(voteView)
-        voteView.translatesAutoresizingMaskIntoConstraints = false
-        voteView.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        voteTopConstraint = voteView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor)
-        voteView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 72).isActive = true
-        voteView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
-        voteView.addSubview(upvoteButton)
-        voteView.addSubview(likeLabel)
-        voteView.addSubview(downvoteButton)
-        
         photoImageSlideshow.delegate = self
         addSubview(photoImageSlideshow)
         photoImageSlideshow.translatesAutoresizingMaskIntoConstraints = false
         photoImageSlideshow.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8).isActive = true
         photoImageSlideshow.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         photoImageSlideshow.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-        
-        slideShowBottomConstraint = photoImageSlideshow.bottomAnchor.constraint(equalTo: voteView.topAnchor)
-        
-        upvoteButton.translatesAutoresizingMaskIntoConstraints = false
-        upvoteButton.topAnchor.constraint(equalTo: voteView.topAnchor).isActive = true
-        upvoteButton.leadingAnchor.constraint(equalTo: voteView.leadingAnchor).isActive = true
-        upvoteButton.bottomAnchor.constraint(equalTo: voteView.bottomAnchor).isActive = true
-        
-        likeLabel.translatesAutoresizingMaskIntoConstraints = false
-        likeLabel.leadingAnchor.constraint(equalTo: upvoteButton.trailingAnchor, constant: 16).isActive = true
-        likeLabel.topAnchor.constraint(equalTo: voteView.topAnchor).isActive = true
-        likeLabel.bottomAnchor.constraint(equalTo: voteView.bottomAnchor).isActive = true
-        
-        downvoteButton.translatesAutoresizingMaskIntoConstraints = false
-        downvoteButton.leadingAnchor.constraint(equalTo: likeLabel.trailingAnchor, constant: 16).isActive = true
-        downvoteButton.topAnchor.constraint(equalTo: voteView.topAnchor).isActive = true
-        downvoteButton.bottomAnchor.constraint(equalTo: voteView.bottomAnchor).isActive = true
-        downvoteButton.trailingAnchor.constraint(equalTo: voteView.trailingAnchor).isActive = true
-        
-        addSubview(commentView)
-        commentView.translatesAutoresizingMaskIntoConstraints = false
-        commentView.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        commentView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
-        commentView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -72).isActive = true
-        commentView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
-        commentView.addSubview(commentButton)
-        commentView.addSubview(commentLabel)
-        
-        commentButton.translatesAutoresizingMaskIntoConstraints = false
-        commentButton.leadingAnchor.constraint(equalTo: commentView.leadingAnchor).isActive = true
-        commentButton.topAnchor.constraint(equalTo: commentView.topAnchor).isActive = true
-        commentButton.bottomAnchor.constraint(equalTo: commentView.bottomAnchor).isActive = true
-        
-        commentLabel.translatesAutoresizingMaskIntoConstraints = false
-        commentLabel.leadingAnchor.constraint(equalTo: commentButton.trailingAnchor, constant: 16).isActive = true
-        commentLabel.trailingAnchor.constraint(equalTo: commentView.trailingAnchor).isActive = true
-        commentLabel.topAnchor.constraint(equalTo: commentView.topAnchor).isActive = true
-        commentLabel.bottomAnchor.constraint(equalTo: commentView.bottomAnchor).isActive = true
         
         addSubview(dots)
         dots.translatesAutoresizingMaskIntoConstraints = false
@@ -372,6 +195,14 @@ class PostView: UIView {
         } else {
             dots.currentPageIndicatorTintColor = .white
         }
+        
+        addSubview(controlView)
+        controlView.translatesAutoresizingMaskIntoConstraints = false
+        controlView.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        controlView.topAnchor.constraint(equalTo: photoImageSlideshow.bottomAnchor).isActive = true
+        controlView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+        controlView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+        controlView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
     }
     
     required init?(coder: NSCoder) {
