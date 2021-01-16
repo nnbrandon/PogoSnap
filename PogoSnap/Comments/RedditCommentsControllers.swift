@@ -9,27 +9,32 @@ import UIKit
 
 class RedditCommentsController: CommentsController, CommentDelegate {
 
-//    var post: Post? {
-//        didSet {
-//            if let post = post {
-//                postView.post = post
-//            }
-//        }
-//    }
-//    var index: Int? {
-//        didSet {
-//            if let index = index {
-//                postView.index = index
-//            }
-//        }
-//    }
-//    var delegate: PostViewDelegate? {
-//        didSet {
-//            if let delegate = delegate {
-//                postView.delegate = delegate
-//            }
-//        }
-//    }
+    var postViewModel: PostViewModel! {
+        didSet {
+            postControlView.postViewModel = postViewModel
+        }
+    }
+    var controlViewModel: ControlViewModel! {
+        didSet {
+            postControlView.controlViewModel = controlViewModel
+        }
+    }
+    weak var postViewDelegate: PostViewDelegate? {
+        didSet {
+            postControlView.postViewDelegate = postViewDelegate
+        }
+    }
+    weak var controlViewDelegate: ControlViewDelegate? {
+        didSet {
+            postControlView.controlViewDelegate = controlViewDelegate
+        }
+    }
+    weak var basePostDelegate: BasePostsDelegate? {
+        didSet {
+            postControlView.basePostDelegate = basePostDelegate
+        }
+    }
+
     var commentsLink: String?
     var archived = false {
         didSet {
@@ -61,9 +66,9 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         spinner.startAnimating()
         return spinner
     }()
-    
-    let postView = PostView()
-    
+
+    let postControlView = PostControlView()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(RedditCommentCell.self, forCellReuseIdentifier: commentCellId)
@@ -73,7 +78,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             tableView.backgroundColor = RedditConsts.redditDarkMode
         }
         tableView.alwaysBounceVertical = true
-        tableView.tableHeaderView = postView
+        tableView.tableHeaderView = postControlView
 //        postView.commentFlag = true
 //        postView.addCommentFunc = addCommentFunc
         
@@ -121,7 +126,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     @objc func handleComment() {
-        if RedditClient.sharedInstance.getUsername() == nil {
+        if RedditService.sharedInstance.getUsername() == nil {
             DispatchQueue.main.async {
                 if let navController = self.navigationController {
                     showErrorToast(controller: navController, message: "You need to sign in to comment", seconds: 0.5)
@@ -313,7 +318,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
             
-            if !RedditClient.sharedInstance.isUserAuthenticated() {
+            if !RedditService.sharedInstance.isUserAuthenticated() {
                 DispatchQueue.main.async {
                     if let navController = self.navigationController {
                         showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
@@ -358,7 +363,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             
             self.present(reportOptionsController, animated: true, completion: nil)
         }))
-        if let username = RedditClient.sharedInstance.getUsername(), username == author {
+        if let username = RedditService.sharedInstance.getUsername(), username == author {
             alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
                 self.deleteComment(commentId: commentId)
             }))
@@ -370,7 +375,7 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     
     private func deleteComment(commentId: String) {
         let cid = "t1_\(commentId)"
-        RedditClient.sharedInstance.delete(id: cid) { result in
+        RedditService.sharedInstance.delete(id: cid) { result in
             switch result {
             case .success:
                 self.removeComment(commentId: commentId)

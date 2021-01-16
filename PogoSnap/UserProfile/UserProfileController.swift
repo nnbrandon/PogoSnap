@@ -89,7 +89,7 @@ class UserProfileController: UIViewController {
             if posts.isEmpty {
                 activityIndicatorView.startAnimating()
                 if icon_imgProp == nil {
-                    RedditClient.sharedInstance.fetchUserAbout(username: usernameProp) { result in
+                    RedditService.sharedInstance.fetchUserAbout(username: usernameProp) { result in
                         switch result {
                         case .success( _, let icon_img):
                             self.addUserInformation(username: usernameProp, user_icon: icon_img)
@@ -107,7 +107,7 @@ class UserProfileController: UIViewController {
                     fetchUserPosts(username: usernameProp, user_icon: icon_imgProp)
                 }
             }
-        } else if RedditClient.sharedInstance.getUsername() == nil {
+        } else if RedditService.sharedInstance.getUsername() == nil {
             // user is not signed in
             showSignInVC()
         }
@@ -115,7 +115,7 @@ class UserProfileController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if RedditClient.sharedInstance.getUsername() == nil, RedditClient.sharedInstance.isUserAuthenticated() {
+        if RedditService.sharedInstance.getUsername() == nil, RedditService.sharedInstance.isUserAuthenticated() {
             // Fetch username and me information
             if !children.isEmpty {
                 let viewControllers: [UIViewController] = children
@@ -124,7 +124,7 @@ class UserProfileController: UIViewController {
                 viewControllers.last?.view.removeFromSuperview()
                 collectionView.isHidden = false
             }
-            RedditClient.sharedInstance.fetchMe { result in
+            RedditService.sharedInstance.fetchMe { result in
                 switch result {
                 case .success(let username, let icon_img):
                     DispatchQueue.main.async {
@@ -138,11 +138,11 @@ class UserProfileController: UIViewController {
                     }
                 }
             }
-        } else if let username = RedditClient.sharedInstance.getUsername(), usernameProp == nil {
+        } else if let username = RedditService.sharedInstance.getUsername(), usernameProp == nil {
             if posts.isEmpty || posts.count == 1 {
                 activityIndicatorView.startAnimating()
-                RedditClient.sharedInstance.fetchMe { _ in}
-                let user_icon = RedditClient.sharedInstance.getIconImg()
+                RedditService.sharedInstance.fetchMe { _ in}
+                let user_icon = RedditService.sharedInstance.getIconImg()
                 addUserInformation(username: username, user_icon: user_icon)
                 fetchUserPosts(username: username, user_icon: user_icon)
             }
@@ -156,7 +156,7 @@ class UserProfileController: UIViewController {
     
     private func fetchUserPosts(username: String, user_icon: String?) {
         fetching = true
-        RedditClient.sharedInstance.fetchGoAndSnapUserPosts(username: username, user_icon: user_icon, pokemonGoAfter: pokemonGoAfter, pokemonGoSnapAfter: pokemonGoSnapAfter) { result in
+        RedditService.sharedInstance.fetchGoAndSnapUserPosts(username: username, user_icon: user_icon, pokemonGoAfter: pokemonGoAfter, pokemonGoSnapAfter: pokemonGoSnapAfter) { result in
             self.fetching = false
             switch result {
             case .success(let posts, let nextPokemonGoAfter, let nextPokemonGoSnapAfter):
@@ -183,9 +183,9 @@ class UserProfileController: UIViewController {
             viewController.hidesBottomBarWhenPushed = true
             self.navigationController?.pushViewController(viewController, animated: true)
         }))
-        if RedditClient.sharedInstance.getUsername() != nil {
+        if RedditService.sharedInstance.getUsername() != nil {
             alertController.addAction(UIAlertAction(title: "Log out", style: .destructive, handler: { (_) in
-                RedditClient.sharedInstance.deleteCredentials()
+                RedditService.sharedInstance.deleteCredentials()
                 self.posts = [ListDiffable]()
                 self.pokemonGoAfter = ""
                 self.pokemonGoSnapAfter = ""
@@ -203,9 +203,9 @@ class UserProfileController: UIViewController {
         if let usernameProp = usernameProp {
             username = usernameProp
             user_icon = icon_imgProp
-        } else if let signedInUser = RedditClient.sharedInstance.getUsername() {
+        } else if let signedInUser = RedditService.sharedInstance.getUsername() {
             username = signedInUser
-            user_icon = RedditClient.sharedInstance.getIconImg()
+            user_icon = RedditService.sharedInstance.getIconImg()
         }
         
         fetchUserPosts(username: username, user_icon: user_icon)

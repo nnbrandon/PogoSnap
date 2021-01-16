@@ -45,6 +45,8 @@ class PostViewModel: ListDiffable {
     
     func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         guard let object = object as? PostViewModel else { return false }
-        return titleText == object.titleText && headerText == object.headerText
+        return titleText == object.titleText && headerText == object.headerText &&
+            subReddit == object.subReddit && userIconString == object.userIconString &&
+            authenticated == object.authenticated
     }
 }

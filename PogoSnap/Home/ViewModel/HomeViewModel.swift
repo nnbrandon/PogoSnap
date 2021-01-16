@@ -11,7 +11,7 @@ import IGListKit
 class HomeViewModel {
     
     // MARK: - Properties
-    private let redditClient: RedditClient
+    private let redditClient: RedditService
     private var imgurClient: ImgurClient
     private var posts = [Post]()
     private var pokemonGoAfter: String? = ""
@@ -23,24 +23,26 @@ class HomeViewModel {
 
     var username: String?
 
-    init(redditClient: RedditClient, imgurClient: ImgurClient) {
+    init(redditClient: RedditService, imgurClient: ImgurClient) {
         self.redditClient = redditClient
         self.imgurClient = imgurClient
         self.username = redditClient.getUsername()
     }
     
-    func checkUserStatus() {
+    func userStatusChanged() -> Bool {
         let previousUsername = username
         username = redditClient.getUsername()
         if previousUsername != username {
             posts = [Post]()
             pokemonGoAfter = ""
             pokemonGoSnapAfter = ""
+            return true
         }
+        return false
     }
 }
 
-extension HomeViewModel: BasePostsViewModelProtocol {
+extension HomeViewModel {
     func postsIsEmpty() -> Bool {
         return posts.isEmpty || posts.count <= 3
     }
@@ -121,7 +123,7 @@ extension HomeViewModel: BasePostsViewModelProtocol {
     }
     
     func fetchRules() {
-        redditClient.fetchRules(subReddit: RedditConsts.subredditName) { _ in}
+        redditClient.fetchRules(subReddit: RedditConsts.pokemonGoSnapSubredditName) { _ in}
         redditClient.fetchRules(subReddit: RedditConsts.pokemonGoSubredditName) { _ in}
     }
     

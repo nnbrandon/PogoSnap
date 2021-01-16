@@ -160,7 +160,7 @@ class UploadImageViewController: UIViewController {
             }
             return
         } else {
-            if RedditClient.sharedInstance.getUsername() == nil {
+            if RedditService.sharedInstance.getUsername() == nil {
                 showErrorToast(controller: self, message: "You need to be signed in to upload a photo", seconds: 3.0)
             } else {
                 if let image = photoImageView.image, let title = textField.text {
@@ -174,7 +174,7 @@ class UploadImageViewController: UIViewController {
                                 self.progressView.setProgress(0.7, animated: true)
                             }
                             guard let imageSource = imageSource else {return}
-                            RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
+                            RedditService.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
                                 switch result {
                                 case .success:
                                     ImgurClient.sharedInstance.incrementUploadCount()

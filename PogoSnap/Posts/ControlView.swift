@@ -13,8 +13,14 @@ class ControlView: UIView {
         didSet {
             likeLabel.text = controlViewModel.likeCount
             commentLabel.text = controlViewModel.commentCount
-
-            if controlViewModel.liked == nil {
+            liked = controlViewModel.liked
+        }
+    }
+    weak var controlViewDelegate: ControlViewDelegate?
+    
+    var liked: Bool? {
+        didSet {
+            if liked == nil {
                 if traitCollection.userInterfaceStyle == .light {
                     upvoteButton.tintColor = RedditConsts.lightControlsColor
                     downvoteButton.tintColor = RedditConsts.lightControlsColor
@@ -22,7 +28,7 @@ class ControlView: UIView {
                     upvoteButton.tintColor = RedditConsts.darkControlsColor
                     downvoteButton.tintColor = RedditConsts.darkControlsColor
                 }
-            } else if let liked = controlViewModel.liked {
+            } else if let liked = liked {
                 if liked {
                     upvoteButton.tintColor = UIColor.red
                     if traitCollection.userInterfaceStyle == .light {
@@ -41,7 +47,6 @@ class ControlView: UIView {
             }
         }
     }
-    weak var controlCellDelegate: ControlCellDelegate?
     
     let voteView = UIView()
     
@@ -95,6 +100,7 @@ class ControlView: UIView {
     }()
     
     @objc private func handleComment() {
+        controlViewDelegate?.didTapComment()
     }
     
     @objc func handleUpvote() {
@@ -105,7 +111,16 @@ class ControlView: UIView {
         } else if let liked = controlViewModel.liked {
             direction = liked ? 0 : 1
         }
-        controlCellDelegate?.didTapVote(direction: direction)
+        if controlViewModel.fromPostControlView {
+            if direction == 0 {
+                liked = nil
+            } else if direction == 1 {
+                liked = true
+            } else {
+                liked = false
+            }
+        }
+        controlViewDelegate?.didTapVote(direction: direction)
     }
     
     @objc func handleDownvote() {
@@ -116,7 +131,16 @@ class ControlView: UIView {
         } else if let liked = controlViewModel.liked {
             direction = liked ? -1 : 0
         }
-        controlCellDelegate?.didTapVote(direction: direction)
+        if controlViewModel.fromPostControlView {
+            if direction == 0 {
+                liked = nil
+            } else if direction == 1 {
+                liked = true
+            } else {
+                liked = false
+            }
+        }
+        controlViewDelegate?.didTapVote(direction: direction)
     }
     
     override init(frame: CGRect) {

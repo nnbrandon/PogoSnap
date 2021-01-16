@@ -59,6 +59,9 @@ class RedditOAuth {
                 case .success(let (credential, _, _)):
                     if let expireDate = credential.oauthTokenExpiresAt {
                         self.registerCredentials(accessToken: credential.oauthToken, refreshToken: credential.oauthRefreshToken, expireDate: expireDate)
+//                        self.accessToken = credential.oauthToken
+//                        self.refreshToken = credential.oauthRefreshToken
+//                        self.expireDate = expireDate
                         completion(RedditAuthResult.success)
                     }
                 case .failure:

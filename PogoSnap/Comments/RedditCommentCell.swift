@@ -7,13 +7,6 @@
 
 import UIKit
 
-protocol CommentDelegate: class {
-    func didTapUsername(username: String)
-    func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int)
-    func didTapOptions(commentId: String, author: String)
-    func didTapMoreChildren(children: [String])
-}
-
 class RedditCommentCell: CommentCell {
     
     private var content: RedditCommentView {

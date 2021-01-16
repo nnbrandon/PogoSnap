@@ -140,7 +140,7 @@ class RedditCommentTextController: UIViewController {
     }
     
     @objc func handleSubmit() {
-        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
+        let authenticated = RedditService.sharedInstance.isUserAuthenticated()
         if !authenticated {
             DispatchQueue.main.async {
                 showErrorToast(controller: self, message: "You need to be signed in to comment", seconds: 1.0)
@@ -150,7 +150,7 @@ class RedditCommentTextController: UIViewController {
                 showErrorToast(controller: self, message: "Enter a comment", seconds: 1.0)
             }
         } else {
-            if let username = RedditClient.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
+            if let username = RedditService.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
                 let postId = post.id
                 DispatchQueue.main.async {
                     self.activityIndicatorView.startAnimating()
@@ -160,7 +160,7 @@ class RedditCommentTextController: UIViewController {
                 if let parentCommentId = parentCommentId {
                     parentId = "t1_\(parentCommentId)"
                 }
-                RedditClient.sharedInstance.postComment(subReddit: post.subReddit, parentId: parentId, text: body) { result in
+                RedditService.sharedInstance.postComment(subReddit: post.subReddit, parentId: parentId, text: body) { result in
                     switch result {
                     case .success(let commentId):
                         var depth = 0

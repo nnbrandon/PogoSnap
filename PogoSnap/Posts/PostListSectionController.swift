@@ -9,19 +9,17 @@ import UIKit
 import IGListKit
 
 class PostListSectionController: ListBindingSectionController<ListDiffable>,
-                                 ListBindingSectionControllerDataSource, ListSupplementaryViewSource, ControlCellDelegate {
+                                 ListBindingSectionControllerDataSource, ListSupplementaryViewSource {
     // MARK: State
     var sort: SortOptions!
     var topOption: String?
     var listLayoutOption: ListLayoutOptions!
+    var authenticated: Bool = false
     var localLikeCount: Int?
     var localLiked: Bool?
-    var authenticated: Bool = false
-    
-    weak var postViewDelegate: PostViewDelegate?
+
     weak var homeHeaderDelegate: HomeHeaderDelegate?
-    weak var galleryImageDelegate: GalleryImageDelegate?
-    weak var controlViewDelegate: ControlViewDelegate?
+    weak var basePostsDelegate: BasePostsDelegate?
     
     override init() {
         super.init()
@@ -59,8 +57,8 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
     func sectionController(_ sectionController: ListBindingSectionController<ListDiffable>, viewModelsFor object: Any) -> [ListDiffable] {
         guard let post = object as? Post else {fatalError()}
         let results: [ListDiffable] = [
-          PostViewModel(post: post, index: section, authenticated: RedditClient.sharedInstance.isUserAuthenticated()),
-            ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: RedditClient.sharedInstance.isUserAuthenticated()),
+          PostViewModel(post: post, index: section, authenticated: RedditService.sharedInstance.isUserAuthenticated()),
+            ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: RedditService.sharedInstance.isUserAuthenticated()),
             GalleryViewModel(photoImageUrl: post.imageSources.first?.url)
         ]
         return results
@@ -73,13 +71,14 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
                 guard let cell = collectionContext!.dequeueReusableCell(of: PostViewCell.self, for: self, at: index) as? PostViewCell else {
                     fatalError()
                 }
-                cell.postViewDelegate = postViewDelegate
+                cell.postViewDelegate = self
+                cell.basePostsDelegate = basePostsDelegate
                 return cell
             } else if viewModel is ControlViewModel {
                 guard let cell = collectionContext!.dequeueReusableCell(of: ControlCell.self, for: self, at: index) as? ControlCell else {
                     fatalError()
                 }
-                cell.controlCellDelegate = self
+                cell.controlViewDelegate = self
                 return cell
             }
             guard let cell = collectionContext!.dequeueReusableCell(of: PostViewCell.self, for: self, at: index) as? PostViewCell else {
@@ -90,8 +89,7 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
             guard let cell = collectionContext!.dequeueReusableCell(of: GalleryCell.self, for: self, at: index) as? GalleryCell else {
                 fatalError()
             }
-            cell.index = section
-            cell.galleryImageDelegate = galleryImageDelegate
+            cell.controlViewDelegate = self
             return cell
         case .none:
             fatalError()
@@ -107,7 +105,7 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
                 if !postViewModel.aspectFit {
                     imageFrameHeight += width/2
                 }
-                var height = 8 + 40 + imageFrameHeight
+                var height = 8 + 30 + imageFrameHeight
                 let title = postViewModel.titleText
                 let titleEstimatedHeight = title.height(withConstrainedWidth: width - 16, font: UIFont.boldSystemFont(ofSize: 16))
                 height += titleEstimatedHeight
@@ -125,10 +123,29 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
         }
         return CGSize(width: 0, height: 0)
     }
+}
+
+extension PostListSectionController: PostViewDelegate {
+    func didTapUsername(username: String, userIconURL: String?) {
+        let userProfileController = UserProfileController()
+        userProfileController.usernameProp = username
+        userProfileController.icon_imgProp = userIconURL
+        viewController?.navigationController?.pushViewController(userProfileController, animated: true)
+    }
     
+    func didTapImage(imageSources: [ImageSource], position: Int) {
+        let fullScreen = FullScreenImageController()
+        fullScreen.imageSources = imageSources
+        fullScreen.position = position
+        viewController?.present(fullScreen, animated: true, completion: nil)
+    }
+}
+
+extension PostListSectionController: ControlViewDelegate {
     func didTapVote(direction: Int) {
         if !authenticated {
-            controlViewDelegate?.didTapVoteUserNotAuthed()
+            guard let navController = viewController?.navigationController else { return }
+            showErrorToast(controller: navController, message: "You need to be signed in to vote", seconds: 2.0)
             return
         }
         guard let post = object as? Post else {return}
@@ -149,7 +166,34 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
             localLiked = false
             localLikeCount = (localLikeCount ?? post.score) - 1
         }
-        RedditClient.sharedInstance.votePost(subReddit: post.subReddit, postId: post.id, direction: direction) {_ in }
+        RedditService.sharedInstance.votePost(subReddit: post.subReddit, postId: post.id, direction: direction) {_ in }
         update(animated: true, completion: nil)
+    }
+    
+    func didTapComment() {
+        guard let post = object as? Post else {return}
+        let width = UIScreen.main.bounds.width
+        var imageFrameHeight = width
+        if !post.aspectFit {
+            imageFrameHeight += width/2
+        }
+        var height = 8 + 30 + 50 + imageFrameHeight
+        let title = post.title
+        let titleEstimatedHeight = title.height(withConstrainedWidth: width - 16, font: UIFont.boldSystemFont(ofSize: 16))
+        height += titleEstimatedHeight
+
+        let redditCommentsController = RedditCommentsController()
+        redditCommentsController.hidesBottomBarWhenPushed = true
+        redditCommentsController.commentsLink = post.commentsLink
+        redditCommentsController.archived = post.archived
+        let postViewModel = PostViewModel(post: post, index: section, authenticated: authenticated)
+        let controlViewModel = ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: authenticated)
+        redditCommentsController.postViewModel = postViewModel
+        redditCommentsController.controlViewModel = controlViewModel
+        redditCommentsController.postControlView.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        redditCommentsController.postViewDelegate = self
+        redditCommentsController.controlViewDelegate = self
+        redditCommentsController.basePostDelegate = basePostsDelegate
+        viewController?.navigationController?.pushViewController(redditCommentsController, animated: true)
     }
 }

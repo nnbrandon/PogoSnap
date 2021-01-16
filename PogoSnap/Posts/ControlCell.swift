@@ -8,14 +8,10 @@
 import UIKit
 import IGListKit
 
-protocol ControlCellDelegate: class {
-    func didTapVote(direction: Int)
-}
-
 class ControlCell: UICollectionViewCell, ListBindable {
 
     let controlView = ControlView()
-    weak var controlCellDelegate: ControlCellDelegate?
+    weak var controlViewDelegate: ControlViewDelegate?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -34,6 +30,6 @@ class ControlCell: UICollectionViewCell, ListBindable {
     func bindViewModel(_ viewModel: Any) {
         guard let viewModel = viewModel as? ControlViewModel else {return}
         controlView.controlViewModel = viewModel
-        controlView.controlCellDelegate = controlCellDelegate
+        controlView.controlViewDelegate = controlViewDelegate
     }
 }

@@ -14,6 +14,7 @@ class ControlViewModel: ListDiffable {
     let commentCount: String
     let authenticated: Bool
     let liked: Bool?
+    var fromPostControlView: Bool = false
     
     init(likeCount: Int, commentCount: Int, liked: Bool?, authenticated: Bool) {
         self.likeCount = String(likeCount)

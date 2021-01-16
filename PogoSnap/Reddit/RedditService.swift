@@ -7,14 +7,17 @@
 
 import Foundation
 
-class RedditClient {
+class RedditService {
     
-    static var sharedInstance = RedditClient()
+    static var sharedInstance = RedditService()
     
     let redditOAuth = RedditOAuth()
     let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
     
+    // MARK: Caching
     var userIconCache = NSCache<NSString, NSString>()
+    var siteRules = [String]()
+    var subRedditRules = [String]()
 
     private init() {}
     
@@ -119,12 +122,12 @@ class RedditClient {
         var nextPokemonGoAfter: String?
         
         if let pokemonGoSnapAfter = pokemonGoSnapAfter {
-            var pokemonGoSnapURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/\(sort).json?limit=\(limit)&after=" + pokemonGoSnapAfter : "https://www.reddit.com/r/\(RedditConsts.subredditName)/\(sort).json?limit=\(limit)&after=" + pokemonGoSnapAfter
+            var pokemonGoSnapURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.pokemonGoSnapSubredditName)/\(sort).json?limit=\(limit)&after=" + pokemonGoSnapAfter : "https://www.reddit.com/r/\(RedditConsts.pokemonGoSnapSubredditName)/\(sort).json?limit=\(limit)&after=" + pokemonGoSnapAfter
             if let topOption = topOption {
                 pokemonGoSnapURL += "&t=\(topOption)"
             }
             requestsGroup.enter()
-            fetchPosts(subReddit: RedditConsts.subredditName, url: pokemonGoSnapURL, after: pokemonGoSnapAfter) { result in
+            fetchPosts(subReddit: RedditConsts.pokemonGoSnapSubredditName, url: pokemonGoSnapURL, after: pokemonGoSnapAfter) { result in
                 switch result {
                 case .success(let posts, let nextAfter):
                     pokemonGoSnapPosts = posts
@@ -182,9 +185,9 @@ class RedditClient {
         var nextPokemonGoAfter: String?
         
         if let pokemonGoSnapAfter = pokemonGoSnapAfter {
-            let pokemonGoSnapURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&limit=\(limit)&after=" + pokemonGoSnapAfter : "https://www.reddit.com/r/\(RedditConsts.subredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=" + pokemonGoSnapAfter
+            let pokemonGoSnapURL = getUsername() != nil ? "\(RedditConsts.oauthEndpoint)/r/\(RedditConsts.pokemonGoSnapSubredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&limit=\(limit)&after=" + pokemonGoSnapAfter : "https://www.reddit.com/r/\(RedditConsts.pokemonGoSnapSubredditName)/search.json?q=author:\(username)&restrict_sr=t&sort=new&after=" + pokemonGoSnapAfter
             requestsGroup.enter()
-            fetchUserPosts(subReddit: RedditConsts.subredditName, url: pokemonGoSnapURL, after: pokemonGoSnapAfter, user_icon: user_icon) { result in
+            fetchUserPosts(subReddit: RedditConsts.pokemonGoSnapSubredditName, url: pokemonGoSnapURL, after: pokemonGoSnapAfter, user_icon: user_icon) { result in
                 switch result {
                 case .success(let posts, let nextAfter):
                     pokemonGoPosts = posts
@@ -311,7 +314,7 @@ class RedditClient {
                 }.resume()
             }
         } else {
-            var url = "https://www.reddit.com/r/\(RedditConsts.subredditName)/search.json?q=\(query)&restrict_sr=t&sort=\(sort)&limit=\(limit)&after=\(after)"
+            var url = "https://www.reddit.com/r/\(RedditConsts.pokemonGoSnapSubredditName)/search.json?q=\(query)&restrict_sr=t&sort=\(sort)&limit=\(limit)&after=\(after)"
             if let topOption = topOption {
                 url += "&t=\(topOption)"
             }
@@ -439,7 +442,7 @@ class RedditClient {
         let apiType = "json"
         let kind = "link"
         let textEncoded = text.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
-        let url = "\(RedditConsts.submitEndpoint)?api_type=\(apiType)&sr=\(RedditConsts.subredditName)&title=\(textEncoded!)&kind=\(kind)&url=\(link)"
+        let url = "\(RedditConsts.submitEndpoint)?api_type=\(apiType)&sr=\(RedditConsts.pokemonGoSnapSubredditName)&title=\(textEncoded!)&kind=\(kind)&url=\(link)"
         
         redditOAuth.getAccessToken { accessToken in
             var submitRequest = URLRequest(url: URL(string: url)!)
@@ -478,17 +481,23 @@ class RedditClient {
     }
     
     public func getSubredditRules(subReddit: String) -> [String] {
-        guard let subredditRules = self.defaults?.stringArray(forKey: subReddit) else {
-            return [String]()
+        if subRedditRules.isEmpty {
+            guard let subRedditRules = self.defaults?.stringArray(forKey: subReddit) else {
+                return [String]()
+            }
+            self.subRedditRules = subRedditRules
         }
-        return subredditRules
+        return subRedditRules
     }
     
     public func getSiteRules() -> [String] {
-        guard let subredditRules = self.defaults?.stringArray(forKey: "SiteRules") else {
-            return [String]()
+        if siteRules.isEmpty {
+            guard let siteRules = self.defaults?.stringArray(forKey: "SiteRules") else {
+                return [String]()
+            }
+            self.siteRules = siteRules
         }
-        return subredditRules
+        return siteRules
     }
     
     public func deleteCredentials() {
@@ -540,9 +549,5 @@ class RedditClient {
                 }
             }.resume()
         }
-    }
-    
-    public func fetchMoreReplies() {
-        
     }
 }

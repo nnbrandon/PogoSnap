@@ -15,8 +15,7 @@ class GalleryCell: UICollectionViewCell, ListBindable {
             photoImageView.loadImage(urlString: photoImageUrl)
         }
     }
-    var index: Int?
-    weak var galleryImageDelegate: GalleryImageDelegate?
+    weak var controlViewDelegate: ControlViewDelegate?
     
     lazy var photoImageView: CustomImageView = {
         let imageView = CustomImageView()
@@ -31,8 +30,7 @@ class GalleryCell: UICollectionViewCell, ListBindable {
     }()
     
     @objc private func handleImage() {
-        guard let index = index else {return}
-        galleryImageDelegate?.didTapImageGallery(index: index)
+        controlViewDelegate?.didTapComment()
     }
     
     override init(frame: CGRect) {

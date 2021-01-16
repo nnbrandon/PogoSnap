@@ -33,6 +33,7 @@ class PostView: UIView {
         }
     }
     weak var postViewDelegate: PostViewDelegate?
+    weak var basePostsDelegate: BasePostsDelegate?
         
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
@@ -115,7 +116,7 @@ class PostView: UIView {
     
     @objc func handleOptions() {
         generatorImpactOccured()
-        postViewDelegate?.didTapOptions(index: postViewModel.index)
+        basePostsDelegate?.didTapOptions(index: postViewModel.index)
     }
     
     private var slideShowBottomConstraint: NSLayoutConstraint?

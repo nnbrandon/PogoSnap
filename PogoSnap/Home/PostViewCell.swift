@@ -12,6 +12,7 @@ class PostViewCell: UICollectionViewCell, ListBindable {
 
     let postView = PostView()
     weak var postViewDelegate: PostViewDelegate?
+    weak var basePostsDelegate: BasePostsDelegate?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -35,5 +36,6 @@ class PostViewCell: UICollectionViewCell, ListBindable {
         guard let viewModel = viewModel as? PostViewModel else {return}
         postView.postViewModel = viewModel
         postView.postViewDelegate = postViewDelegate
+        postView.basePostsDelegate = basePostsDelegate
     }
 }

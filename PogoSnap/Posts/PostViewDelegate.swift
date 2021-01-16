@@ -10,5 +10,4 @@ import Foundation
 protocol PostViewDelegate: class {
     func didTapUsername(username: String, userIconURL: String?)
     func didTapImage(imageSources: [ImageSource], position: Int)
-    func didTapOptions(index: Int)
 }
