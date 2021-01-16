@@ -27,7 +27,7 @@ class ControlViewModel: ListDiffable {
     }
     
     func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
-        guard let object = object as? ControlViewModel else  { return false }
+        guard let object = object as? ControlViewModel else { return false }
         return likeCount == object.likeCount && commentCount == object.commentCount
             && authenticated == object.authenticated && liked == object.liked
     }

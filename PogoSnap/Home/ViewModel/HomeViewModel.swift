@@ -8,22 +8,19 @@
 import Foundation
 import IGListKit
 
-final class HomeViewModel {
+class HomeViewModel {
     
     // MARK: - Properties
-    let redditClient: RedditClient
-    var imgurClient: ImgurClient
-    var posts = [Post]()
-    var pokemonGoAfter: String? = ""
-    var pokemonGoSnapAfter: String? = ""
+    private let redditClient: RedditClient
+    private var imgurClient: ImgurClient
+    private var posts = [Post]()
+    private var pokemonGoAfter: String? = ""
+    private var pokemonGoSnapAfter: String? = ""
     var listLayoutOption = ListLayoutOptions.card
     var sort = SortOptions.hot
     var topOption: String?
     var fetching = false
 
-    var postsIsEmpty: Bool {
-        return posts.isEmpty || posts.count <= 3
-    }
     var username: String?
 
     init(redditClient: RedditClient, imgurClient: ImgurClient) {
@@ -31,9 +28,31 @@ final class HomeViewModel {
         self.imgurClient = imgurClient
         self.username = redditClient.getUsername()
     }
+    
+    func checkUserStatus() {
+        let previousUsername = username
+        username = redditClient.getUsername()
+        if previousUsername != username {
+            posts = [Post]()
+            pokemonGoAfter = ""
+            pokemonGoSnapAfter = ""
+        }
+    }
 }
 
-extension HomeViewModel {
+extension HomeViewModel: BasePostsViewModelProtocol {
+    func postsIsEmpty() -> Bool {
+        return posts.isEmpty || posts.count <= 3
+    }
+    
+    func getPosts() -> [Post] {
+        return posts
+    }
+    
+    func getPost(index: Int) -> Post {
+        return posts[index]
+    }
+
     func fetchPosts(completion: @escaping (String?) -> Void) {
         if pokemonGoAfter != nil || pokemonGoSnapAfter != nil {
             fetching = true
@@ -52,7 +71,7 @@ extension HomeViewModel {
         }
     }
 
-    fileprivate func removePost(id: String) {
+    func removePost(id: String) {
         var index = -1
         for (idx, post) in posts.enumerated() where id == post.id {
             index = idx
@@ -89,41 +108,6 @@ extension HomeViewModel {
         }
     }
     
-    func votePost(index: Int, direction: Int, completion: @escaping (String?) -> Void) {
-        let post = posts[index]
-        if direction == 0 {
-            if let liked = post.liked {
-                if liked {
-                    post.liked = nil
-                    post.score -= 1
-                } else {
-                    post.liked = nil
-                    post.score += 1
-                }
-            }
-        } else if direction == 1 {
-            post.liked = true
-            post.score += 1
-        } else {
-            post.liked = false
-            post.score -= 1
-        }
-        posts[index] = post
-        redditClient.votePost(subReddit: post.subReddit, postId: post.id, direction: direction) { _ in}
-    }
-}
-
-extension HomeViewModel {
-    func checkUserStatus() {
-        let previousUsername = username
-        username = redditClient.getUsername()
-        if previousUsername != username {
-            posts = [Post]()
-            pokemonGoAfter = ""
-            pokemonGoSnapAfter = ""
-        }
-    }
-    
     func changeSort(sort: SortOptions, topOption: String?) {
         self.sort = sort
         self.topOption = topOption
@@ -139,5 +123,21 @@ extension HomeViewModel {
     func fetchRules() {
         redditClient.fetchRules(subReddit: RedditConsts.subredditName) { _ in}
         redditClient.fetchRules(subReddit: RedditConsts.pokemonGoSubredditName) { _ in}
+    }
+    
+    func getSubredditRules(subReddit: String) -> [String] {
+        return redditClient.getSubredditRules(subReddit: subReddit)
+    }
+    
+    func getSiteRules() -> [String] {
+        return redditClient.getSiteRules()
+    }
+    
+    func isUserAuthenticated() -> Bool {
+        return redditClient.isUserAuthenticated()
+    }
+    
+    func canDelete(post: Post) -> Bool {
+        return post.author == username
     }
 }

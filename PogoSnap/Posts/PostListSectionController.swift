@@ -8,18 +8,20 @@
 import UIKit
 import IGListKit
 
-class PostListSectionController: ListBindingSectionController<Post>,
-                                 ListBindingSectionControllerDataSource, ListSupplementaryViewSource, ControlViewDelegate {
+class PostListSectionController: ListBindingSectionController<ListDiffable>,
+                                 ListBindingSectionControllerDataSource, ListSupplementaryViewSource, ControlCellDelegate {
     // MARK: State
     var sort: SortOptions!
     var topOption: String?
     var listLayoutOption: ListLayoutOptions!
     var localLikeCount: Int?
     var localLiked: Bool?
+    var authenticated: Bool = false
     
     weak var postViewDelegate: PostViewDelegate?
     weak var homeHeaderDelegate: HomeHeaderDelegate?
-    weak var profileImageDelegate: ProfileImageDelegate?
+    weak var galleryImageDelegate: GalleryImageDelegate?
+    weak var controlViewDelegate: ControlViewDelegate?
     
     override init() {
         super.init()
@@ -58,43 +60,42 @@ class PostListSectionController: ListBindingSectionController<Post>,
         guard let post = object as? Post else {fatalError()}
         let results: [ListDiffable] = [
           PostViewModel(post: post, index: section, authenticated: RedditClient.sharedInstance.isUserAuthenticated()),
-            ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: RedditClient.sharedInstance.isUserAuthenticated())
+            ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: RedditClient.sharedInstance.isUserAuthenticated()),
+            GalleryViewModel(photoImageUrl: post.imageSources.first?.url)
         ]
         return results
     }
     
     func sectionController(_ sectionController: ListBindingSectionController<ListDiffable>, cellForViewModel viewModel: Any, at index: Int) -> UICollectionViewCell & ListBindable {
-//        switch listLayoutOption {
-//        case .card:
-        if viewModel is PostViewModel {
-            guard let cell = collectionContext!.dequeueReusableCell(of: HomePostCell.self, for: self, at: index) as? HomePostCell else {
+        switch listLayoutOption {
+        case .card:
+            if viewModel is PostViewModel {
+                guard let cell = collectionContext!.dequeueReusableCell(of: PostViewCell.self, for: self, at: index) as? PostViewCell else {
+                    fatalError()
+                }
+                cell.postViewDelegate = postViewDelegate
+                return cell
+            } else if viewModel is ControlViewModel {
+                guard let cell = collectionContext!.dequeueReusableCell(of: ControlCell.self, for: self, at: index) as? ControlCell else {
+                    fatalError()
+                }
+                cell.controlCellDelegate = self
+                return cell
+            }
+            guard let cell = collectionContext!.dequeueReusableCell(of: PostViewCell.self, for: self, at: index) as? PostViewCell else {
                 fatalError()
             }
             return cell
-        } else if viewModel is ControlViewModel {
-            guard let cell = collectionContext!.dequeueReusableCell(of: ControlCell.self, for: self, at: index) as? ControlCell else {
+        case .gallery:
+            guard let cell = collectionContext!.dequeueReusableCell(of: GalleryCell.self, for: self, at: index) as? GalleryCell else {
                 fatalError()
             }
-            cell.controlViewDelegate = self
+            cell.index = section
+            cell.galleryImageDelegate = galleryImageDelegate
             return cell
-        }
-        guard let cell = collectionContext!.dequeueReusableCell(of: HomePostCell.self, for: self, at: index) as? HomePostCell else {
+        case .none:
             fatalError()
         }
-        return cell
-//        case .gallery:
-//            guard let cell = collectionContext!.dequeueReusableCell(of: UserProfileCell.self, for: self, at: index) as? UserProfileCell
-//            else {
-//                fatalError()
-//            }
-//            cell.photoImageView.image = UIImage()
-//            cell.post = post
-//            cell.index = section
-//            cell.delegate = profileImageDelegate
-//            return cell
-//        case .none:
-//            fatalError()
-//        }
     }
     
     func sectionController(_ sectionController: ListBindingSectionController<ListDiffable>, sizeForViewModel viewModel: Any, at index: Int) -> CGSize {
@@ -106,7 +107,6 @@ class PostListSectionController: ListBindingSectionController<Post>,
                 if !postViewModel.aspectFit {
                     imageFrameHeight += width/2
                 }
-//                var height = 8 + 50 + 40 + imageFrameHeight
                 var height = 8 + 40 + imageFrameHeight
                 let title = postViewModel.titleText
                 let titleEstimatedHeight = title.height(withConstrainedWidth: width - 16, font: UIFont.boldSystemFont(ofSize: 16))
@@ -116,8 +116,10 @@ class PostListSectionController: ListBindingSectionController<Post>,
                 return CGSize(width: width, height: 50)
             }
         case .gallery:
-            let newWidth = (width - 2) / 3
-            return CGSize(width: newWidth, height: newWidth)
+            if viewModel is GalleryViewModel {
+                let newWidth = (width - 2) / 3
+                return CGSize(width: newWidth, height: newWidth)
+            }
         case .none:
             fatalError()
         }
@@ -125,23 +127,29 @@ class PostListSectionController: ListBindingSectionController<Post>,
     }
     
     func didTapVote(direction: Int) {
+        if !authenticated {
+            controlViewDelegate?.didTapVoteUserNotAuthed()
+            return
+        }
+        guard let post = object as? Post else {return}
         if direction == 0 {
-            if let liked = localLiked ?? object?.liked {
+            if let liked = localLiked ?? post.liked {
                 if liked {
                     localLiked = nil
-                    localLikeCount = (localLikeCount ?? object?.score ?? 0) - 1
+                    localLikeCount = (localLikeCount ?? post.score) - 1
                 } else {
                     localLiked = nil
-                    localLikeCount = (localLikeCount ?? object?.score ?? 0) + 1
+                    localLikeCount = (localLikeCount ?? post.score) + 1
                 }
             }
         } else if direction == 1 {
             localLiked = true
-            localLikeCount = (localLikeCount ?? object?.score ?? 0) + 1
+            localLikeCount = (localLikeCount ?? post.score) + 1
         } else {
             localLiked = false
-            localLikeCount = (localLikeCount ?? object?.score ?? 0) - 1
+            localLikeCount = (localLikeCount ?? post.score) - 1
         }
+        RedditClient.sharedInstance.votePost(subReddit: post.subReddit, postId: post.id, direction: direction) {_ in }
         update(animated: true, completion: nil)
     }
 }

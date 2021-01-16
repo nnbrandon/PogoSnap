@@ -8,9 +8,10 @@
 import UIKit
 import IGListKit
 
-class HomePostCell: UICollectionViewCell, ListBindable {
+class PostViewCell: UICollectionViewCell, ListBindable {
 
     let postView = PostView()
+    weak var postViewDelegate: PostViewDelegate?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -33,5 +34,6 @@ class HomePostCell: UICollectionViewCell, ListBindable {
     func bindViewModel(_ viewModel: Any) {
         guard let viewModel = viewModel as? PostViewModel else {return}
         postView.postViewModel = viewModel
+        postView.postViewDelegate = postViewDelegate
     }
 }

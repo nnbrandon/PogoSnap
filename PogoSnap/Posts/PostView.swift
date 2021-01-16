@@ -32,6 +32,7 @@ class PostView: UIView {
             }
         }
     }
+    weak var postViewDelegate: PostViewDelegate?
         
     let dots: UIPageControl = {
         let pageControl = UIPageControl()
@@ -105,16 +106,16 @@ class PostView: UIView {
     }
     
     @objc private func handleUsername() {
-//        delegate?.didTapUsername(username: postViewModel.author, userIconURL: postViewModel.userIconURL)
+        postViewDelegate?.didTapUsername(username: postViewModel.author, userIconURL: postViewModel.userIconString)
     }
     
     @objc private func handleImage() {
-        postViewModel.showFullImages(position: dots.currentPage)
+        postViewDelegate?.didTapImage(imageSources: postViewModel.imageSources, position: dots.currentPage)
     }
     
     @objc func handleOptions() {
         generatorImpactOccured()
-        postViewModel.showOptions()
+        postViewDelegate?.didTapOptions(index: postViewModel.index)
     }
     
     private var slideShowBottomConstraint: NSLayoutConstraint?

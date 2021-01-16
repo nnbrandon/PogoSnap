@@ -41,7 +41,7 @@ class ControlView: UIView {
             }
         }
     }
-    weak var controlViewDelegate: ControlViewDelegate?
+    weak var controlCellDelegate: ControlCellDelegate?
     
     let voteView = UIView()
     
@@ -105,7 +105,7 @@ class ControlView: UIView {
         } else if let liked = controlViewModel.liked {
             direction = liked ? 0 : 1
         }
-        controlViewDelegate?.didTapVote(direction: direction)
+        controlCellDelegate?.didTapVote(direction: direction)
     }
     
     @objc func handleDownvote() {
@@ -116,7 +116,7 @@ class ControlView: UIView {
         } else if let liked = controlViewModel.liked {
             direction = liked ? -1 : 0
         }
-        controlViewDelegate?.didTapVote(direction: direction)
+        controlCellDelegate?.didTapVote(direction: direction)
     }
     
     override init(frame: CGRect) {

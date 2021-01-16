@@ -21,6 +21,7 @@ class PostViewModel: ListDiffable {
     public let archived: Bool
     public let userIconString: String?
     public let authenticated: Bool
+    public let author: String
     
     init(post: Post, index: Int, authenticated: Bool) {
         self.index = index
@@ -35,58 +36,15 @@ class PostViewModel: ListDiffable {
         aspectFit = post.aspectFit
         archived = post.archived
         userIconString = post.user_icon
+        author = post.author
     }
-    
-    weak var postViewDelegate: PostViewDelegate?
-    
+        
     func diffIdentifier() -> NSObjectProtocol {
         return "post" as NSObjectProtocol
     }
     
     func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
-        guard let object = object as? PostViewModel else  { return false }
+        guard let object = object as? PostViewModel else { return false }
         return titleText == object.titleText && headerText == object.headerText
-    }
-}
-
-extension PostViewModel {
-    
-    func showFullImages(position: Int) {
-        postViewDelegate?.showFullImages(imageSources: imageSources, position: position)
-    }
-    
-    func showOptions() {
-//        let subRedditRules = redditClient.getSubredditRules(subReddit: post.subReddit)
-//        let siteRules = redditClient.getSiteRules()
-//        let authenticated = redditClient.isUserAuthenticated()
-//        var canDelete = false
-//        if let username = redditClient.getUsername(), post.author == username {
-//            canDelete = true
-//        }
-//        postViewDelegate?.showOptions(id: post.id, subReddit: post.subReddit, subRedditRules: subRedditRules, siteRules: siteRules, authenticated: authenticated, canDelete: canDelete)
-    }
-    
-    func votePost(direction: Int) {
-//        if direction == 0 {
-//            if let liked = post.liked {
-//                if liked {
-//                    post.liked = nil
-//                    post.score -= 1
-//                } else {
-//                    post.liked = nil
-//                    post.score += 1
-//                }
-//            }
-//        } else if direction == 1 {
-//            post.liked = true
-//            post.score += 1
-//        } else {
-//            post.liked = false
-//            post.score -= 1
-//        }
-//
-//        redditClient.votePost(subReddit: post.subReddit, postId: post.id, direction: direction) { _ in}
-//        let authenticated = isUserAuthenticated
-//        postViewDelegate?.votePost(index: index, direction: direction, authenticated: authenticated, archived: post.archived)
     }
 }

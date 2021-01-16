@@ -8,5 +8,5 @@
 import Foundation
 
 protocol ControlViewDelegate: class {
-    func didTapVote(direction: Int)
+    func didTapVoteUserNotAuthed()
 }
