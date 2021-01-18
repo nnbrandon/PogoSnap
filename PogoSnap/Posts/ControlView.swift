@@ -17,7 +17,8 @@ class ControlView: UIView {
         }
     }
     weak var controlViewDelegate: ControlViewDelegate?
-    
+    var addCommentFunc: (() -> Void)?
+
     var liked: Bool? {
         didSet {
             if liked == nil {
@@ -100,7 +101,11 @@ class ControlView: UIView {
     }()
     
     @objc private func handleComment() {
-        controlViewDelegate?.didTapComment()
+        if let addCommentFunc = addCommentFunc {
+            addCommentFunc()
+        } else {
+            controlViewDelegate?.didTapComment()
+        }
     }
     
     @objc func handleUpvote() {

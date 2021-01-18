@@ -7,7 +7,16 @@
 
 import UIKit
 
-class RedditCommentsController: CommentsController, CommentDelegate {
+class RedditCommentsController: UITableViewController, UIGestureRecognizerDelegate, CommentDelegate {
+
+    var commentsViewModel: CommentsViewModel! {
+        didSet {
+            if commentsViewModel.archived {
+                navigationItem.title = "Archived"
+                addButton.isHidden = true
+            }
+        }
+    }
 
     var postViewModel: PostViewModel! {
         didSet {
@@ -16,6 +25,8 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     var controlViewModel: ControlViewModel! {
         didSet {
+            controlViewModel.fromPostControlView = true
+            postControlView.addCommentFunc = handleComment
             postControlView.controlViewModel = controlViewModel
         }
     }
@@ -34,27 +45,8 @@ class RedditCommentsController: CommentsController, CommentDelegate {
             postControlView.basePostDelegate = basePostDelegate
         }
     }
-
-    var commentsLink: String?
-    var archived = false {
-        didSet {
-            if archived {
-                navigationItem.title = "Archived"
-                addButton.isHidden = true
-            }
-        }
-    }
-    let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
-
     private let commentCellId = "redditCommentCellId"
-    var comments: [Comment] = [] {
-        didSet {
-            currentlyDisplayed = comments
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        }
-    }
+
     let addButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setImage(UIImage(named: "comment-60")?.withRenderingMode(.alwaysOriginal), for: .normal)
@@ -71,6 +63,18 @@ class RedditCommentsController: CommentsController, CommentDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Tableview style
+        tableView.separatorStyle = UITableViewCell.SeparatorStyle.none
+
+        if #available(iOS 11.0, *) {
+            tableView.estimatedRowHeight = 0
+            tableView.estimatedSectionFooterHeight = 0
+            tableView.estimatedSectionHeaderHeight = 0
+        } else {
+            tableView.rowHeight = UITableView.automaticDimension
+            tableView.estimatedRowHeight = 400.0
+        }
+
         tableView.register(RedditCommentCell.self, forCellReuseIdentifier: commentCellId)
         if traitCollection.userInterfaceStyle == .light {
             tableView.backgroundColor = #colorLiteral(red: 0.9686660171, green: 0.9768124223, blue: 0.9722633958, alpha: 1)
@@ -79,8 +83,6 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         }
         tableView.alwaysBounceVertical = true
         tableView.tableHeaderView = postControlView
-//        postView.commentFlag = true
-//        postView.addCommentFunc = addCommentFunc
         
         view.addSubview(addButton)
         addButton.translatesAutoresizingMaskIntoConstraints = false
@@ -91,16 +93,80 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         activityIndicatorView.startAnimating()
         activityIndicatorView.frame = CGRect(x: 0, y: 0, width: tableView.frame.width, height: 44)
         tableView.tableFooterView = activityIndicatorView
-
-        fullyExpanded = true
+        
+        let longPressGesture: UILongPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(self.handleLongPress))
+        longPressGesture.minimumPressDuration = 0.2
+        longPressGesture.delegate = self
+        tableView.addGestureRecognizer(longPressGesture)
+            
         fetchComments()
     }
     
-    override open func commentsView(_ tableView: UITableView, commentCellForModel commentModel: Comment, atIndexPath indexPath: IndexPath) -> CommentCell {
+    @objc func handleLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
+        if gestureRecognizer.state == .began {
+            let touchPoint = gestureRecognizer.location(in: tableView)
+            if let indexPath = tableView.indexPathForRow(at: touchPoint) {
+                let selectedIndex = indexPath.row
+                let selectedComment: Comment = commentsViewModel.getComment(selectedIndex: selectedIndex)
+                
+                if !selectedComment.replies.isEmpty { // if expandable
+                    if commentsViewModel.isCellExpanded(selectedIndex: selectedIndex) {
+                        // collapse
+                        let nCellsToDelete = commentsViewModel.getNumberOfCellsToDelete(comment: selectedComment, selectedIndex: selectedIndex)
+                        let indexPaths = commentsViewModel.removeCells(selectedIndex: selectedIndex, nCellsToDelete: nCellsToDelete, indexPath: indexPath)
+                        tableView.deleteRows(at: indexPaths, with: .bottom)
+                    } else {
+                        // expand
+                        let indexPaths = commentsViewModel.expandSelectedComment(selectedIndex: selectedIndex, selectedComment: selectedComment, indexPath: indexPath)
+                        tableView.insertRows(at: indexPaths, with: .bottom)
+                        tableView.scrollToRow(at: IndexPath(row: selectedIndex + 1, section: indexPath.section), at: UITableView.ScrollPosition.middle, animated: false)
+                    }
+                    DispatchQueue.main.async {
+                        self.tableView.reloadData()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func fetchComments() {
+        commentsViewModel.fetchComments { error in
+            if let error = error {
+                guard let navController = self.navigationController else {return}
+                DispatchQueue.main.async {
+                    self.activityIndicatorView.stopAnimating()
+                    showErrorToast(controller: navController, message: error, seconds: 3.0)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.activityIndicatorView.stopAnimating()
+                    self.tableView.reloadData()
+                }
+            }
+        }
+    }
+    
+    override open func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return commentsViewModel.getCount()
+    }
+    
+    override open func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableView.automaticDimension
+    }
+    override open func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableView.automaticDimension
+    }
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let comment = commentsViewModel.getComment(selectedIndex: indexPath.row)
+        let commentCell = commentsView(tableView, comment: comment, atIndexPath: indexPath)
+        return commentCell
+    }
+    
+    func commentsView(_ tableView: UITableView, comment: Comment, atIndexPath indexPath: IndexPath) -> CommentCell {
         guard let commentCell = tableView.dequeueReusableCell(withIdentifier: commentCellId, for: indexPath) as? RedditCommentCell else {
             return CommentCell()
         }
-        let comment = currentlyDisplayed[indexPath.row]
         
         if let count = comment.count, comment.name != nil, comment.parent_id != nil, let children = comment.children {
             // MORE comment
@@ -116,157 +182,38 @@ class RedditCommentsController: CommentsController, CommentDelegate {
         commentCell.author = comment.author
         commentCell.created = comment.created_utc
         commentCell.commentId = comment.id
-        commentCell.isFolded = comment.isFolded && !isCellExpanded(indexPath: indexPath)
+        commentCell.isFolded = comment.isFolded && !commentsViewModel.isCellExpanded(selectedIndex: indexPath.row)
         commentCell.delegate = self
         return commentCell
     }
     
-    func addCommentFunc() {
-        handleComment()
-    }
-    
     @objc func handleComment() {
-        if RedditService.sharedInstance.getUsername() == nil {
+        if !commentsViewModel.authenticated {
+            guard let navController = navigationController else {return}
             DispatchQueue.main.async {
-                if let navController = self.navigationController {
-                    showErrorToast(controller: navController, message: "You need to sign in to comment", seconds: 0.5)
-                }
+                showErrorToast(controller: navController, message: "You need to sign in to comment", seconds: 3.0)
             }
         } else {
-//            if let post = post {
-//                let textController = RedditCommentTextController()
-//                textController.post = post
-//                textController.updateComments = updateComments
-//                present(textController, animated: true, completion: nil)
-//            }
+            let textController = RedditCommentTextController()
+            textController.postId = postViewModel.id
+            textController.subReddit = postViewModel.subReddit
+            textController.updateComments = updateComments
+            present(textController, animated: true, completion: nil)
         }
     }
-    
-    fileprivate func extractReplies(commentReplies: Reply) -> [Comment] {
-        var replies = [Comment]()
 
-        switch commentReplies {
-        case .string:
-            break
-        case .redditCommentResponse(let commentResponse):
-            let children = commentResponse.data.children
-            for child in children {
-                guard let redditComment = child.data else {break}
-                let author = redditComment.author ?? ""
-                let body = redditComment.body ?? ""
-                let depth = redditComment.depth ?? 0
-                let commentId = redditComment.id ?? ""
-                let created_utc = redditComment.created_utc ?? Date().timeIntervalSince1970
-                
-                if let count = redditComment.count, count == 0 {
-                    // on more
-                    continue
-                }
-
-                var cReplies = [Comment]()
-                if let commentReplies = redditComment.replies {
-                    cReplies = extractReplies(commentReplies: commentReplies)
-                }
-                let comment = Comment(author: author, body: body, depth: depth, replies: cReplies, id: commentId, isAuthorPost: false, created_utc: created_utc, count: redditComment.count, name: redditComment.name, parent_id: redditComment.parent_id, children: redditComment.children)
-                replies.append(comment)
-            }
-        }
-
-        return replies
-    }
-
-    private func extractComments(data: Data) -> [Comment] {
-        var comments = [Comment]()
-        do {
-            let decoded = try JSONDecoder().decode([RedditCommentResponse].self, from: data)
-            for (index, commentResponse) in decoded.enumerated() {
-                if index == 0 {
-                    continue
-                } else {
-                    let children = commentResponse.data.children
-                    for child in children {
-                        guard let redditComment = child.data else {continue}
-                        let author = redditComment.author ?? ""
-                        let body = redditComment.body ?? ""
-                        let depth = redditComment.depth ?? 0
-                        let commentId = redditComment.id ?? ""
-                        let created_utc = redditComment.created_utc ?? Date().timeIntervalSince1970
-
-                        var replies = [Comment]()
-                        if let commentReplies = redditComment.replies {
-                            replies = extractReplies(commentReplies: commentReplies)
-                        }
-
-                        let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: commentId, isAuthorPost: false, created_utc: created_utc, count: redditComment.count, name: redditComment.name, parent_id: redditComment.parent_id, children: redditComment.children)
-                        comments.append(comment)
-                    }
-                }
-            }
-        } catch let error {
-            print(error)
-        }
-        return comments
-    }
-
-    private func fetchComments() {
-        activityIndicatorView.startAnimating()
-        if let commentsLink = commentsLink, let url = URL(string: commentsLink) {
-            URLSession.shared.dataTask(with: url) { data, response, _ in
-                DispatchQueue.main.async {
-                    self.activityIndicatorView.stopAnimating()
-                }
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
-                    let comments = self.extractComments(data: data)
-                    self.comments = comments
-                } else {
-                    DispatchQueue.main.async {
-                        if let navController = self.navigationController {
-                            showErrorToast(controller: navController, message: "Unable to retrieve comments", seconds: 1.0)
-                        }
-                    }
-                }
-            }.resume()
-        }
-    }
-    
-    private func extractMoreReplies(data: Data) -> [Comment] {
-        var comments = [Comment]()
-        do {
-            let decoded = try JSONDecoder().decode(RedditMoreChildrentResponse.self, from: data)
-            if let things = decoded.json.data?.things {
-                for thing in things {
-                    let redditComment = thing.data
-                    let author = redditComment.author ?? ""
-                    let body = redditComment.body ?? ""
-                    let depth = redditComment.depth ?? 0
-                    let commentId = redditComment.id ?? ""
-                    let created_utc = redditComment.created_utc ?? Date().timeIntervalSince1970
-
-                    var replies = [Comment]()
-                    if let commentReplies = redditComment.replies {
-                        replies = extractReplies(commentReplies: commentReplies)
-                    }
-
-                    let comment = Comment(author: author, body: body, depth: depth, replies: replies, id: commentId, isAuthorPost: false, created_utc: created_utc, count: redditComment.count, name: redditComment.name, parent_id: redditComment.parent_id, children: redditComment.children)
-                    comments.append(comment)
-                }
-            }
-        } catch let error {
-            print(error)
-        }
-        return comments
-    }
-    
     public func updateComments(comment: Comment, parentCommentId: String?) {
-        DispatchQueue.main.async {
-            if let navController = self.navigationController {
-                showSuccessToast(controller: navController, message: "Comment posted", seconds: 1.0)
-            }
-        }
+        var indexPath: IndexPath
         if let parentCommentId = parentCommentId {
-            addReply(reply: comment, parentCommentId: parentCommentId)
+            indexPath = commentsViewModel.addReply(reply: comment, parentCommentId: parentCommentId)
         } else {
-            comments.append(comment)
+            indexPath = commentsViewModel.insertNewComment(newComment: comment)
+        }
+        DispatchQueue.main.async {
+            guard let navController = self.navigationController else {return}
+            showSuccessToast(controller: navController, message: "Comment posted", seconds: 1.0)
+            self.tableView.reloadData()
+            self.tableView.scrollToRow(at: indexPath, at: UITableView.ScrollPosition.middle, animated: false)
         }
     }
     
@@ -277,16 +224,15 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int) {
-//        if let post = post {
-//            let textController = RedditCommentTextController()
-//            textController.post = post
-//            textController.updateComments = updateComments
-//            textController.parentCommentId = parentCommentId
-//            textController.parentCommentContent = parentCommentContent
-//            textController.parentCommentAuthor = parentCommentAuthor
-//            textController.parentDepth = parentDepth
-//            present(textController, animated: true, completion: nil)
-//        }
+        let textController = RedditCommentTextController()
+        textController.postId = postViewModel.id
+        textController.subReddit = postViewModel.subReddit
+        textController.updateComments = updateComments
+        textController.parentCommentId = parentCommentId
+        textController.parentCommentContent = parentCommentContent
+        textController.parentCommentAuthor = parentCommentAuthor
+        textController.parentDepth = parentDepth
+        present(textController, animated: true, completion: nil)
     }
     
     func didTapMoreChildren(children: [String]) {
@@ -314,87 +260,87 @@ class RedditCommentsController: CommentsController, CommentDelegate {
     }
     
     func didTapOptions(commentId: String, author: String) {
-        generatorImpactOccured()
-        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
-        alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
-            
-            if !RedditService.sharedInstance.isUserAuthenticated() {
-                DispatchQueue.main.async {
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
-                    }
-                }
-                return
-            }
-            
-            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
-            reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
-                
-                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
-                if let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") {
-                    for rule in subredditRules {
-                        subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
-                            if let reason = action.title {
-                                self.reportComment(commentId: commentId, reason: reason)
-                            }
-                        }))
-                    }
-                }
-                subredditRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                self.present(subredditRulesController, animated: true, completion: nil)
-            }))
-                        
-            reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
-                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
-                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules") {
-                    for rule in siteRules {
-                        siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
-                            if let reason = action.title {
-                                self.reportComment(commentId: commentId, reason: reason)
-                            }
-                        }))
-                    }
-                }
-                siteRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                self.present(siteRulesController, animated: true, completion: nil)
-            }))
-            
-            reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-            
-            self.present(reportOptionsController, animated: true, completion: nil)
-        }))
-        if let username = RedditService.sharedInstance.getUsername(), username == author {
-            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
-                self.deleteComment(commentId: commentId)
-            }))
-        }
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        
-        present(alertController, animated: true, completion: nil)
+//        generatorImpactOccured()
+//        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+//        alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
+//
+//            if !RedditService.sharedInstance.isUserAuthenticated() {
+//                DispatchQueue.main.async {
+//                    if let navController = self.navigationController {
+//                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 1.0)
+//                    }
+//                }
+//                return
+//            }
+//
+//            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+//            reportOptionsController.addAction(UIAlertAction(title: "r/PokemonGoSnap Rules", style: .default, handler: { _ in
+//
+//                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+//                if let subredditRules = self.defaults?.stringArray(forKey: "PokemonGoSnapRules") {
+//                    for rule in subredditRules {
+//                        subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+//                            if let reason = action.title {
+//                                self.reportComment(commentId: commentId, reason: reason)
+//                            }
+//                        }))
+//                    }
+//                }
+//                subredditRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+//                self.present(subredditRulesController, animated: true, completion: nil)
+//            }))
+//
+//            reportOptionsController.addAction(UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
+//                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+//                if let siteRules = self.defaults?.stringArray(forKey: "SiteRules") {
+//                    for rule in siteRules {
+//                        siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+//                            if let reason = action.title {
+//                                self.reportComment(commentId: commentId, reason: reason)
+//                            }
+//                        }))
+//                    }
+//                }
+//                siteRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+//                self.present(siteRulesController, animated: true, completion: nil)
+//            }))
+//
+//            reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+//
+//            self.present(reportOptionsController, animated: true, completion: nil)
+//        }))
+//        if let username = RedditService.sharedInstance.getUsername(), username == author {
+//            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
+//                self.deleteComment(commentId: commentId)
+//            }))
+//        }
+//        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+//
+//        present(alertController, animated: true, completion: nil)
     }
     
-    private func deleteComment(commentId: String) {
-        let cid = "t1_\(commentId)"
-        RedditService.sharedInstance.delete(id: cid) { result in
-            switch result {
-            case .success:
-                self.removeComment(commentId: commentId)
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
-                    }
-                }
-            case .error:
-                DispatchQueue.main.async {
-                    generatorImpactOccured()
-                    if let navController = self.navigationController {
-                        showErrorToast(controller: navController, message: "Could not delete the comment", seconds: 0.5)
-                    }
-                }
-            }
-        }
-    }
+//    private func deleteComment(commentId: String) {
+//        let cid = "t1_\(commentId)"
+//        RedditService.sharedInstance.delete(id: cid) { result in
+//            switch result {
+//            case .success:
+//                self.removeComment(commentId: commentId)
+//                DispatchQueue.main.async {
+//                    generatorImpactOccured()
+//                    if let navController = self.navigationController {
+//                        showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
+//                    }
+//                }
+//            case .error:
+//                DispatchQueue.main.async {
+//                    generatorImpactOccured()
+//                    if let navController = self.navigationController {
+//                        showErrorToast(controller: navController, message: "Could not delete the comment", seconds: 0.5)
+//                    }
+//                }
+//            }
+//        }
+//    }
     
     private func reportComment(commentId: String, reason: String) {
 //        guard let post = post else {return}
@@ -422,9 +368,9 @@ class RedditCommentsController: CommentsController, CommentDelegate {
 
 extension RedditCommentsController {
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if !archived {
+        if !commentsViewModel.archived {
             let bottomEdge = scrollView.contentOffset.y + scrollView.frame.size.height
-            if bottomEdge >= scrollView.contentSize.height && linearizedComments.count > 2 {
+            if bottomEdge >= scrollView.contentSize.height && commentsViewModel.getCount() > 2 {
                 addButton.isHidden = true
             } else {
                 addButton.isHidden = false

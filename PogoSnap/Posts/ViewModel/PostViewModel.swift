@@ -22,6 +22,7 @@ class PostViewModel: ListDiffable {
     public let userIconString: String?
     public let authenticated: Bool
     public let author: String
+    public let id: String
     
     init(post: Post, index: Int, authenticated: Bool) {
         self.index = index
@@ -37,6 +38,7 @@ class PostViewModel: ListDiffable {
         archived = post.archived
         userIconString = post.user_icon
         author = post.author
+        id = post.id
     }
         
     func diffIdentifier() -> NSObjectProtocol {

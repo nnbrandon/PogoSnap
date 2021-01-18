@@ -9,7 +9,8 @@ import UIKit
 
 class RedditCommentTextController: UIViewController {
     
-    var post: Post?
+    var postId: String = ""
+    var subReddit: String = ""
     var updateComments: ((Comment, String?) -> Void)?
     var parentCommentId: String?
     var parentDepth: Int?
@@ -150,8 +151,7 @@ class RedditCommentTextController: UIViewController {
                 showErrorToast(controller: self, message: "Enter a comment", seconds: 1.0)
             }
         } else {
-            if let username = RedditService.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
-                let postId = post.id
+            if let username = RedditService.sharedInstance.getUsername(), let body = commentTextField.text {
                 DispatchQueue.main.async {
                     self.activityIndicatorView.startAnimating()
                     self.submitButton.isHidden = true
@@ -160,7 +160,7 @@ class RedditCommentTextController: UIViewController {
                 if let parentCommentId = parentCommentId {
                     parentId = "t1_\(parentCommentId)"
                 }
-                RedditService.sharedInstance.postComment(subReddit: post.subReddit, parentId: parentId, text: body) { result in
+                RedditService.sharedInstance.postComment(subReddit: subReddit, parentId: parentId, text: body) { result in
                     switch result {
                     case .success(let commentId):
                         var depth = 0

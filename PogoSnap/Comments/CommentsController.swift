@@ -91,6 +91,7 @@ open class CommentsController: UITableViewController, UIGestureRecognizerDelegat
                         for index in 0..<toShow.count {
                             indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
                         }
+                        
                         tableView.insertRows(at: indexPaths, with: .bottom)
                         
                         if makeExpandedCellsVisible {

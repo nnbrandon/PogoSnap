@@ -76,4 +76,3 @@ struct RedditRepliesResponse: Decodable {
     let kind: String // Listing
     let data: RedditComment
 }
-

@@ -184,10 +184,10 @@ extension PostListSectionController: ControlViewDelegate {
 
         let redditCommentsController = RedditCommentsController()
         redditCommentsController.hidesBottomBarWhenPushed = true
-        redditCommentsController.commentsLink = post.commentsLink
-        redditCommentsController.archived = post.archived
+        let commentsViewModel = CommentsViewModel(post: post, authenticated: authenticated, redditStaticClient: RedditStaticService())
         let postViewModel = PostViewModel(post: post, index: section, authenticated: authenticated)
         let controlViewModel = ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: authenticated)
+        redditCommentsController.commentsViewModel = commentsViewModel
         redditCommentsController.postViewModel = postViewModel
         redditCommentsController.controlViewModel = controlViewModel
         redditCommentsController.postControlView.frame = CGRect(x: 0, y: 0, width: width, height: height)

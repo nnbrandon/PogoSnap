@@ -38,6 +38,11 @@ class PostControlView: UIView {
     
     let postView = PostView()
     let controlView = ControlView()
+    var addCommentFunc: (() -> Void)? {
+        didSet {
+            controlView.addCommentFunc = addCommentFunc
+        }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)

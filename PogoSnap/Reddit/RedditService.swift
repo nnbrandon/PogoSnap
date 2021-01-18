@@ -16,8 +16,6 @@ class RedditService {
     
     // MARK: Caching
     var userIconCache = NSCache<NSString, NSString>()
-    var siteRules = [String]()
-    var subRedditRules = [String]()
 
     private init() {}
     
@@ -481,21 +479,15 @@ class RedditService {
     }
     
     public func getSubredditRules(subReddit: String) -> [String] {
-        if subRedditRules.isEmpty {
-            guard let subRedditRules = self.defaults?.stringArray(forKey: subReddit) else {
-                return [String]()
-            }
-            self.subRedditRules = subRedditRules
+        guard let subRedditRules = self.defaults?.stringArray(forKey: subReddit) else {
+            return [String]()
         }
         return subRedditRules
     }
     
     public func getSiteRules() -> [String] {
-        if siteRules.isEmpty {
-            guard let siteRules = self.defaults?.stringArray(forKey: "SiteRules") else {
-                return [String]()
-            }
-            self.siteRules = siteRules
+        guard let siteRules = self.defaults?.stringArray(forKey: "SiteRules") else {
+            return [String]()
         }
         return siteRules
     }
@@ -524,7 +516,7 @@ class RedditService {
                     
                     self.defaults?.setValue(subredditRules, forKey: subReddit)
                     self.defaults?.setValue(siteRules, forKey: "SiteRules")
-                    
+                                        
                     completion(RedditRulesResult.success(rules: rulesResponse))
                 } catch {
                     completion(RedditRulesResult.error(error: "Unable to fetch rules"))
