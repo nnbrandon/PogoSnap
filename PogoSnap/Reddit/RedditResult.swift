@@ -46,3 +46,8 @@ enum RedditRulesResult {
     case success(rules: RedditRulesResponse)
     case error(error: String)
 }
+
+enum RedditCommentsResult {
+    case success(comments: [Comment])
+    case error(error: String)
+}

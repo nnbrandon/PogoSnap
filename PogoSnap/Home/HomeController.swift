@@ -6,23 +6,21 @@
 //
 
 import UIKit
+import IGListKit
 import YPImagePicker
 
-class HomeController: PostCollectionController {
+class HomeController: UIViewController {
+    
+    var viewModel: HomeViewModel!
 
-    var pokemonGoAfter: String? = ""
-    var pokemonGoSnapAfter: String? = ""
-    var sort = SortOptions.hot
-    var topOption: String?
-    var listLayoutOption = ListLayoutOptions.card
-    var userSignFlag: String?
-
-    let cardCellId = "cardCellId"
-    let galleryCellId = "galleryCellId"
-    let footerId = "footerId"
-    let headerId = "headerId"
-    let defaults = UserDefaults(suiteName: "group.com.PogoSnap")
-
+    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: ListCollectionViewLayout(stickyHeaders: false, scrollDirection: .vertical, topContentInset: 0, stretchToEdge: false))
+    lazy var adapter: ListAdapter = {
+      return ListAdapter(
+      updater: ListAdapterUpdater(),
+      viewController: self,
+      workingRangeSize: 10)
+    }()
+    
     let refreshControl: UIRefreshControl = {
         let control = UIRefreshControl()
         control.addTarget(self, action: #selector(refreshPosts), for: .valueChanged)
@@ -32,10 +30,29 @@ class HomeController: PostCollectionController {
         let activityView = UIActivityIndicatorView()
         return activityView
     }()
-    let footerView = UIActivityIndicatorView()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        viewModel = HomeViewModel(redditClient: RedditService.sharedInstance, imgurClient: ImgurClient.sharedInstance)
+        
+        view.addSubview(collectionView)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        
+        adapter.collectionView = collectionView
+        adapter.dataSource = self
+        adapter.scrollViewDelegate = self
+        collectionView.refreshControl = refreshControl
+        
+        view.addSubview(activityIndicatorView)
+        activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
+        activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        
         navigationItem.title = "PogoSnap"
         if traitCollection.userInterfaceStyle == .light {
             collectionView.backgroundColor = .white
@@ -48,132 +65,145 @@ class HomeController: PostCollectionController {
             barButton.tintColor = .white
             navigationItem.rightBarButtonItem = barButton
         }
-        
-        pinCollectionView(to: view)
-        collectionView.delegate = self
-        collectionView.dataSource = self
-
-        collectionView.register(HomePostCell.self, forCellWithReuseIdentifier: cardCellId)
-        collectionView.register(UserProfileCell.self, forCellWithReuseIdentifier: galleryCellId)
-        collectionView.refreshControl = refreshControl
-        collectionView.register(HomeHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerId)
-        collectionView.register(CollectionViewFooterView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: footerId)
-        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.headerReferenceSize = CGSize(width: collectionView.bounds.width, height: 35)
-        (collectionView.collectionViewLayout as? UICollectionViewFlowLayout)?.footerReferenceSize = CGSize(width: collectionView.bounds.width, height: 50)
-
-        view.addSubview(activityIndicatorView)
-        activityIndicatorView.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicatorView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        activityIndicatorView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
-
-        userSignFlag = RedditClient.sharedInstance.getUsername()
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        let previousUserSignFlag = userSignFlag
-        userSignFlag = RedditClient.sharedInstance.getUsername()
-        if previousUserSignFlag != userSignFlag {
-            posts = [Post]()
-            pokemonGoAfter = ""
-            pokemonGoSnapAfter = ""
+        if viewModel.userStatusChanged() {
+            adapter.reloadData(completion: nil)
         }
-        if posts.isEmpty || posts.count == 1 {
-            activityIndicatorView.startAnimating()
-//            fetchRules()
+        if viewModel.postsIsEmpty() {
+            viewModel.fetchRules()
             fetchPosts()
         }
     }
     
-    private func fetchPosts() {
-//        if let after = after {
-//            RedditClient.sharedInstance.fetchPosts(after: after, sort: sort.rawValue, topOption: topOption) { result in
-//                DispatchQueue.main.async {
-//                    self.activityIndicatorView.stopAnimating()
-//                    self.footerView.stopAnimating()
-//                }
-//                switch result {
-//                case .success(let posts, let nextAfter):
-//                    self.posts.append(contentsOf: posts)
-//                    self.after = nextAfter
-//                case .error:
-//                    DispatchQueue.main.async {
-//                        showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 1.0)
-//                    }
-//                }
-//            }
-//        } else {
-//            activityIndicatorView.stopAnimating()
-//            footerView.stopAnimating()
-//        }
-        RedditClient.sharedInstance.fetchGoAndSnapPosts(pokemonGoAfter: pokemonGoAfter, pokemonGoSnapAfter: pokemonGoSnapAfter, sort: sort.rawValue, topOption: topOption) { result in
-            DispatchQueue.main.async {
-                self.activityIndicatorView.stopAnimating()
-                self.footerView.stopAnimating()
-            }
-            switch result {
-            case .success(let posts, let nextPokemonGoSnapAfter, let nextPokemonGoAfter):
-                self.posts.append(contentsOf: posts)
-                self.pokemonGoSnapAfter = nextPokemonGoSnapAfter
-                self.pokemonGoAfter = nextPokemonGoAfter
-            case .error:
-                DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 3.0)
-                }
-            }
-        }
-    }
-    
-    private func fetchRules() {
-        RedditClient.sharedInstance.fetchRules { _ in}
-    }
-    
-    @objc private func refreshPosts() {
-        if posts.isEmpty {
-            activityIndicatorView.startAnimating()
-        }
-        RedditClient.sharedInstance.fetchGoAndSnapPosts(pokemonGoAfter: "", pokemonGoSnapAfter: "", sort: sort.rawValue, topOption: topOption) { result in
+    func fetchPosts() {
+        viewModel.fetchPosts { error in
             DispatchQueue.main.async {
                 self.refreshControl.endRefreshing()
                 self.activityIndicatorView.stopAnimating()
             }
-            switch result {
-            case .success(let posts, let nextPokemonGoSnapAfter, let nextPokemonGoAfter):
-                if self.posts != posts {
-                    self.posts = posts
-                    self.pokemonGoSnapAfter = nextPokemonGoSnapAfter
-                    self.pokemonGoAfter = nextPokemonGoAfter
-                }
-            case .error:
+            if let error = error {
                 DispatchQueue.main.async {
-                    showErrorToast(controller: self, message: "Failed to retrieve posts", seconds: 3.0)
+                    showErrorToast(controller: self, message: error, seconds: 3.0)
+                }
+            } else {
+                self.adapter.performUpdates(animated: true, completion: nil)
+            }
+        }
+    }
+    
+    @objc private func refreshPosts() {
+        if viewModel.postsIsEmpty() {
+            activityIndicatorView.startAnimating()
+        }
+        fetchPosts()
+    }
+    
+    private func deletePost(id: String) {
+        viewModel.deletePost(id: id) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    guard let navController = self.navigationController else {return}
+                    showErrorToast(controller: navController, message: error, seconds: 2.0)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.adapter.performUpdates(animated: true, completion: nil)
+                    guard let navController = self.navigationController else {return}
+                    showSuccessToast(controller: navController, message: "Deleted", seconds: 2.0)
                 }
             }
         }
     }
     
-    private func changeSort() {
+    private func reportPost(id: String, subReddit: String, reason: String) {
+        viewModel.reportPost(id: id, subReddit: subReddit, reason: reason) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    guard let navController = self.navigationController else {return}
+                    showErrorToast(controller: navController, message: error, seconds: 2.0)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    guard let navController = self.navigationController else {return}
+                    showSuccessToast(controller: navController, message: "Reported", seconds: 2.0)
+                }
+            }
+        }
+    }
+    
+    @objc func handleAdd() {
+        if viewModel.username == nil {
+            DispatchQueue.main.async {
+                if let navController = self.navigationController {
+                    showErrorToast(controller: navController, message: "You need to sign in to upload an image", seconds: 0.5)
+                }
+            }
+        } else {
+            var config = YPImagePickerConfiguration()
+            config.screens = [.library]
+            config.showsPhotoFilters = false
+            config.shouldSaveNewPicturesToAlbum = false
+            let picker = YPImagePicker(configuration: config)
+            if traitCollection.userInterfaceStyle == .dark {
+                picker.navigationBar.barTintColor = RedditConsts.redditDarkMode
+                picker.view.backgroundColor = RedditConsts.redditDarkMode
+            }
+            picker.didFinishPicking { [unowned picker] items, cancelled in
+                if cancelled {
+                    picker.dismiss(animated: true, completion: nil)
+                }
+                if let photo = items.singlePhoto {
+                    let sharePhotoVC = SharePhotoController()
+                    sharePhotoVC.delegate = self
+                    sharePhotoVC.selectedImage = photo.image
+                    picker.pushViewController(sharePhotoVC, animated: true)
+                }
+            }
+            present(picker, animated: true, completion: nil)
+        }
+    }
+}
+
+extension HomeController: ListAdapterDataSource {
+    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
+        return viewModel.getPosts()
+    }
+    
+    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
+        let postListSectionController = PostListSectionController()
+        postListSectionController.homeHeaderDelegate = self
+        postListSectionController.basePostsDelegate = self
+        postListSectionController.sort = viewModel.sort
+        postListSectionController.topOption = viewModel.topOption
+        postListSectionController.listLayoutOption = viewModel.listLayoutOption
+        postListSectionController.authenticated = viewModel.isUserAuthenticated()
+        return postListSectionController
+    }
+    
+    func emptyView(for listAdapter: ListAdapter) -> UIView? {
+        return nil
+    }
+}
+
+extension HomeController: HomeHeaderDelegate {
+    func changeSort() {
         generatorImpactOccured()
 
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Hot", style: .default, handler: { _ in
-            self.sort = SortOptions.hot
-            self.posts = []
-            self.pokemonGoSnapAfter = ""
-            self.pokemonGoAfter = ""
-            self.topOption = nil
+            self.viewModel.changeSort(sort: SortOptions.hot, topOption: nil)
+            self.adapter.performUpdates(animated: true, completion: nil)
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
             }
             self.fetchPosts()
         }))
         alertController.addAction(UIAlertAction(title: "New", style: .default, handler: { _ in
-            self.sort = SortOptions.new
-            self.posts = []
-            self.pokemonGoSnapAfter = ""
-            self.pokemonGoAfter = ""
-            self.topOption = nil
+            self.viewModel.changeSort(sort: SortOptions.new, topOption: nil)
+            self.adapter.performUpdates(animated: true, completion: nil)
             DispatchQueue.main.async {
                 self.activityIndicatorView.startAnimating()
             }
@@ -213,11 +243,8 @@ class HomeController: PostCollectionController {
                     } else if action == "All Time" {
                         topOption = "all"
                     }
-                    self.sort = SortOptions.top
-                    self.posts = []
-                    self.pokemonGoSnapAfter = ""
-                    self.pokemonGoAfter = ""
-                    self.topOption = topOption
+                    self.viewModel.changeSort(sort: SortOptions.top, topOption: topOption)
+                    self.adapter.performUpdates(animated: true, completion: nil)
                     DispatchQueue.main.async {
                         self.activityIndicatorView.startAnimating()
                     }
@@ -228,73 +255,111 @@ class HomeController: PostCollectionController {
             self.present(topAlertController, animated: true, completion: nil)
         }))
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        
         present(alertController, animated: true, completion: nil)
     }
     
-    private func changeLayout() {
+    func changeLayout() {
         generatorImpactOccured()
-
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
         alertController.addAction(UIAlertAction(title: "Card", style: .default, handler: { _ in
-            self.listLayoutOption = .card
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
+            self.viewModel.changeLayout(layout: .card)
+            self.adapter.reloadData(completion: nil)
         }))
         alertController.addAction(UIAlertAction(title: "Gallery", style: .default, handler: { _ in
-            self.listLayoutOption = .gallery
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
+            self.viewModel.changeLayout(layout: .gallery)
+            self.adapter.reloadData(completion: nil)
         }))
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        
+        present(alertController, animated: true, completion: nil)
+    }
+}
+
+extension HomeController: BasePostsDelegate {
+    func didTapOptions(index: Int) {
+        let post = viewModel.getPost(index: index)
+        let id = post.id
+        let subReddit = post.subReddit
+        let authenticated = viewModel.isUserAuthenticated()
+        let subRedditRules = viewModel.getSubredditRules(subReddit: subReddit)
+        let siteRules = viewModel.getSiteRules()
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+        alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
+            if !authenticated {
+                DispatchQueue.main.async {
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 2.0)
+                    }
+                }
+                return
+            }
+            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+            let subRedditRulesAction = self.getAlertForRules(id: id, rules: subRedditRules, subReddit: subReddit, isSubRedditRules: true)
+            let siteRulesAction = self.getAlertForRules(id: id, rules: siteRules, subReddit: subReddit, isSubRedditRules: false)
+            reportOptionsController.addAction(subRedditRulesAction)
+            reportOptionsController.addAction(siteRulesAction)
+            reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            self.present(reportOptionsController, animated: true, completion: nil)
+        }))
+        if viewModel.canDelete(post: post) {
+            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
+                self.deletePost(id: id)
+            }))
+        }
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+
         present(alertController, animated: true, completion: nil)
     }
     
-    @objc func handleAdd() {
-        if RedditClient.sharedInstance.getUsername() == nil {
-            DispatchQueue.main.async {
-                if let navController = self.navigationController {
-                    showErrorToast(controller: navController, message: "You need to sign in to upload an image", seconds: 0.5)
+    private func getAlertForRules(id: String, rules: [String], subReddit: String, isSubRedditRules: Bool) -> UIAlertAction {
+        var action: UIAlertAction
+        if isSubRedditRules {
+            action = UIAlertAction(title: "r/\(subReddit) Rules", style: .default, handler: { _ in
+                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+                for rule in rules {
+                    subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+                        if let reason = action.title {
+                            self.reportPost(id: id, subReddit: subReddit, reason: reason)
+                        }
+                    }))
                 }
-            }
+                subredditRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                self.present(subredditRulesController, animated: true, completion: nil)
+            })
         } else {
-            var config = YPImagePickerConfiguration()
-            config.screens = [.library]
-            config.showsPhotoFilters = false
-            config.shouldSaveNewPicturesToAlbum = false
-            let picker = YPImagePicker(configuration: config)
-            if traitCollection.userInterfaceStyle == .dark {
-                picker.navigationBar.barTintColor = RedditConsts.redditDarkMode
-                picker.view.backgroundColor = RedditConsts.redditDarkMode
-            }
-            picker.didFinishPicking { [unowned picker] items, cancelled in
-                if cancelled {
-                    picker.dismiss(animated: true, completion: nil)
+            action = UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
+                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+                for rule in rules {
+                    siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+                        if let reason = action.title {
+                            self.reportPost(id: id, subReddit: subReddit, reason: reason)
+                        }
+                    }))
                 }
-                if let photo = items.singlePhoto {
-                    let sharePhotoVC = SharePhotoController()
-                    sharePhotoVC.delegate = self
-                    sharePhotoVC.selectedImage = photo.image
-                    picker.pushViewController(sharePhotoVC, animated: true)
-                }
-            }
-            present(picker, animated: true, completion: nil)
+                siteRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                self.present(siteRulesController, animated: true, completion: nil)
+            })
+        }
+        return action
+    }
+}
+
+extension HomeController: UIScrollViewDelegate {
+    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+        let distance = scrollView.contentSize.height - (targetContentOffset.pointee.y + scrollView.bounds.height)
+        if !viewModel.fetching && distance < 200 {
+            fetchPosts()
         }
     }
 }
 
 extension HomeController: ShareDelegate {
-    
     func imageSubmitted(image: UIImage, title: String) {
-        guard let author = RedditClient.sharedInstance.getUsername() else {return}
+        guard let author = RedditService.sharedInstance.getUsername() else {return}
 
         if let navController = self.navigationController {
             let progressView = navController.view.subviews.last as? UIProgressView
             progressView?.setProgress(0.5, animated: true)
-            
+
             ImgurClient.sharedInstance.uploadImageToImgur(image: image) { result in
                 switch result {
                 case .success(let imageSource):
@@ -302,7 +367,7 @@ extension HomeController: ShareDelegate {
                         progressView?.setProgress(0.9, animated: true)
                     }
                     guard let imageSource = imageSource else {return}
-                    RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
+                    RedditService.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
                         DispatchQueue.main.async {
                             progressView?.setProgress(1.0, animated: true)
                         }
@@ -312,14 +377,19 @@ extension HomeController: ShareDelegate {
                             if let postData = postData, let postId = postData.id {
                                 ImgurClient.sharedInstance.incrementUploadCount()
                                 message = "Image upload success"
-                                let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
+                                let commentsLink = "https://www.reddit.com/r/\(RedditConsts.pokemonGoSnapSubredditName)/comments/" + postId + ".json"
                                 let aspectFit = imageSource.width >= imageSource.height
-                                let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditClient.sharedInstance.getIconImg(), subReddit: RedditConsts.subredditName)
-                                self.posts.insert(post, at: 0)
+                                let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditService.sharedInstance.getIconImg(), subReddit: RedditConsts.pokemonGoSnapSubredditName)
+                                self.viewModel.insertNewPost(post: post)
                                 DispatchQueue.main.async {
                                     if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
-                                        userProfileController.posts.insert(post, at: 0)
+                                        if userProfileController.isViewLoaded {
+                                            userProfileController.posts.insert(post, at: 1)
+                                        } else {
+                                            userProfileController.posts.insert(post, at: 0)
+                                        }
                                     }
+                                    self.adapter.performUpdates(animated: true, completion: nil)
                                 }
                             }
                         case .error:
@@ -334,7 +404,7 @@ extension HomeController: ShareDelegate {
                             progressView?.setProgress(0, animated: true)
                         }
                     }
-                
+
                 case .error(let error):
                     DispatchQueue.main.async {
                         progressView?.setProgress(0.0, animated: true)
@@ -347,114 +417,5 @@ extension HomeController: ShareDelegate {
                 }
             }
         }
-    }
-}
-
-extension HomeController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        if kind == UICollectionView.elementKindSectionHeader {
-            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerId, for: indexPath) as? HomeHeader else {return UICollectionReusableView()}
-            header.sortOption = sort
-            if let topOption = topOption {
-                header.topOption = TopOptions(rawValue: topOption)
-            }
-            header.changeSort = changeSort
-            header.listLayoutOption = listLayoutOption
-            header.changeLayout = changeLayout
-            return header
-        }
-         if kind == UICollectionView.elementKindSectionFooter {
-             let footer = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: footerId, for: indexPath)
-             footer.addSubview(footerView)
-             footerView.frame = CGRect(x: 0, y: 0, width: collectionView.bounds.width, height: 50)
-             return footer
-         }
-         return UICollectionReusableView()
-     }
-
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        switch listLayoutOption {
-        case .card:
-            let post = posts[indexPath.row]
-            var imageFrameHeight = view.frame.width
-            if !post.aspectFit {
-                imageFrameHeight += view.frame.width/2
-            }
-            var height = 8 + 30 + 50 + imageFrameHeight
-            let title = posts[indexPath.row].title
-            let titleEstimatedHeight = title.height(withConstrainedWidth: view.frame.width - 16, font: UIFont.boldSystemFont(ofSize: 18))
-            height += titleEstimatedHeight
-            return CGSize(width: view.frame.width, height: height)
-        case .gallery:
-            let width = (view.frame.width - 2) / 3
-            return CGSize(width: width, height: width)
-        }
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        switch listLayoutOption {
-        case .card:
-            return 10
-        case .gallery:
-            return getSpacingForCells()
-        }
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        switch listLayoutOption {
-        case .card:
-            return 10
-        case .gallery:
-            return getSpacingForCells()
-        }
-    }
-
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return posts.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        switch listLayoutOption {
-        case .card:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cardCellId, for: indexPath) as? HomePostCell
-            else {
-                return UICollectionViewCell()
-            }
-            cell.post = posts[indexPath.row]
-            cell.index = indexPath.row
-            cell.delegate = self
-
-            return cell
-        case .gallery:
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: galleryCellId, for: indexPath) as? UserProfileCell
-            else {
-                return UICollectionViewCell()
-            }
-            cell.photoImageView.image = UIImage()
-            let post = posts[indexPath.row]
-            cell.post = post
-            cell.index = indexPath.row
-            cell.delegate = self
-
-            return cell
-        }
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.row == posts.count - 8 {
-            footerView.startAnimating()
-            fetchPosts()
-        }
-    }
-}
-
-public class CollectionViewFooterView: UICollectionReusableView {
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 }

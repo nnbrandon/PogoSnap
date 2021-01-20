@@ -79,8 +79,7 @@ class HomeHeader: UICollectionViewCell {
             }
         }
     }
-    var changeSort: (() -> Void)?
-    var changeLayout: (() -> Void)?
+    weak var delegate: HomeHeaderDelegate?
     
     lazy var sortButton: UIButton = {
         let button = UIButton(type: .system)
@@ -124,10 +123,10 @@ class HomeHeader: UICollectionViewCell {
     }
     
     @objc func handleSort() {
-        changeSort?()
+        delegate?.changeSort()
     }
     
     @objc func handleList() {
-        changeLayout?()
+        delegate?.changeLayout()
     }
 }

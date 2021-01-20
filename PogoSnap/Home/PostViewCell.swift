@@ -6,32 +6,13 @@
 //
 
 import UIKit
+import IGListKit
 
-class HomePostCell: UICollectionViewCell {
-    
+class PostViewCell: UICollectionViewCell, ListBindable {
+
     let postView = PostView()
-    var post: Post? {
-        didSet {
-            if let post = post {
-                postView.post = post
-            }
-        }
-    }
-        
-    var delegate: PostViewDelegate? {
-        didSet {
-            if let delegate = delegate {
-                postView.delegate = delegate
-            }
-        }
-    }
-    var index: Int? {
-        didSet {
-            if let index = index {
-                postView.index = index
-            }
-        }
-    }
+    weak var postViewDelegate: PostViewDelegate?
+    weak var basePostsDelegate: BasePostsDelegate?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -49,5 +30,12 @@ class HomePostCell: UICollectionViewCell {
     
     override func prepareForReuse() {
         postView.resetView()
+    }
+    
+    func bindViewModel(_ viewModel: Any) {
+        guard let viewModel = viewModel as? PostViewModel else {return}
+        postView.postViewModel = viewModel
+        postView.postViewDelegate = postViewDelegate
+        postView.basePostsDelegate = basePostsDelegate
     }
 }

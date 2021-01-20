@@ -17,6 +17,12 @@ struct Comment: Equatable {
     var isFolded: Bool = false
     let created_utc: TimeInterval
     
+    // More
+    let count: Int?
+    let name: String?
+    let parent_id: String?
+    let children: [String]?
+    
     static func == (lhs: Comment, rhs: Comment) -> Bool {
         return lhs.author == rhs.author && lhs.body == rhs.body && lhs.id == rhs.id
     }

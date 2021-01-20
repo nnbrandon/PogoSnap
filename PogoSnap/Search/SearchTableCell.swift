@@ -11,7 +11,7 @@ class SearchTableCell: UITableViewCell {
     
     var index = 0 {
         didSet {
-            if index == 0 {
+            if index < 2 {
                 if traitCollection.userInterfaceStyle == .dark {
                     let image = UIImage(named: "search-7")?.withRenderingMode(.alwaysTemplate)
                     let tintedImage = image?.withTintColor(.white)

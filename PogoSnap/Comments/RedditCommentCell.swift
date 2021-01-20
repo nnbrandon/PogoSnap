@@ -7,12 +7,9 @@
 
 import UIKit
 
-protocol CommentDelegate: class {
-    func didTapUsername(username: String)
-    func didTapReply(parentCommentId: String, parentCommentContent: String, parentCommentAuthor: String, parentDepth: Int)
-    func didTapOptions(commentId: String, author: String)
-}
-
+/**
+ TODO: Needs view model due to how complicated I made this cell
+ */
 class RedditCommentCell: CommentCell {
     
     private var content: RedditCommentView {
@@ -25,6 +22,25 @@ class RedditCommentCell: CommentCell {
         didSet {
             if let commentId = commentId {
                 content.commentId = commentId
+            }
+        }
+    }
+    
+    // MORE
+    var isMore: Bool = false {
+        didSet {
+            content.isMore = isMore
+        }
+    }
+    var count: Int? {
+        didSet {
+            content.count = count
+        }
+    }
+    var children: [String]? {
+        didSet {
+            if let children = children {
+                content.children = children
             }
         }
     }
@@ -106,6 +122,36 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     
     var commentId: String?
     var commentDepth: Int?
+    
+    // MORE
+    var isMore: Bool = false {
+        didSet {
+            if isMore {
+                moreButton.isHidden = false
+                usernameLabel.isHidden = true
+                replyButton.isHidden = true
+                optionsButton.isHidden = true
+            } else {
+                moreButton.isHidden = true
+                usernameLabel.isHidden = false
+                replyButton.isHidden = false
+                optionsButton.isHidden = false
+            }
+        }
+    }
+    var children: [String]?
+    var count: Int? {
+        didSet {
+            if let count = count {
+                if count == 1 {
+                    moreButton.setTitle("1 more reply", for: .normal)
+                } else {
+                    moreButton.setTitle("\(count) more replies", for: .normal)
+                }
+            }
+        }
+    }
+
     var created: TimeInterval? {
         didSet {
             if let created = created, let userText = usernameLabel.text {
@@ -172,6 +218,14 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         return button
     }()
     
+    lazy var moreButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("MORE", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
+        button.addTarget(self, action: #selector(handleMoreChildren), for: .touchUpInside)
+        return button
+    }()
+    
     lazy var replyButton: UIButton = {
         let btn = UIButton()
         btn.setTitle(" Reply", for: .normal)
@@ -195,6 +249,12 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
     @objc func handleOptions() {
         if let commentId = commentId {
             delegate?.didTapOptions(commentId: commentId, author: author)
+        }
+    }
+    
+    @objc func handleMoreChildren() {
+        if let children = children {
+            delegate?.didTapMoreChildren(children: children)
         }
     }
     
@@ -239,6 +299,11 @@ class RedditCommentView: UIView, UIScrollViewDelegate {
         contentLabel.topAnchor.constraint(equalTo: usernameLabel.bottomAnchor, constant: 8).isActive = true
         contentHeightConstraint = contentLabel.heightAnchor.constraint(equalToConstant: 0)
         
+        addSubview(moreButton)
+        moreButton.translatesAutoresizingMaskIntoConstraints = false
+        moreButton.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
+        moreButton.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
+
         setupControlView()
         
         addSubview(controlView)

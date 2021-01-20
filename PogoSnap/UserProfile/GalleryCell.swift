@@ -6,24 +6,16 @@
 //
 
 import UIKit
+import IGListKit
 
-protocol ProfileImageDelegate: class {
-    func didTapImageGallery(post: Post, index: Int)
-}
-
-class UserProfileCell: UICollectionViewCell {
-    
-    var post: Post? {
+class GalleryCell: UICollectionViewCell, ListBindable {
+        
+    var photoImageUrl: String! {
         didSet {
-            if let post = post {
-                if !post.imageSources.isEmpty {
-                    photoImageView.loadImage(urlString: post.imageSources[0].url)
-                }
-            }
+            photoImageView.loadImage(urlString: photoImageUrl)
         }
     }
-    weak var delegate: ProfileImageDelegate?
-    var index: Int?
+    weak var controlViewDelegate: ControlViewDelegate?
     
     lazy var photoImageView: CustomImageView = {
         let imageView = CustomImageView()
@@ -38,8 +30,7 @@ class UserProfileCell: UICollectionViewCell {
     }()
     
     @objc private func handleImage() {
-        guard let post = post, let index = index else {return}
-        delegate?.didTapImageGallery(post: post, index: index)
+        controlViewDelegate?.didTapComment()
     }
     
     override init(frame: CGRect) {
@@ -53,5 +44,10 @@ class UserProfileCell: UICollectionViewCell {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    func bindViewModel(_ viewModel: Any) {
+        guard let viewModel = viewModel as? GalleryViewModel else {return}
+        photoImageUrl = viewModel.photoImageUrl
     }
 }

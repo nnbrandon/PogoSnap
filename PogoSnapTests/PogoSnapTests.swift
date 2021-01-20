@@ -1,12 +1,11 @@
 //
-//  PogoTradeTests.swift
-//  PogoTradeTests
+//  PogoSnapTests.swift
+//  PogoSnapTests
 //
-//  Created by Brandon Nguyen on 11/14/20.
+//  Created by Brandon Nguyen on 1/17/21.
 //
 
 import XCTest
-@testable import PogoSnap
 
 class PogoSnapTests: XCTestCase {
 
@@ -25,7 +24,7 @@ class PogoSnapTests: XCTestCase {
 
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
-        self.measure {
+        measure {
             // Put the code you want to measure the time of here.
         }
     }

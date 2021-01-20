@@ -91,6 +91,7 @@ open class CommentsController: UITableViewController, UIGestureRecognizerDelegat
                         for index in 0..<toShow.count {
                             indexPaths.append(IndexPath(row: selectedIndex+index+1, section: indexPath.section))
                         }
+                        
                         tableView.insertRows(at: indexPaths, with: .bottom)
                         
                         if makeExpandedCellsVisible {
@@ -137,6 +138,39 @@ open class CommentsController: UITableViewController, UIGestureRecognizerDelegat
         }
     }
     
+    func addMoreReplies(moreReplies: [Comment], children: [String]) {
+        if moreReplies.isEmpty {
+            for (idx, comment) in linearizedComments.enumerated() {
+                if let commentChildren = comment.children {
+                    if commentChildren == children {
+                        linearizedComments.remove(at: idx)
+                    }
+                }
+            }
+        } else {
+            guard let parentId = moreReplies.first?.parent_id else {return}
+            var index = 0
+            for (idx, comment) in linearizedComments.enumerated() {
+                if let commentParentId = comment.parent_id, comment.children != nil, commentParentId == parentId {
+                    index = idx
+                }
+            }
+            var replaced = false
+            for reply in moreReplies {
+                if replaced {
+                    linearizedComments.insert(reply, at: index)
+                } else {
+                    linearizedComments[index] = reply
+                    replaced = true
+                }
+                index += 1
+            }
+        }
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
+    }
+
     func removeComment(commentId: String) {
         if let index = linearizedComments.firstIndex(where: { comment -> Bool in comment.id == commentId}) {
             linearizedComments[index].author = "[deleted]"

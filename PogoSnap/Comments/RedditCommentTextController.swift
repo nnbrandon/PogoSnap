@@ -9,7 +9,8 @@ import UIKit
 
 class RedditCommentTextController: UIViewController {
     
-    var post: Post?
+    var postId: String = ""
+    var subReddit: String = ""
     var updateComments: ((Comment, String?) -> Void)?
     var parentCommentId: String?
     var parentDepth: Int?
@@ -140,7 +141,7 @@ class RedditCommentTextController: UIViewController {
     }
     
     @objc func handleSubmit() {
-        let authenticated = RedditClient.sharedInstance.isUserAuthenticated()
+        let authenticated = RedditService.sharedInstance.isUserAuthenticated()
         if !authenticated {
             DispatchQueue.main.async {
                 showErrorToast(controller: self, message: "You need to be signed in to comment", seconds: 1.0)
@@ -150,8 +151,7 @@ class RedditCommentTextController: UIViewController {
                 showErrorToast(controller: self, message: "Enter a comment", seconds: 1.0)
             }
         } else {
-            if let username = RedditClient.sharedInstance.getUsername(), let body = commentTextField.text, let post = post {
-                let postId = post.id
+            if let username = RedditService.sharedInstance.getUsername(), let body = commentTextField.text {
                 DispatchQueue.main.async {
                     self.activityIndicatorView.startAnimating()
                     self.submitButton.isHidden = true
@@ -160,14 +160,14 @@ class RedditCommentTextController: UIViewController {
                 if let parentCommentId = parentCommentId {
                     parentId = "t1_\(parentCommentId)"
                 }
-                RedditClient.sharedInstance.postComment(parentId: parentId, text: body) { result in
+                RedditService.sharedInstance.postComment(subReddit: subReddit, parentId: parentId, text: body) { result in
                     switch result {
                     case .success(let commentId):
                         var depth = 0
                         if let parentDepth = self.parentDepth {
                             depth = parentDepth + 1
                         }
-                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId, isAuthorPost: false, created_utc: Date().timeIntervalSince1970)
+                        let comment = Comment(author: username, body: body, depth: depth, replies: [Comment](), id: commentId, isAuthorPost: false, created_utc: Date().timeIntervalSince1970, count: nil, name: nil, parent_id: nil, children: nil)
                         self.updateComments?(comment, self.parentCommentId)
                         generatorImpactOccured()
                         DispatchQueue.main.async {
