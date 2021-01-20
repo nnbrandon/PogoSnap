@@ -118,7 +118,7 @@ class RedditCommentsController: UITableViewController, UIGestureRecognizerDelega
                         // expand
                         let indexPaths = commentsViewModel.expandSelectedComment(selectedIndex: selectedIndex, selectedComment: selectedComment, indexPath: indexPath)
                         tableView.insertRows(at: indexPaths, with: .bottom)
-                        tableView.scrollToRow(at: IndexPath(row: selectedIndex + 1, section: indexPath.section), at: UITableView.ScrollPosition.middle, animated: false)
+                        tableView.scrollToRow(at: IndexPath(row: selectedIndex + 1, section: indexPath.section), at: UITableView.ScrollPosition.middle, animated: true)
                     }
                     DispatchQueue.main.async {
                         self.tableView.reloadData()

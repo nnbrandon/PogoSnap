@@ -17,7 +17,7 @@ class ImgurClient {
         static let imgurClientId = "6b4d7944e52e28f"
         static let imgurClientSecret = "bacb98c85b5e7561bb107f17181c1ae579cfa75c"
         static let imgurList = "imgurList"
-        static let maxUploadCount = 30
+        static let maxUploadCount = 3
     }
     let keychain = Keychain(service: "com.PogoSnap", accessGroup: "group.com.PogoSnap")
     
