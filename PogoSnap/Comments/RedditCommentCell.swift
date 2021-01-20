@@ -7,6 +7,9 @@
 
 import UIKit
 
+/**
+ TODO: Needs view model due to how complicated I made this cell
+ */
 class RedditCommentCell: CommentCell {
     
     private var content: RedditCommentView {

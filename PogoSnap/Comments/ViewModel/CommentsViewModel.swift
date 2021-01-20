@@ -9,22 +9,113 @@ import Foundation
 
 class CommentsViewModel {
     
-    let redditStaticClient: StaticServiceProtocol
+    let redditStaticService: StaticServiceProtocol
+    let redditService: RedditService
     let commentsLink: String
     let archived: Bool
     let authenticated: Bool
+    let postId: String
+    let postSubReddit: String
     
     var flattenedComments: [Comment] = []
     
-    init(post: Post, authenticated: Bool, redditStaticClient: StaticServiceProtocol) {
+    init(post: Post, authenticated: Bool, redditStaticService: StaticServiceProtocol, redditService: RedditService) {
         archived = post.archived
         commentsLink = post.commentsLink
+        postId = post.id
+        postSubReddit = post.subReddit
         self.authenticated = authenticated
-        self.redditStaticClient = redditStaticClient
+        self.redditStaticService = redditStaticService
+        self.redditService = redditService
     }
 }
 
+// RedditService
 extension CommentsViewModel {
+    func getSubredditRules(subReddit: String) -> [String] {
+        return redditService.getSubredditRules(subReddit: subReddit)
+    }
+    
+    func getSiteRules() -> [String] {
+        return redditService.getSiteRules()
+    }
+    
+    func canDelete(author: String) -> Bool {
+        return redditService.getUsername() == author
+    }
+    
+    func deleteComment(commentId: String, completion: @escaping (String?) -> Void) {
+        let cid = "t1_\(commentId)"
+        redditService.delete(id: cid) { result in
+            switch result {
+            case .success:
+                if let index = self.flattenedComments.firstIndex(where: { comment -> Bool in comment.id == commentId}) {
+                    self.flattenedComments[index].author = "[deleted]"
+                    self.flattenedComments[index].body = "[deleted]"
+                }
+                completion(nil)
+            case .error(let error):
+                completion(error)
+            }
+        }
+    }
+    
+    func reportComment(commentId: String, reason: String, completion: @escaping (String?) -> Void) {
+        let cid = "t1_\(commentId)"
+        redditService.report(subReddit: postSubReddit, id: cid, reason: reason) { result in
+            switch result {
+            case .success:
+                completion(nil)
+            case .error(let error):
+                completion(error)
+            }
+        }
+    }
+}
+
+// RedditStaticService
+extension CommentsViewModel {
+        
+    func getMoreChildren(children: [String], completion: @escaping (String?) -> Void) {
+        redditStaticService.moreChildren(postId: postId, children: children) { result in
+            switch result {
+            case .success(let comments):
+                self.addMoreReplies(moreReplies: comments, children: children)
+                completion(nil)
+            case .error(let error):
+                completion(error)
+            }
+        }
+    }
+    
+    func addMoreReplies(moreReplies: [Comment], children: [String]) {
+        if moreReplies.isEmpty {
+            for (idx, comment) in flattenedComments.enumerated() {
+                if let commentChildren = comment.children, commentChildren == children {
+                    flattenedComments.remove(at: idx)
+                }
+            }
+        } else {
+            let flattenedNewComments = self.flattenComments(comments: moreReplies)
+            guard let parentId = flattenedNewComments.first?.parent_id else {return}
+            var index = 0
+            for (idx, comment) in self.flattenedComments.enumerated() {
+                if let commentParentId = comment.parent_id, comment.children != nil, commentParentId == parentId {
+                    index = idx
+                }
+            }
+            var replaced = false
+            for reply in flattenedNewComments {
+                if replaced {
+                    flattenedComments.insert(reply, at: index)
+                } else {
+                    flattenedComments[index] = reply
+                    replaced = true
+                }
+                index += 1
+            }
+        }
+    }
     
     func addReply(reply: Comment, parentCommentId: String) -> IndexPath {
         var index = 0
@@ -84,7 +175,7 @@ extension CommentsViewModel {
     }
 
     func fetchComments(completion: @escaping (String?) -> Void) {
-        redditStaticClient.fetchComments(commentsLink: commentsLink) { result in
+        redditStaticService.fetchComments(commentsLink: commentsLink) { result in
             switch result {
             case .success(let comments):
                 let flattenedComments = self.flattenComments(comments: comments)

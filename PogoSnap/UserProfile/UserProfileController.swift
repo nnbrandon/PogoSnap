@@ -5,6 +5,10 @@
 //  Created by Brandon Nguyen on 11/15/20.
 //
 
+/**
+ TODO: Convert this to MVVM. Super messy rn.
+ */
+
 import UIKit
 import IGListKit
 
@@ -239,15 +243,139 @@ extension UserProfileController: ListAdapterDataSource {
             return userSectionController
         } else {
             let postListSectionController = PostListSectionController()
-//            postListSectionController.postViewDelegate = self
-//            postListSectionController.profileImageDelegate = self
             postListSectionController.listLayoutOption = listLayoutOption
+            postListSectionController.basePostsDelegate = self
+            postListSectionController.authenticated = RedditService.sharedInstance.isUserAuthenticated()
             return postListSectionController
         }
     }
     
     func emptyView(for listAdapter: ListAdapter) -> UIView? {
         return nil
+    }
+}
+
+extension UserProfileController: BasePostsDelegate {
+    
+    private func deletePost(id: String) {
+        let postId = "t3_\(id)"
+        RedditService.sharedInstance.delete(id: postId) { result in
+            switch result {
+            case .success:
+                var index = -1
+                for (idx, post) in self.posts.enumerated() {
+                    if let post = post as? Post, post.id == id {
+                        index = idx
+                        break
+                    }
+                }
+                if index > -1 {
+                    self.posts.remove(at: index)
+                    DispatchQueue.main.async {
+                        generatorImpactOccured()
+                        if let navController = self.navigationController {
+                            showSuccessToast(controller: navController, message: "Deleted", seconds: 0.5)
+                        }
+                    }
+                }
+            case .error:
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not delete the post", seconds: 0.5)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func reportPost(id: String, subReddit: String, reason: String) {
+        let postId = "t3_\(id)"
+        RedditService.sharedInstance.report(subReddit: subReddit, id: postId, reason: reason) { result in
+            switch result {
+            case .success:
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    if let navController = self.navigationController {
+                        showSuccessToast(controller: navController, message: "Reported", seconds: 0.5)
+                    }
+                }
+            case .error:
+                DispatchQueue.main.async {
+                    generatorImpactOccured()
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "Could not report the post", seconds: 0.5)
+                    }
+                }
+            }
+        }
+    }
+
+    func didTapOptions(index: Int) {
+        guard let post = posts[index] as? Post else { return }
+        let id = post.id
+        let subReddit = post.subReddit
+        let authenticated = RedditService.sharedInstance.isUserAuthenticated()
+        let subRedditRules = RedditService.sharedInstance.getSubredditRules(subReddit: post.subReddit)
+        let siteRules = RedditService.sharedInstance.getSiteRules()
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+        alertController.addAction(UIAlertAction(title: "Report", style: .default, handler: { _ in
+            if !authenticated {
+                DispatchQueue.main.async {
+                    if let navController = self.navigationController {
+                        showErrorToast(controller: navController, message: "You need to be signed in to report", seconds: 2.0)
+                    }
+                }
+                return
+            }
+            let reportOptionsController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+            let subRedditRulesAction = self.getAlertForRules(id: id, rules: subRedditRules, subReddit: subReddit, isSubRedditRules: true)
+            let siteRulesAction = self.getAlertForRules(id: id, rules: siteRules, subReddit: subReddit, isSubRedditRules: false)
+            reportOptionsController.addAction(subRedditRulesAction)
+            reportOptionsController.addAction(siteRulesAction)
+            reportOptionsController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            self.present(reportOptionsController, animated: true, completion: nil)
+        }))
+        if post.author == RedditService.sharedInstance.getUsername() {
+            alertController.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
+                self.deletePost(id: id)
+            }))
+        }
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+
+        present(alertController, animated: true, completion: nil)
+    }
+    
+    private func getAlertForRules(id: String, rules: [String], subReddit: String, isSubRedditRules: Bool) -> UIAlertAction {
+        var action: UIAlertAction
+        if isSubRedditRules {
+            action = UIAlertAction(title: "r/\(subReddit) Rules", style: .default, handler: { _ in
+                let subredditRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+                for rule in rules {
+                    subredditRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+                        if let reason = action.title {
+                            self.reportPost(id: id, subReddit: subReddit, reason: reason)
+                        }
+                    }))
+                }
+                subredditRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                self.present(subredditRulesController, animated: true, completion: nil)
+            })
+        } else {
+            action = UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
+                let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
+                for rule in rules {
+                    siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
+                        if let reason = action.title {
+                            self.reportPost(id: id, subReddit: subReddit, reason: reason)
+                        }
+                    }))
+                }
+                siteRulesController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                self.present(siteRulesController, animated: true, completion: nil)
+            })
+        }
+        return action
     }
 }
 
@@ -259,11 +387,6 @@ extension UserProfileController: UIScrollViewDelegate {
                 if let user = posts.first as? User {
                     fetchUserPosts(username: user.username, user_icon: user.user_icon)
                 }
-//                if let usernameProp = self.usernameProp {
-//                    fetchUserPosts(username: usernameProp, user_icon: self.icon_imgProp)
-//                } else if let username = RedditClient.sharedInstance.getUsername() {
-//                    fetchUserPosts(username: username, user_icon: RedditClient.sharedInstance.getIconImg())
-//                }
             }
         }
     }

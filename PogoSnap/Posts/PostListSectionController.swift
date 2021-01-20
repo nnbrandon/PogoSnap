@@ -17,6 +17,7 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
     var authenticated: Bool = false
     var localLikeCount: Int?
     var localLiked: Bool?
+    var changed: Bool = false
 
     weak var homeHeaderDelegate: HomeHeaderDelegate?
     weak var basePostsDelegate: BasePostsDelegate?
@@ -56,9 +57,14 @@ class PostListSectionController: ListBindingSectionController<ListDiffable>,
     
     func sectionController(_ sectionController: ListBindingSectionController<ListDiffable>, viewModelsFor object: Any) -> [ListDiffable] {
         guard let post = object as? Post else {fatalError()}
+        
+        var liked = localLiked ?? post.liked
+        if localLiked == nil && changed {
+            liked = localLiked
+        }
         let results: [ListDiffable] = [
           PostViewModel(post: post, index: section, authenticated: RedditService.sharedInstance.isUserAuthenticated()),
-            ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: RedditService.sharedInstance.isUserAuthenticated()),
+            ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: liked, authenticated: RedditService.sharedInstance.isUserAuthenticated(), archived: post.archived),
             GalleryViewModel(photoImageUrl: post.imageSources.first?.url)
         ]
         return results
@@ -149,13 +155,17 @@ extension PostListSectionController: ControlViewDelegate {
             return
         }
         guard let post = object as? Post else {return}
+        if post.archived {
+            guard let navController = viewController?.navigationController else { return }
+            showErrorToast(controller: navController, message: "Post is archived", seconds: 2.0)
+            return
+        }
         if direction == 0 {
             if let liked = localLiked ?? post.liked {
+                localLiked = nil
                 if liked {
-                    localLiked = nil
                     localLikeCount = (localLikeCount ?? post.score) - 1
                 } else {
-                    localLiked = nil
                     localLikeCount = (localLikeCount ?? post.score) + 1
                 }
             }
@@ -166,6 +176,7 @@ extension PostListSectionController: ControlViewDelegate {
             localLiked = false
             localLikeCount = (localLikeCount ?? post.score) - 1
         }
+        changed = true
         RedditService.sharedInstance.votePost(subReddit: post.subReddit, postId: post.id, direction: direction) {_ in }
         update(animated: true, completion: nil)
     }
@@ -184,9 +195,9 @@ extension PostListSectionController: ControlViewDelegate {
 
         let redditCommentsController = RedditCommentsController()
         redditCommentsController.hidesBottomBarWhenPushed = true
-        let commentsViewModel = CommentsViewModel(post: post, authenticated: authenticated, redditStaticClient: RedditStaticService())
+        let commentsViewModel = CommentsViewModel(post: post, authenticated: authenticated, redditStaticService: RedditStaticService(), redditService: RedditService.sharedInstance)
         let postViewModel = PostViewModel(post: post, index: section, authenticated: authenticated)
-        let controlViewModel = ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: authenticated)
+        let controlViewModel = ControlViewModel(likeCount: localLikeCount ?? post.score, commentCount: post.numComments, liked: localLiked ?? post.liked, authenticated: authenticated, archived: post.archived)
         redditCommentsController.commentsViewModel = commentsViewModel
         redditCommentsController.postViewModel = postViewModel
         redditCommentsController.controlViewModel = controlViewModel

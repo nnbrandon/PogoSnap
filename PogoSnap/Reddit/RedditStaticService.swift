@@ -90,7 +90,7 @@ class RedditStaticService: StaticServiceProtocol {
         return replies
     }
     
-    func moreChildren(data: Data) -> [Comment] {
+    func extractMoreReplies(data: Data) -> [Comment] {
         var comments = [Comment]()
         do {
             let decoded = try JSONDecoder().decode(RedditMoreChildrentResponse.self, from: data)
@@ -116,5 +116,22 @@ class RedditStaticService: StaticServiceProtocol {
             print(error)
         }
         return comments
+    }
+    
+    func moreChildren(postId: String, children: [String], completion: @escaping CommentsHandler) {
+        let postId = "t3_\(postId)"
+        let childrenQuery = children.joined(separator: ",")
+        guard let url = URL(string: "https://www.reddit.com/api/morechildren.json?api_type=json&limit_children=false&link_id=\(postId)&children=\(childrenQuery)") else {
+            return
+        }
+
+        URLSession.shared.dataTask(with: url) { data, response, _ in
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data {
+                let moreReplies = self.extractMoreReplies(data: data)
+                completion(RedditCommentsResult.success(comments: moreReplies))
+            } else {
+                completion(RedditCommentsResult.error(error: "Unabe to retrieve more replies"))
+            }
+        }.resume()
     }
 }

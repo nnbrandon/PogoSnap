@@ -9,5 +9,5 @@ import Foundation
 
 protocol StaticServiceProtocol {
     func fetchComments(commentsLink: String, completion: @escaping RedditStaticService.CommentsHandler)
-    func moreChildren(data: Data) -> [Comment]
+    func moreChildren(postId: String, children: [String], completion: @escaping RedditStaticService.CommentsHandler)
 }

@@ -43,6 +43,11 @@ class HomeViewModel {
 }
 
 extension HomeViewModel {
+    
+    func insertNewPost(post: Post) {
+        posts.insert(post, at: 0)
+    }
+    
     func postsIsEmpty() -> Bool {
         return posts.isEmpty || posts.count <= 3
     }

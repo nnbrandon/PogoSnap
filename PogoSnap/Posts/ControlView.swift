@@ -116,13 +116,11 @@ class ControlView: UIView {
         } else if let liked = controlViewModel.liked {
             direction = liked ? 0 : 1
         }
-        if controlViewModel.fromPostControlView {
-            if direction == 0 {
-                liked = nil
-            } else if direction == 1 {
+        if controlViewModel.fromPostControlView && !controlViewModel.archived {
+            if direction == 1 {
                 liked = true
             } else {
-                liked = false
+                liked = nil
             }
         }
         controlViewDelegate?.didTapVote(direction: direction)

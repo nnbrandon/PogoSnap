@@ -14,13 +14,15 @@ class ControlViewModel: ListDiffable {
     let commentCount: String
     let authenticated: Bool
     let liked: Bool?
+    let archived: Bool
     var fromPostControlView: Bool = false
     
-    init(likeCount: Int, commentCount: Int, liked: Bool?, authenticated: Bool) {
+    init(likeCount: Int, commentCount: Int, liked: Bool?, authenticated: Bool, archived: Bool) {
         self.likeCount = String(likeCount)
         self.commentCount = String(commentCount)
         self.liked = liked
         self.authenticated = authenticated
+        self.archived = archived
     }
     
     func diffIdentifier() -> NSObjectProtocol {

@@ -103,13 +103,15 @@ class HomeController: UIViewController {
     
     private func deletePost(id: String) {
         viewModel.deletePost(id: id) { error in
-            guard let navController = self.navigationController else {return}
             if let error = error {
                 DispatchQueue.main.async {
+                    guard let navController = self.navigationController else {return}
                     showErrorToast(controller: navController, message: error, seconds: 2.0)
                 }
             } else {
                 DispatchQueue.main.async {
+                    self.adapter.performUpdates(animated: true, completion: nil)
+                    guard let navController = self.navigationController else {return}
                     showSuccessToast(controller: navController, message: "Deleted", seconds: 2.0)
                 }
             }
@@ -118,13 +120,14 @@ class HomeController: UIViewController {
     
     private func reportPost(id: String, subReddit: String, reason: String) {
         viewModel.reportPost(id: id, subReddit: subReddit, reason: reason) { error in
-            guard let navController = self.navigationController else {return}
             if let error = error {
                 DispatchQueue.main.async {
+                    guard let navController = self.navigationController else {return}
                     showErrorToast(controller: navController, message: error, seconds: 2.0)
                 }
             } else {
                 DispatchQueue.main.async {
+                    guard let navController = self.navigationController else {return}
                     showSuccessToast(controller: navController, message: "Reported", seconds: 2.0)
                 }
             }
@@ -154,7 +157,7 @@ class HomeController: UIViewController {
                 }
                 if let photo = items.singlePhoto {
                     let sharePhotoVC = SharePhotoController()
-//                    sharePhotoVC.delegate = self
+                    sharePhotoVC.delegate = self
                     sharePhotoVC.selectedImage = photo.image
                     picker.pushViewController(sharePhotoVC, animated: true)
                 }
@@ -323,7 +326,7 @@ extension HomeController: BasePostsDelegate {
                 self.present(subredditRulesController, animated: true, completion: nil)
             })
         } else {
-            action = UIAlertAction(title: title, style: .default, handler: { _ in
+            action = UIAlertAction(title: "Spam or Abuse", style: .default, handler: { _ in
                 let siteRulesController = UIAlertController(title: nil, message: nil, preferredStyle: getCurrentInterfaceForAlerts())
                 for rule in rules {
                     siteRulesController.addAction(UIAlertAction(title: rule, style: .default, handler: { action in
@@ -349,65 +352,70 @@ extension HomeController: UIScrollViewDelegate {
     }
 }
 
-//extension HomeController: ShareDelegate {
-//    func imageSubmitted(image: UIImage, title: String) {
-//        guard let author = RedditClient.sharedInstance.getUsername() else {return}
-//
-//        if let navController = self.navigationController {
-//            let progressView = navController.view.subviews.last as? UIProgressView
-//            progressView?.setProgress(0.5, animated: true)
-//
-//            ImgurClient.sharedInstance.uploadImageToImgur(image: image) { result in
-//                switch result {
-//                case .success(let imageSource):
-//                    DispatchQueue.main.async {
-//                        progressView?.setProgress(0.9, animated: true)
-//                    }
-//                    guard let imageSource = imageSource else {return}
-//                    RedditClient.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
-//                        DispatchQueue.main.async {
-//                            progressView?.setProgress(1.0, animated: true)
-//                        }
-//                        var message = ""
-//                        switch result {
-//                        case .success(let postData):
-//                            if let postData = postData, let postId = postData.id {
-//                                ImgurClient.sharedInstance.incrementUploadCount()
-//                                message = "Image upload success"
-//                                let commentsLink = "https://www.reddit.com/r/\(RedditConsts.subredditName)/comments/" + postId + ".json"
-//                                let aspectFit = imageSource.width >= imageSource.height
-//                                let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditClient.sharedInstance.getIconImg(), subReddit: RedditConsts.subredditName)
-//                                self.posts.insert(post, at: 0)
-//                                DispatchQueue.main.async {
-//                                    if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
-//                                        userProfileController.posts.insert(post, at: 0)
-//                                    }
-//                                }
-//                            }
-//                        case .error:
-//                            message = "Image upload failed"
-//                        }
-//                        DispatchQueue.main.async {
-//                            self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-//                            generatorImpactOccured()
-//                            if let navController = self.navigationController {
-//                                showImageToast(controller: navController, message: message, image: image, seconds: 10.0)
-//                            }
-//                            progressView?.setProgress(0, animated: true)
-//                        }
-//                    }
-//
-//                case .error(let error):
-//                    DispatchQueue.main.async {
-//                        progressView?.setProgress(0.0, animated: true)
-//                        generatorImpactOccured()
-//                        if let navController = self.navigationController {
-//                            showErrorToast(controller: navController, message: error, seconds: 10.0)
-//                        }
-//                    }
-//                    return
-//                }
-//            }
-//        }
-//    }
-//}
+extension HomeController: ShareDelegate {
+    func imageSubmitted(image: UIImage, title: String) {
+        guard let author = RedditService.sharedInstance.getUsername() else {return}
+
+        if let navController = self.navigationController {
+            let progressView = navController.view.subviews.last as? UIProgressView
+            progressView?.setProgress(0.5, animated: true)
+
+            ImgurClient.sharedInstance.uploadImageToImgur(image: image) { result in
+                switch result {
+                case .success(let imageSource):
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(0.9, animated: true)
+                    }
+                    guard let imageSource = imageSource else {return}
+                    RedditService.sharedInstance.submitImageLink(link: imageSource.url, text: title) { result in
+                        DispatchQueue.main.async {
+                            progressView?.setProgress(1.0, animated: true)
+                        }
+                        var message = ""
+                        switch result {
+                        case .success(let postData):
+                            if let postData = postData, let postId = postData.id {
+                                ImgurClient.sharedInstance.incrementUploadCount()
+                                message = "Image upload success"
+                                let commentsLink = "https://www.reddit.com/r/\(RedditConsts.pokemonGoSnapSubredditName)/comments/" + postId + ".json"
+                                let aspectFit = imageSource.width >= imageSource.height
+                                let post = Post(author: author, title: title, imageSources: [imageSource], score: 1, numComments: 0, commentsLink: commentsLink, archived: false, id: postId, created_utc: Date().timeIntervalSince1970, liked: true, aspectFit: aspectFit, user_icon: RedditService.sharedInstance.getIconImg(), subReddit: RedditConsts.pokemonGoSnapSubredditName)
+                                self.viewModel.insertNewPost(post: post)
+                                DispatchQueue.main.async {
+                                    if let userNavController = self.tabBarController?.viewControllers?.last as? UINavigationController, let userProfileController = userNavController.viewControllers.first as? UserProfileController {
+                                        if userProfileController.isViewLoaded {
+                                            userProfileController.posts.insert(post, at: 1)
+                                        } else {
+                                            userProfileController.posts.insert(post, at: 0)
+                                        }
+                                    }
+                                    self.adapter.performUpdates(animated: true, completion: nil)
+                                }
+                            }
+                        case .error:
+                            message = "Image upload failed"
+                        }
+                        DispatchQueue.main.async {
+                            self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+                            generatorImpactOccured()
+                            if let navController = self.navigationController {
+                                showImageToast(controller: navController, message: message, image: image, seconds: 10.0)
+                            }
+                            progressView?.setProgress(0, animated: true)
+                        }
+                    }
+
+                case .error(let error):
+                    DispatchQueue.main.async {
+                        progressView?.setProgress(0.0, animated: true)
+                        generatorImpactOccured()
+                        if let navController = self.navigationController {
+                            showErrorToast(controller: navController, message: error, seconds: 10.0)
+                        }
+                    }
+                    return
+                }
+            }
+        }
+    }
+}
