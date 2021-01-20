@@ -116,7 +116,7 @@ class ControlView: UIView {
         } else if let liked = controlViewModel.liked {
             direction = liked ? 0 : 1
         }
-        if controlViewModel.fromPostControlView && !controlViewModel.archived {
+        if controlViewModel.fromPostControlView && !controlViewModel.archived && controlViewModel.authenticated {
             if direction == 1 {
                 liked = true
             } else {
@@ -134,7 +134,7 @@ class ControlView: UIView {
         } else if let liked = controlViewModel.liked {
             direction = liked ? -1 : 0
         }
-        if controlViewModel.fromPostControlView {
+        if controlViewModel.fromPostControlView && !controlViewModel.archived && controlViewModel.authenticated {
             if direction == 0 {
                 liked = nil
             } else if direction == 1 {
