@@ -11,8 +11,8 @@ import KeychainAccess
 
 class RedditOAuth {
     var oauthSwift = OAuth2Swift(
-        consumerKey: RedditConsts.redditClientId,
-        consumerSecret: RedditConsts.redditClientSecret,
+        consumerKey: Config.redditClientId,
+        consumerSecret: Config.redditClientSecret,
         authorizeUrl: RedditConsts.redditAuthorizeUrl,
         accessTokenUrl: RedditConsts.redditAccessTokenUrl,
         responseType: RedditConsts.responseType
@@ -73,16 +73,16 @@ class RedditOAuth {
     public func changeCompact(compact: Bool) {
         if compact {
             self.oauthSwift = OAuth2Swift(
-                consumerKey: RedditConsts.redditClientId,
-                consumerSecret: RedditConsts.redditClientSecret,
+                consumerKey: Config.redditClientId,
+                consumerSecret: Config.redditClientSecret,
                 authorizeUrl: RedditConsts.redditAuthorizeUrl,
                 accessTokenUrl: RedditConsts.redditAccessTokenUrl,
                 responseType: RedditConsts.responseType
             )
         } else {
             self.oauthSwift = OAuth2Swift(
-                consumerKey: RedditConsts.redditClientId,
-                consumerSecret: RedditConsts.redditClientSecret,
+                consumerKey: Config.redditClientId,
+                consumerSecret: Config.redditClientSecret,
                 authorizeUrl: RedditConsts.redditNonCompactAuthorizeUrl,
                 accessTokenUrl: RedditConsts.redditAccessTokenUrl,
                 responseType: RedditConsts.responseType

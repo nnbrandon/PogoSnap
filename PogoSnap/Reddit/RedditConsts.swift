@@ -11,7 +11,7 @@ import UIKit
 struct RedditConsts {
     static let pokemonGoSnapSubredditName = "PokemonGoSnap"
     static let pokemonGoSubredditName = "PokemonGo"
-//    static let pokemonGoSnapSubredditName = "PogoSnap"
+    //    static let pokemonGoSnapSubredditName = "PogoSnap"
 
     static let username = "username"
     static let icon_img = "icon_img"
@@ -20,8 +20,6 @@ struct RedditConsts {
     static let redditExpireDate = "redditExpireDate"
     static let redditSignedIn = "redditSignedIn"
 
-    static let redditClientId = "f5M2aPLjT8rUgg"
-    static let redditClientSecret = ""
     static let redditAuthorizeUrl = "https://www.reddit.com/api/v1/authorize.compact"
     static let redditNonCompactAuthorizeUrl = "https://www.reddit.com/api/v1/authorize"
     static let redditAccessTokenUrl = "https://www.reddit.com/api/v1/access_token"
@@ -31,7 +29,7 @@ struct RedditConsts {
     static let duration = "permanent"
     static let scope = "read submit edit identity report save history vote privatemessages"
     
-    static let userAgent = "ios:PogoSnap:1.0.0 (by /u/nnbrandon)"
+    static let userAgent = "ios:PogoSnap:1.0.2 (by /u/nnbrandon)"
     static let oauthEndpoint = "https://oauth.reddit.com"
     static let meEndpoint = oauthEndpoint + "/api/v1/me"
     static let reportEndpoint = oauthEndpoint + "/api/report"

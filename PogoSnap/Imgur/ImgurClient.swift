@@ -14,7 +14,6 @@ class ImgurClient {
     
     static var sharedInstance = ImgurClient()
     struct Const {
-        static let imgurClientId = "6b4d7944e52e28f"
         static let imgurList = "imgurList"
         static let maxUploadCount = 3
     }
@@ -139,7 +138,7 @@ class ImgurClient {
         getBase64Image(image: image) { base64Image in
             let boundary = "Boundary-\(UUID().uuidString)"
             var request = URLRequest(url: URL(string: "https://api.imgur.com/3/image")!)
-            request.addValue("Client-ID \(Const.imgurClientId)", forHTTPHeaderField: "Authorization")
+            request.addValue("Client-ID \(Config.imgurClientId)", forHTTPHeaderField: "Authorization")
             request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
             request.httpMethod = "POST"
 
@@ -189,7 +188,7 @@ class ImgurClient {
             return
         }
         var request = URLRequest(url: URL(string: "https://api.imgur.com/3/image/\(deleteHash)")!)
-        request.addValue("Client-ID \(Const.imgurClientId)", forHTTPHeaderField: "Authorization")
+        request.addValue("Client-ID \(Config.imgurClientId)", forHTTPHeaderField: "Authorization")
         request.httpMethod = "DELETE"
         
         URLSession.shared.dataTask(with: request) { data, response, _ in
